@@ -6,3 +6,6 @@ A Real-time sports tracking application
 2. bug/{username_issue-number}: Existing code or infrastructure that is broken or behaving unexpectedly
 3. test/{username_issue-number}:  Writing unit tests, integration tests, or configuring production-grade load testing scripts
 4. documentation/{username}: Writing wikis, API schemas, or updating setup readmes
+
+
+Kindly add comment to issues and refrain from closing the issues
