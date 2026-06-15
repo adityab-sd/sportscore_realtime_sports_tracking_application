@@ -1,30 +1,17 @@
-2️⃣ Update the Java Service Code (Example API Service)
-To see how this works in your actual Java code, here is an example of a secure service class utilizing your hidden keys. It uses Spring's @Value annotation to safely inject your live match API credentials at runtime:
+package org.Spring;
 
-Java
-package com.sportsscore.backend.service;
+//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
+// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+public class Main {
+    public static void main(String[] args) {
+        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
+        // to see how IntelliJ IDEA suggests fixing it.
+        System.out.println("Hello and welcome!");
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
-@Service
-public class SportsDataService {
-
-    // Safely injects the hidden key from your .env file
-    @Value("${sports.api.key}")
-    private String apiKey;
-
-    @Value("${sports.api.base-url}")
-    private String baseUrl;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    public String getLiveMatchScores() {
-        // Build the secure URL using the hidden API key
-        String url = baseUrl + "/scores/json/AllLiveMatches?key=" + apiKey;
-        
-        // Fetch the data from the external provider safely
-        return restTemplate.getForObject(url, String.class);
+        for (int i = 1; i <= 5; i++) {
+            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
+            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
+            System.out.println("i = " + i);
+        }
     }
 }
