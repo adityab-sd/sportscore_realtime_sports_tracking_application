@@ -9,7 +9,6 @@ import org.Spring.model.Team;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Maps an API-Football /fixtures response into our Match model. */
 public class ApiFootballAdapter {
 
     private final ObjectMapper mapper = new ObjectMapper();
