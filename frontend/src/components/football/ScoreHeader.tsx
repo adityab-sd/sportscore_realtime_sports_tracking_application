@@ -14,10 +14,10 @@ function StatusLabel({ match }: { match: Match }) {
 export default function ScoreHeader({ match }: Props) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 text-center">
-      <div className="text-xs text-gray-400 mb-4">{match.competition}</div>
+      <div className="text-xs text-gray-400 mb-4">{match.league}</div>
       <div className="flex items-center justify-between gap-6">
         <div className="flex-1">
-          <div className="text-4xl mb-2">⚽</div>
+          <div className="text-4xl mb-2"></div>
           <div className="font-bold text-lg text-gray-900">{match.homeTeam.name}</div>
           <div className="text-xs text-gray-400">{match.homeTeam.shortName}</div>
         </div>
@@ -28,7 +28,7 @@ export default function ScoreHeader({ match }: Props) {
           <StatusLabel match={match} />
         </div>
         <div className="flex-1">
-          <div className="text-4xl mb-2">⚽</div>
+          <div className="text-4xl mb-2"></div>
           <div className="font-bold text-lg text-gray-900">{match.awayTeam.name}</div>
           <div className="text-xs text-gray-400">{match.awayTeam.shortName}</div>
         </div>
