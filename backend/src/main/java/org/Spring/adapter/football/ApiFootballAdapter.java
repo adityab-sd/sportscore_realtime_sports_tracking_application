@@ -41,9 +41,9 @@ public class ApiFootballAdapter {
         Integer homeScore = intOrNull(goals.path("home"));
         Integer awayScore = intOrNull(goals.path("away"));
 
-        // The /fixtures endpoint does not include events;
-        // those come from /fixtures/events (a later task).
-        List<MatchEvent> events = new ArrayList<>();
+        // Read the events array (goals, cards) if present.
+        // It is included for single-fixture and live (live=all) requests.
+        List<MatchEvent> events = toEvents(item.path("events"));
 
         return new Match(id, statusShort, elapsed, kickoff, competition,
                 home, away, homeScore, awayScore, events);
@@ -55,6 +55,36 @@ public class ApiFootballAdapter {
                 textOrNull(t.path("name")),
                 "", // /fixtures has no short code
                 textOrNull(t.path("logo")));
+    }
+
+    /** Reads the events array from a fixture into MatchEvent records. */
+    private List<MatchEvent> toEvents(JsonNode eventsArray) {
+        List<MatchEvent> events = new ArrayList<>();
+        for (JsonNode e : eventsArray) {
+            int minute = e.path("time").path("elapsed").asInt();
+            String type = mapType(textOrNull(e.path("type")));
+            String detail = e.path("detail").asText("");
+            String player = textOrNull(e.path("player").path("name"));
+            JsonNode assistName = e.path("assist").path("name");
+            String assist = (assistName.isNull() || assistName.isMissingNode())
+                    ? null
+                    : assistName.asText();
+            int teamId = e.path("team").path("id").asInt();
+            events.add(new MatchEvent(minute, type, detail, player, assist, teamId));
+        }
+        return events;
+    }
+
+    /** Turns API-Football event types into our lowercase types. */
+    private String mapType(String apiType) {
+        String t = (apiType == null) ? "" : apiType.toLowerCase();
+        return switch (t) {
+            case "goal" -> "goal";
+            case "card" -> "card";
+            case "subst" -> "subst";
+            case "var" -> "var";
+            default -> t;
+        };
     }
 
     private Integer intOrNull(JsonNode n) {
