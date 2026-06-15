@@ -5,7 +5,7 @@ interface Props {
 }
 
 function EventIcon({ type, detail }: { type: MatchEvent['type']; detail: string }) {
-  if (type === 'goal') return <span>⚽</span>;
+  if (type === 'goal') return <span></span>;
   if (type === 'card' && detail === 'Yellow Card') return <span>🟨</span>;
   if (type === 'card' && detail === 'Red Card') return <span>🟥</span>;
   if (type === 'subst') return <span>🔄</span>;
