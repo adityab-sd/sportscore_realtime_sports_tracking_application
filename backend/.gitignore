@@ -1,4 +1,14 @@
+# Build output
+/target/
+
+# IDE files
+.vscode/
+
+# Secrets
 .env
 .env.local
+
+# Compiled Java
+*.class
 *.log
 node_modules/
