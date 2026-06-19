@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SignalR Test Client</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+<body>
+    <h2>Live Match Feed</h2>
+    <pre id="output" style="background:#111;color:#0f0;padding:16px;font-size:13px;height:80vh;overflow:auto"></pre>
+
+    <script>
+        const endpoint = "https://sportsscore-sr.service.signalr.net";
+        const accessKey = "5hQe8KNqgCiPQZihO5rjvH4flqbEmiaZelR0kSPDIhZ41zAPWeLnJQQJ99CFACYeBjFXJ3w3AAAAASRS6g2Z";
+        const hubName  = "sportscoreHub";
+
+        function log(msg) {
+            const el = document.getElementById("output");
+            el.textContent += msg + "\n";
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function generateToken() {
+            const url = `${endpoint}/client/?hub=${hubName}`;
+            const exp = Math.floor(Date.now() / 1000) + 3600;
+            const encoder = new TextEncoder();
+
+            const keyData = encoder.encode(accessKey);
+            const cryptoKey = await crypto.subtle.importKey(
+                "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+            );
+
+            const header  = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" })).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+            const payload = btoa(JSON.stringify({ aud: url, exp })).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+            const sigInput = `${header}.${payload}`;
+            const sig = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(sigInput));
+            const signature = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+
+            return `${sigInput}.${signature}`;
+        }
+
+        async function start() {
+            const token = await generateToken();
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl(`${endpoint}/client/?hub=${hubName}`, {
+                    accessTokenFactory: () => token,
+                    skipNegotiation: true,
+                    transport: signalR.HttpTransportType.WebSockets
+                })
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("matchUpdate", (matches) => {
+                log("\n=== Match Update ===");
+                matches.forEach(m => {
+                    log(`[${m.competition}] ${m.status} | ${m.homeTeam.name} ${m.homeScore} - ${m.awayScore} ${m.awayTeam.name} | ${m.elapsed}'`);
+                    if (m.events && m.events.length > 0) {
+                        m.events.forEach(e => log(`  ${e.minute}' [${e.type}] ${e.player}`));
+                    }
+                });
+            });
+
+            connection.onclose(() => log("Connection closed."));
+            connection.onreconnecting(() => log("Reconnecting..."));
+            connection.onreconnected(() => log("Reconnected."));
+
+            await connection.start();
+            log("Connected to SignalR. Waiting for match updates...");
+        }
+
+        start().catch(err => document.getElementById("output").textContent = "Error: " + err);
+    </script>
+</body>
+</html>

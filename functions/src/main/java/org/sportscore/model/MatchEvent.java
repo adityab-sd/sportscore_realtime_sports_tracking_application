@@ -1,4 +1,4 @@
-package org.Spring.model;
+package org.sportscore.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

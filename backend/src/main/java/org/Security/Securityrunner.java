@@ -1,4 +1,4 @@
-package org.Spring.Security;
+package org.Security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;

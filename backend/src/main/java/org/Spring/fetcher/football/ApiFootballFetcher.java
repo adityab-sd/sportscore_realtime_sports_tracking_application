@@ -2,6 +2,9 @@ package org.Spring.fetcher.football;
 
 import org.Spring.adapter.football.ApiFootballAdapter;
 import org.Spring.model.Match;
+import org.Spring.producer.EventHubProducer;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -9,12 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 
-/**
- * Retrieves live football data from API-Football.
- * Pulls the raw JSON (handed to Aditya's Event Hubs producer) and can also
- * parse it into Match objects using the adapter, for local checks / the
- * dashboard.
- */
+@Component
 public class ApiFootballFetcher {
 
     private static final String BASE = "https://v3.football.api-sports.io";
@@ -22,9 +20,13 @@ public class ApiFootballFetcher {
     private final HttpClient client = HttpClient.newHttpClient();
     private final ApiFootballAdapter adapter = new ApiFootballAdapter();
     private final String apiKey;
+    private final EventHubProducer producer;
 
-    public ApiFootballFetcher(String apiKey) {
+    public ApiFootballFetcher(
+            @Value("${apisports.key}") String apiKey,
+            EventHubProducer producer) {
         this.apiKey = apiKey;
+        this.producer = producer;
     }
 
     /**
@@ -35,13 +37,18 @@ public class ApiFootballFetcher {
         return get("/fixtures?live=all");
     }
 
+    /** Fetches, cleans into Match objects, serializes and publishes to Event Hubs. */
+    public void fetchAndPublishLive() throws Exception {
+        List<Match> matches = fetchLiveMatches();
+        producer.send(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(matches));
+    }
+
     /** The same live data parsed into Match objects with events filled in. */
     public List<Match> fetchLiveMatches() throws Exception {
         return adapter.toMatches(fetchLiveRaw());
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
+    private String get(String path) throws Exception {        HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + path))
                 .header("x-apisports-key", apiKey)
                 .GET()
@@ -52,20 +59,5 @@ public class ApiFootballFetcher {
                     + ": " + response.body());
         }
         return response.body();
-    }
-
-    /** Quick manual test. Reads the API key from an environment variable. */
-    public static void main(String[] args) throws Exception {
-        String key = System.getenv("APISPORTS_KEY");
-        if (key == null || key.isBlank()) {
-            System.out.println("Set the APISPORTS_KEY environment variable first.");
-            return;
-        }
-        ApiFootballFetcher fetcher = new ApiFootballFetcher(key);
-        List<Match> live = fetcher.fetchLiveMatches();
-        System.out.println("Fetched " + live.size() + " live matches.");
-        live.stream().findFirst().ifPresent(m -> System.out.println(m.homeTeam().name() + " " + m.homeScore()
-                + "-" + m.awayScore() + " " + m.awayTeam().name()
-                + " | events: " + m.events().size()));
     }
 }
