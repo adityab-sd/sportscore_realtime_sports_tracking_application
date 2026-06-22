@@ -1,6 +1,5 @@
-package org.Spring.Security;
+package org.Security;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Service;
@@ -17,29 +16,16 @@ public class Securityrunner {
 
 @Service
 class SportsDataService {
-
-    // Safely injects the hidden keys from your application.properties -> .env file
-    @Value("${sports.api.key}")
-    private String apiKey;
-
-    @Value("${sports.api.base-url}")
-    private String baseUrl;
-
+    // Marked as final because they don't change
+    private final String apiKey = "519be988864b450f4ab9eb5a85971cc1"; 
+    private final String baseUrl = "https://sports.core.api.espn.com/v2/sports/soccer";
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String getLiveMatchScores() {
-        // Build the secure URL using the hidden API key
-        String url = baseUrl + "/scores/json/AllLiveMatches?key=" + apiKey;
-        
-        System.out.println("Executing secure API call using key: " + apiKey);
-        
-        // Fetch the data from the external provider safely
-        // return restTemplate.getForObject(url, String.class);
         return "Backend is running! Securely loaded base URL: " + baseUrl;
     }
 }
 
-// Added a quick controller so you can test it easily in your web browser
 @RestController
 class SportsController {
     private final SportsDataService sportsDataService;
