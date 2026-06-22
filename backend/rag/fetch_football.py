@@ -71,8 +71,62 @@ for item in players:
     }
     corpus.append(entry)
 
-print(f"  Got {len(players)} players")
+print(f" Got {len(players)} players")
 time.sleep(1)  # be polite to the API
+
+# ── PART 1B: FETCH TOP ASSISTS ───────────────────────────
+print("Fetching top assists...")
+assist_players = call_api("players/topassists", {"league": LEAGUE_ID, "season": SEASON})
+
+for item in assist_players:
+    p = item.get("player", {})
+    stats = item.get("statistics", [{}])[0]
+
+    player_id   = p.get("id", "")
+    name        = p.get("name", "Unknown")
+
+    # Skip if this player was already added from top scorers
+    if any(entry["source_id"] == player_id and entry["category"] == "player" for entry in corpus):
+        continue
+
+    nationality = p.get("nationality", "Unknown")
+    age         = p.get("age", "Unknown")
+    height      = p.get("height", "Unknown")
+    weight      = p.get("weight", "Unknown")
+    position    = stats.get("games", {}).get("position", "Unknown")
+    team_name   = stats.get("team", {}).get("name", "Unknown")
+    league_name = stats.get("league", {}).get("name", "Unknown")
+    appearances = stats.get("games", {}).get("appearences", 0)
+    minutes     = stats.get("games", {}).get("minutes", 0)
+    goals       = stats.get("goals", {}).get("total", 0)
+    assists     = stats.get("goals", {}).get("assists", 0)
+    yellow      = stats.get("cards", {}).get("yellow", 0)
+    red         = stats.get("cards", {}).get("red", 0)
+
+    content = (
+        f"{name} is a {nationality} footballer aged {age}. "
+        f"They play as a {position} for {team_name} in the {league_name}. "
+        f"Height: {height}, Weight: {weight}. "
+        f"In the {SEASON} season, they made {appearances} appearances "
+        f"totalling {minutes} minutes, scoring {goals} goals and providing "
+        f"{assists} assists. Cards: {yellow} yellow, {red} red."
+    )
+
+    entry = {
+        "id": f"football-player-{player_id}",
+        "sport": "football",
+        "category": "player",
+        "title": f"{name} — Player Profile",
+        "content": content,
+        "tags": [name, nationality, team_name, position, league_name],
+        "source": "api-football.com",
+        "source_id": player_id,
+        "last_updated": f"{SEASON}-season"
+    }
+    corpus.append(entry)
+
+print(f" Got {len(assist_players)} assist leaders (new ones added)")
+time.sleep(1)
 
 # ── PART 2: FETCH STANDINGS (team info + league position) ─
 # This uses only 1 API request
@@ -191,7 +245,7 @@ competition_entries = [
         "source": "fifa.com",
         "source_id": 1,
         "last_updated": "2024"
-    },
+    } 
 ]
 
 corpus.extend(competition_entries)
