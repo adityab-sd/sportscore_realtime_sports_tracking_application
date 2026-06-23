@@ -1,12 +1,11 @@
 """
 search.py — RAG retrieval logic for SportScore Knowledge Assistant
 
-This module implements the two-round search strategy:
+Implements the two-round search strategy:
   Round 1 — exact search using the user's full question
   Round 2 — broader search using extracted key words (fallback)
 
-If both rounds return nothing useful, a "not found" flag is returned
-so the caller can decide what to do (e.g. show a fallback message).
+If both rounds return nothing, a "not found" flag is returned.
 """
 
 import os
@@ -21,8 +20,7 @@ SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 INDEX_NAME      = "football-index"
 
-# Common filler words to strip out when building the Round 2 broad query.
-# This is a small, deliberately simple list — not a full NLP stopword list.
+# Filler words stripped out when building the Round 2 broad query
 STOPWORDS = {
     "what", "is", "the", "a", "an", "how", "does", "do", "in", "of",
     "to", "for", "and", "are", "was", "were", "explain", "tell", "me",
@@ -40,8 +38,8 @@ def _get_client():
 
 def _extract_keywords(question):
     """
-    Strips out common filler words from the question, leaving
-    just the meaningful terms. Used for Round 2 broad search.
+    Strips filler words, returns just the meaningful terms.
+    Used for Round 2 broad search.
 
     Example:
       "What is gegenpressing?" -> "gegenpressing"
@@ -56,7 +54,7 @@ def search_corpus(question, top=3):
     """
     Runs the two-round search strategy against the football-index.
 
-    Returns a dict:
+    Returns:
       {
         "found": True/False,
         "round_used": 1 or 2 or None,
@@ -67,7 +65,6 @@ def search_corpus(question, top=3):
 
     # ── ROUND 1: exact search with the full question ──
     round1_results = list(client.search(search_text=question, top=top))
-
     if round1_results:
         return {
             "found": True,
@@ -78,7 +75,6 @@ def search_corpus(question, top=3):
     # ── ROUND 2: broader search using extracted key words ──
     keywords = _extract_keywords(question)
     round2_results = list(client.search(search_text=keywords, top=top))
-
     if round2_results:
         return {
             "found": True,
@@ -104,14 +100,14 @@ def _format_result(r):
     }
 
 
-# ── Quick manual test when running this file directly ──
+# ── Quick test when running directly ──
 if __name__ == "__main__":
     test_questions = [
         "What is gegenpressing?",
         "Tell me about the 4-3-3 formation",
-        "asdkjqwoieuqwoiueqwoiue",  # should trigger Round 2, likely still nothing
-        "yellow card rules please explain everything in detail thanks",  # likely triggers Round 2
-        "can you please walk me through how the offside trap strategy generally tends to work",  # likely triggers Round 2
+        "What is the score today?",           # should be caught by app.py routing
+        "yellow card rules",
+        "asdkjqwoieuqwoiueqwoiue",           # gibberish — should return not found
     ]
 
     for q in test_questions:
