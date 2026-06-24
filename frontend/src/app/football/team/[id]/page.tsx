@@ -1,96 +1,41 @@
-import { mockMatches } from '@/lib/mock/footballData';
-import { standings } from '@/lib/mock/standing';
-import MatchCard from '@/components/football/MatchCard';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getTeam, getRoster } from "@/lib/api/espn";
+import { leagueName } from "@/types/football";
+import TeamLogo from "@/components/football/TeamLogo";
+import SquadList from "@/components/football/SquadList";
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
+export const dynamic = "force-dynamic";
+interface Props { params: Promise<{ id: string }>; searchParams: Promise<{ league?: string }> }
 
-export default async function TeamPage({ params }: Props) {
+export default async function TeamPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const teamId = Number(id);
-
-  // Find team from any match
-  const matchWithTeam = mockMatches.find(
-    m => m.homeTeam.id === teamId || m.awayTeam.id === teamId
-  );
-
-  if (!matchWithTeam) return notFound();
-
-  const team = matchWithTeam.homeTeam.id === teamId ? matchWithTeam.homeTeam : matchWithTeam.awayTeam;
-
-  // Find team's matches
-  const teamMatches = mockMatches.filter(
-    m => m.homeTeam.id === teamId || m.awayTeam.id === teamId
-  );
-
-  // Find team's standing
-  let standingRow = null;
-  let leagueId = null;
-  for (const [lId, table] of Object.entries(standings)) {
-    const row = table.find(r => r.team.id === teamId);
-    if (row) {
-      standingRow = row;
-      leagueId = Number(lId);
-      break;
-    }
-  }
+  const { league = "eng.1" } = await searchParams;
+  const [team, roster] = await Promise.all([getTeam(league, id), getRoster(league, id)]);
+  if (!team) return notFound();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <Link href="/football" className="text-sm text-gray-500 hover:text-gray-900 mb-6 inline-block">
-          ← Back to Football
-        </Link>
+    <div className="container" style={{ paddingTop: 28, paddingBottom: 40 }}>
+      <Link href={`/football/standings?league=${league}`} style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", textDecoration: "none", display: "inline-block", marginBottom: 20 }}>
+        ← {leagueName(league)}
+      </Link>
 
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-4xl">{team.logo}</span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{team.name}</h1>
-            <p className="text-sm text-gray-400">{matchWithTeam.league}</p>
-          </div>
+      {/* Team header */}
+      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, padding: "24px", marginBottom: 28, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <TeamLogo logo={team.logo} shortName={team.shortName} size={64} highlight />
+        <div>
+          <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>{team.name}</h1>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+            {[leagueName(league), team.venue, team.record].filter(Boolean).join(" · ")}
+          </p>
         </div>
-
-        {standingRow && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-6 grid grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-xs text-gray-400 uppercase mb-1">Position</div>
-              <div className="text-xl font-bold text-gray-900">{standingRow.position}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-400 uppercase mb-1">Points</div>
-              <div className="text-xl font-bold text-gray-900">{standingRow.points}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-400 uppercase mb-1">Played</div>
-              <div className="text-xl font-bold text-gray-900">{standingRow.played}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-400 uppercase mb-1">GD</div>
-              <div className="text-xl font-bold text-gray-900">
-                {standingRow.goalsFor - standingRow.goalsAgainst > 0 ? '+' : ''}
-                {standingRow.goalsFor - standingRow.goalsAgainst}
-              </div>
-            </div>
-          </div>
+        {team.color && (
+          <div style={{ marginLeft: "auto", width: 36, height: 36, borderRadius: "50%", background: team.color, border: "2px solid var(--border)", flexShrink: 0 }} title="Club colour" />
         )}
-
-        {leagueId && (
-          <Link
-            href="/football/standings"
-            className="text-sm text-emerald-600 hover:underline mb-6 inline-block"
-          >
-            View full {matchWithTeam.league} table →
-          </Link>
-        )}
-
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 mt-2">Matches</h2>
-        <div className="flex flex-col gap-3">
-          {teamMatches.map(match => <MatchCard key={match.id} match={match} />)}
-        </div>
       </div>
+
+      <h2 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>Squad</h2>
+      <SquadList roster={roster} league={league} teamId={id} />
     </div>
   );
 }

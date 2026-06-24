@@ -1,96 +1,62 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { leagues } from "@/lib/mock/league";
-import { standings } from "@/lib/mock/standing";
+import { getStandings } from "@/lib/api/espn";
+import { LEAGUES, leagueName } from "@/types/football";
+import StandingsTable from "@/components/football/StandingsTable";
 
-export default function StandingsPage() {
-  const leaguesWithStandings = leagues.filter(l => standings[l.id]);
-  const [selectedLeague, setSelectedLeague] = useState(leaguesWithStandings[0].id);
+export const dynamic = "force-dynamic";
+const TABLE_LEAGUES = LEAGUES.filter(l => !["fifa.world","uefa.champions"].includes(l.slug));
 
-  const table = standings[selectedLeague] || [];
+interface Props { searchParams: Promise<{ league?: string }> }
+
+export default async function StandingsPage({ searchParams }: Props) {
+  const { league = "eng.1" } = await searchParams;
+  const rows = await getStandings(league);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Standings</h1>
-            <p className="text-sm text-gray-400 mt-0.5">League tables</p>
-          </div>
-          <Link href="/football" className="text-sm text-emerald-600 hover:underline">
-            ← Back to Football
-          </Link>
+    <div className="container" style={{ paddingTop: 28, paddingBottom: 40 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>Standings</h1>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>{leagueName(league)}</p>
         </div>
-
-        {/* League selector */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-          {leaguesWithStandings.map(l => (
-            <button
-              key={l.id}
-              onClick={() => setSelectedLeague(l.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all ${
-                selectedLeague === l.id
-                  ? "bg-gray-900 text-white shadow-sm"
-                  : "bg-white text-gray-600 border border-gray-100 hover:border-gray-200"
-              }`}
-            >
-              <span>{l.logo}</span>
-              {l.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Table */}
-        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left py-3 px-4 font-semibold">#</th>
-                <th className="text-left py-3 px-2 font-semibold">Team</th>
-                <th className="text-center py-3 px-2 font-semibold">P</th>
-                <th className="text-center py-3 px-2 font-semibold">W</th>
-                <th className="text-center py-3 px-2 font-semibold">D</th>
-                <th className="text-center py-3 px-2 font-semibold">L</th>
-                <th className="text-center py-3 px-2 font-semibold">GD</th>
-                <th className="text-center py-3 px-4 font-semibold">Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {table.map((row, i) => (
-                <tr
-                  key={row.team.id}
-                  className={`border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors ${
-                    i < 4 ? "border-l-2 border-l-emerald-400" : ""
-                  }`}
-                >
-                  <td className="py-3 px-4 font-semibold text-gray-500">{row.position}</td>
-                  <td className="py-3 px-2">
-                    <Link href={`/football/team/${row.team.id}`} className="flex items-center gap-2 hover:text-emerald-600">
-                      <span>{row.team.logo}</span>
-                      <span className="font-medium text-gray-900">{row.team.name}</span>
-                    </Link>
-                  </td>
-                  <td className="text-center py-3 px-2 text-gray-600">{row.played}</td>
-                  <td className="text-center py-3 px-2 text-gray-600">{row.won}</td>
-                  <td className="text-center py-3 px-2 text-gray-600">{row.drawn}</td>
-                  <td className="text-center py-3 px-2 text-gray-600">{row.lost}</td>
-                  <td className="text-center py-3 px-2 text-gray-600 tabular-nums">
-                    {row.goalsFor - row.goalsAgainst > 0 ? '+' : ''}{row.goalsFor - row.goalsAgainst}
-                  </td>
-                  <td className="text-center py-3 px-4 font-bold text-gray-900">{row.points}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex items-center gap-2 mt-4 text-xs text-gray-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          Champions League qualification
-        </div>
+        <Link href="/football" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>← Football</Link>
       </div>
+
+      {/* League tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
+        {TABLE_LEAGUES.map(l => (
+          <Link
+            key={l.slug}
+            href={`/football/standings?league=${l.slug}`}
+            className={`pill${league === l.slug ? " active" : ""}`}
+            style={{ textDecoration: "none" }}
+          >
+            {l.short}
+          </Link>
+        ))}
+      </div>
+
+      {rows.length === 0 ? (
+        <p style={{ fontSize: 14, color: "var(--text-muted)", textAlign: "center", padding: "48px 0" }}>
+          No standings data available right now.
+        </p>
+      ) : (
+        <>
+          <StandingsTable rows={rows} league={league} />
+          <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
+            {[
+              { label: "Champions League", color: "#003f88" },
+              { label: "Europa League",    color: "#f97316" },
+              { label: "Relegation",       color: "#dc2626" },
+            ].map(n => (
+              <div key={n.label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-muted)" }}>
+                <div style={{ width: 3, height: 12, borderRadius: 2, background: n.color }} />
+                {n.label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

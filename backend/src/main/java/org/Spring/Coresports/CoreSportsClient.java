@@ -146,7 +146,7 @@ public class CoreSportsClient {
         try {
             System.out.println(label + " JSON length: " + f.run().length());
         } catch (Exception e) {
-            System.out.println(label + " — not available (" + e.getMessage() + ")");
+            System.out.println(label + " - not available (" + e.getMessage() + ")");
         }
     }
 
@@ -161,7 +161,7 @@ public class CoreSportsClient {
                         + "-" + m.awayScore() + " " + m.awayTeam().name()
                         + " [" + m.status() + "] events: " + m.events().size()));
 
-        // Reference data — each call is independent; one failure won't stop the rest.
+        // Reference data - each call is independent; one failure won't stop the rest.
         printLength("Standings", () -> c.standings(league));
         printLength("Teams", () -> c.teams(league));
         printLength("News", () -> c.news(league));
