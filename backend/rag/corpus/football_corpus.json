@@ -3,7 +3,7 @@
     "id": "football-competition-001",
     "sport": "football",
     "category": "competition",
-    "title": "Premier League — Format and Rules",
+    "title": "Premier League - Format and Rules",
     "content": "The Premier League is the top division of English football, featuring 20 clubs. Each team plays 38 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The team with the most points at the end of the season wins the title. The bottom 3 teams are relegated to the Championship. The top 4 teams qualify for the UEFA Champions League. Teams finishing 5th and 6th qualify for the UEFA Europa League. The league runs from August to May each year.",
     "tags": [
       "Premier League",
@@ -20,7 +20,7 @@
     "id": "football-competition-002",
     "sport": "football",
     "category": "competition",
-    "title": "UEFA Champions League — Format",
+    "title": "UEFA Champions League - Format",
     "content": "The UEFA Champions League is Europe's premier club football competition. From the 2024-25 season, the format changed to a league phase with 36 clubs, each playing 8 matches against different opponents. The top 8 teams advance directly to the Round of 16. Teams finishing 9th to 24th enter a knockout playoff round. Teams finishing 25th or below are eliminated. The competition then follows a standard knockout format through Round of 16, Quarter-finals, Semi-finals, and the Final.",
     "tags": [
       "Champions League",
@@ -36,7 +36,7 @@
     "id": "football-competition-003",
     "sport": "football",
     "category": "competition",
-    "title": "FIFA World Cup — Format",
+    "title": "FIFA World Cup - Format",
     "content": "The FIFA World Cup is held every four years and is the most prestigious international football tournament. 32 teams (expanding to 48 from 2026) compete across a group stage and knockout rounds. In the group stage, teams are divided into groups of 4, with the top 2 from each group advancing to the Round of 16. The tournament then follows a straight knockout format through Quarter-finals, Semi-finals, Third place play-off, and the Final. The 2026 World Cup will be hosted by USA, Canada, and Mexico.",
     "tags": [
       "World Cup",
@@ -68,7 +68,7 @@
     "sport": "football",
     "category": "rules",
     "title": "VAR (Video Assistant Referee)",
-    "content": "VAR is a video review system used to assist the on-field referee in four match-changing situations: goals and whether the build-up to a goal was legal, penalty decisions, direct red card incidents, and mistaken identity when issuing cards. The VAR team reviews footage from multiple camera angles and communicates with the referee, who can either accept the recommendation or review the incident themselves on a pitch-side monitor before making a final decision. VAR does not review every decision — only clear and obvious errors or serious missed incidents.",
+    "content": "VAR is a video review system used to assist the on-field referee in four match-changing situations: goals and whether the build-up to a goal was legal, penalty decisions, direct red card incidents, and mistaken identity when issuing cards. The VAR team reviews footage from multiple camera angles and communicates with the referee, who can either accept the recommendation or review the incident themselves on a pitch-side monitor before making a final decision. VAR does not review every decision - only clear and obvious errors or serious missed incidents.",
     "tags": [
       "VAR",
       "video review",
@@ -127,8 +127,8 @@
     "id": "football-rules-006",
     "sport": "football",
     "category": "rules",
-    "title": "Free Kick — Direct and Indirect",
-    "content": "A direct free kick is awarded for fouls such as tripping, pushing, holding, or handball, and the kicker can score directly from it. An indirect free kick is awarded for offences such as offside, dangerous play, obstruction, or a goalkeeper handling a deliberate back-pass from a teammate; a goal cannot be scored directly from an indirect free kick — the ball must touch another player first. Opponents must retreat at least 9.15 metres (10 yards) from the ball unless they are on their own goal line between the posts.",
+    "title": "Free Kick - Direct and Indirect",
+    "content": "A direct free kick is awarded for fouls such as tripping, pushing, holding, or handball, and the kicker can score directly from it. An indirect free kick is awarded for offences such as offside, dangerous play, obstruction, or a goalkeeper handling a deliberate back-pass from a teammate; a goal cannot be scored directly from an indirect free kick - the ball must touch another player first. Opponents must retreat at least 9.15 metres (10 yards) from the ball unless they are on their own goal line between the posts.",
     "tags": [
       "free kick",
       "direct",
@@ -247,7 +247,7 @@
     "sport": "football",
     "category": "formation",
     "title": "3-5-2 Formation",
-    "content": "The 3-5-2 formation uses 3 central defenders, 5 midfielders (including 2 wing-backs who provide width on both flanks), and 2 forwards. The wing-backs are crucial — they must contribute both defensively (tracking back to form a back five when out of possession) and offensively (overlapping to provide crosses). This formation overloads the midfield with numbers and is effective against teams playing with two forwards, but can be exploited if the wing-backs are caught out of position. Antonio Conte used a 3-5-2 (often described as 3-4-3 in possession) to win the Premier League with Chelsea in 2016-17.",
+    "content": "The 3-5-2 formation uses 3 central defenders, 5 midfielders (including 2 wing-backs who provide width on both flanks), and 2 forwards. The wing-backs are crucial - they must contribute both defensively (tracking back to form a back five when out of possession) and offensively (overlapping to provide crosses). This formation overloads the midfield with numbers and is effective against teams playing with two forwards, but can be exploited if the wing-backs are caught out of position. Antonio Conte used a 3-5-2 (often described as 3-4-3 in possession) to win the Premier League with Chelsea in 2016-17.",
     "tags": [
       "3-5-2",
       "formation",
@@ -293,7 +293,7 @@
     "sport": "football",
     "category": "formation",
     "title": "4-3-3 False Nine Variation",
-    "content": "A variation of the 4-3-3 involves playing a 'false nine' — a forward who drops deep into midfield rather than staying as a traditional central striker. This pulls opposition centre-backs out of position, creating space for wingers to run into. Lionel Messi famously played as a false nine under Pep Guardiola at Barcelona (2009-2012), dropping into midfield to link play before bursting into the box. The false nine requires intelligent movement and strong technical ability rather than traditional target-man physicality.",
+    "content": "A variation of the 4-3-3 involves playing a 'false nine' - a forward who drops deep into midfield rather than staying as a traditional central striker. This pulls opposition centre-backs out of position, creating space for wingers to run into. Lionel Messi famously played as a false nine under Pep Guardiola at Barcelona (2009-2012), dropping into midfield to link play before bursting into the box. The false nine requires intelligent movement and strong technical ability rather than traditional target-man physicality.",
     "tags": [
       "false nine",
       "4-3-3",
@@ -323,7 +323,7 @@
     "sport": "football",
     "category": "formation",
     "title": "4-4-2 Diamond Formation",
-    "content": "The 4-4-2 diamond is a variation where the midfield four are arranged in a diamond shape rather than flat — one holding midfielder at the base, two central midfielders on either side, and one attacking midfielder at the tip, just behind the two strikers. This shape overloads central areas and supports the strikers closely, but can be vulnerable to opposition full-backs exploiting the lack of natural width in midfield, requiring the full-backs to push very high to compensate.",
+    "content": "The 4-4-2 diamond is a variation where the midfield four are arranged in a diamond shape rather than flat - one holding midfielder at the base, two central midfielders on either side, and one attacking midfielder at the tip, just behind the two strikers. This shape overloads central areas and supports the strikers closely, but can be vulnerable to opposition full-backs exploiting the lack of natural width in midfield, requiring the full-backs to push very high to compensate.",
     "tags": [
       "4-4-2 diamond",
       "formation",
@@ -367,7 +367,7 @@
     "sport": "football",
     "category": "formation",
     "title": "4-1-2-1-2 Narrow Diamond Formation",
-    "content": "The 4-1-2-1-2 (narrow diamond) consists of 4 defenders, a defensive midfielder, 2 central midfielders, an attacking midfielder, and 2 forwards — all concentrated through the centre of the pitch with no natural wide players. This formation aims to dominate the central areas with numerical superiority, relying on full-backs to provide the only width. It can be very effective against teams that also play narrow, but is highly exploitable by opponents with strong wingers, since there is minimal cover out wide.",
+    "content": "The 4-1-2-1-2 (narrow diamond) consists of 4 defenders, a defensive midfielder, 2 central midfielders, an attacking midfielder, and 2 forwards - all concentrated through the centre of the pitch with no natural wide players. This formation aims to dominate the central areas with numerical superiority, relying on full-backs to provide the only width. It can be very effective against teams that also play narrow, but is highly exploitable by opponents with strong wingers, since there is minimal cover out wide.",
     "tags": [
       "4-1-2-1-2",
       "narrow diamond",
@@ -382,7 +382,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Gegenpressing (High Pressing)",
-    "content": "Gegenpressing, or 'counter-pressing', is a strategy where a team immediately presses the opponent the moment they lose possession, aiming to win the ball back in the area where it was lost — typically high up the pitch. This is based on the idea that the opponent is most disorganised immediately after winning the ball, making it the best moment to apply pressure. The strategy requires high fitness levels, quick decision-making, and coordinated team movement. Jurgen Klopp's Liverpool and Borussia Dortmund teams were renowned for executing gegenpressing, often winning the ball back within seconds and converting it into fast attacking transitions.",
+    "content": "Gegenpressing, or 'counter-pressing', is a strategy where a team immediately presses the opponent the moment they lose possession, aiming to win the ball back in the area where it was lost - typically high up the pitch. This is based on the idea that the opponent is most disorganised immediately after winning the ball, making it the best moment to apply pressure. The strategy requires high fitness levels, quick decision-making, and coordinated team movement. Jurgen Klopp's Liverpool and Borussia Dortmund teams were renowned for executing gegenpressing, often winning the ball back within seconds and converting it into fast attacking transitions.",
     "tags": [
       "gegenpressing",
       "high press",
@@ -398,7 +398,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Offside Trap",
-    "content": "The offside trap is a defensive strategy where the defensive line moves forward in a coordinated manner just before the opposing attacker receives a pass, leaving the attacker in an offside position. This requires excellent communication and timing among defenders — if even one defender mistimes the movement, it can leave the attacker with a clear run on goal. The offside trap was a hallmark of Arsenal's defence under Arsene Wenger in the late 1990s and early 2000s, led by experienced defenders like Tony Adams who coordinated the line's movement.",
+    "content": "The offside trap is a defensive strategy where the defensive line moves forward in a coordinated manner just before the opposing attacker receives a pass, leaving the attacker in an offside position. This requires excellent communication and timing among defenders - if even one defender mistimes the movement, it can leave the attacker with a clear run on goal. The offside trap was a hallmark of Arsenal's defence under Arsene Wenger in the late 1990s and early 2000s, led by experienced defenders like Tony Adams who coordinated the line's movement.",
     "tags": [
       "offside trap",
       "defensive line",
@@ -489,7 +489,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Inverted Wingers",
-    "content": "An inverted winger is a player who plays on the opposite flank to their stronger foot — for example, a left-footed player playing on the right wing. This allows the winger to cut inside onto their stronger foot when running at defenders, opening up shooting or passing angles towards goal rather than crossing with their weaker foot. Inverted wingers are highly effective for cutting in and shooting, as demonstrated by players like Mohamed Salah (left-footed, plays right wing) and Arjen Robben, both renowned for cutting inside and curling shots into the far corner.",
+    "content": "An inverted winger is a player who plays on the opposite flank to their stronger foot - for example, a left-footed player playing on the right wing. This allows the winger to cut inside onto their stronger foot when running at defenders, opening up shooting or passing angles towards goal rather than crossing with their weaker foot. Inverted wingers are highly effective for cutting in and shooting, as demonstrated by players like Mohamed Salah (left-footed, plays right wing) and Arjen Robben, both renowned for cutting inside and curling shots into the far corner.",
     "tags": [
       "inverted winger",
       "Salah",
@@ -593,7 +593,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Rotational Play / Positional Rotations",
-    "content": "Rotational play involves players deliberately swapping positions during attacking phases — for example, a full-back moving into midfield while a midfielder drops into the full-back position, or a winger and full-back exchanging vertical positions. This creates confusion for marking defenders, who must decide whether to follow a player out of their zone or stay in position and pick up a new opponent. These rotations are a key feature of positional play systems and are designed to consistently create small spatial and numerical advantages that can be exploited to progress the ball or create chances.",
+    "content": "Rotational play involves players deliberately swapping positions during attacking phases - for example, a full-back moving into midfield while a midfielder drops into the full-back position, or a winger and full-back exchanging vertical positions. This creates confusion for marking defenders, who must decide whether to follow a player out of their zone or stay in position and pick up a new opponent. These rotations are a key feature of positional play systems and are designed to consistently create small spatial and numerical advantages that can be exploited to progress the ball or create chances.",
     "tags": [
       "rotational play",
       "positional rotations",
@@ -606,7 +606,7 @@
     "id": "football-competition-004",
     "sport": "football",
     "category": "competition",
-    "title": "La Liga — Format and Rules",
+    "title": "La Liga - Format and Rules",
     "content": "La Liga is the top division of Spanish football, featuring 20 clubs. Each team plays 38 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The team with the most points at the end of the season is crowned champion. The bottom 3 teams are relegated to the Segunda Division. The top 4 teams qualify for the UEFA Champions League, with the next 1-2 teams qualifying for the UEFA Europa League depending on cup outcomes. The season runs from August to May.",
     "tags": [
       "La Liga",
@@ -622,7 +622,7 @@
     "id": "football-competition-005",
     "sport": "football",
     "category": "competition",
-    "title": "Bundesliga — Format and Rules",
+    "title": "Bundesliga - Format and Rules",
     "content": "The Bundesliga is the top division of German football, featuring 18 clubs (fewer than most other major European leagues). Each team plays 34 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The bottom 2 teams are automatically relegated to the 2. Bundesliga, while the team finishing 16th plays a two-legged relegation playoff against the third-placed team from the second division. The top 4 teams qualify for the UEFA Champions League. The season runs from August to May.",
     "tags": [
       "Bundesliga",
@@ -638,7 +638,7 @@
     "id": "football-competition-006",
     "sport": "football",
     "category": "competition",
-    "title": "Serie A — Format and Rules",
+    "title": "Serie A - Format and Rules",
     "content": "Serie A is the top division of Italian football, featuring 20 clubs. Each team plays 38 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The bottom 3 teams are relegated to Serie B. The top 4 teams qualify for the UEFA Champions League, with additional places available for the UEFA Europa League and Conference League depending on domestic cup results. The season runs from August to May.",
     "tags": [
       "Serie A",
@@ -654,7 +654,7 @@
     "id": "football-competition-007",
     "sport": "football",
     "category": "competition",
-    "title": "Ligue 1 — Format and Rules",
+    "title": "Ligue 1 - Format and Rules",
     "content": "Ligue 1 is the top division of French football, featuring 18 clubs. Each team plays 34 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The bottom 2 teams are automatically relegated, while the team finishing 16th enters a relegation playoff. The top 3 teams qualify directly for the UEFA Champions League, with the 4th-placed team entering Champions League qualifying rounds. The season runs from August to May.",
     "tags": [
       "Ligue 1",
@@ -728,7 +728,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Goal Kick Rule",
-    "content": "A goal kick is awarded to the defending team when the ball, having last touched a player of the attacking team, fully crosses the goal line (either on the ground or in the air) without a goal being scored. The ball is placed anywhere within the goal area and can be played to any teammate, including passes within the penalty area — opposing players must remain outside the penalty area until the ball is in play. The goalkeeper does not have to take the goal kick; any defending player can take it.",
+    "content": "A goal kick is awarded to the defending team when the ball, having last touched a player of the attacking team, fully crosses the goal line (either on the ground or in the air) without a goal being scored. The ball is placed anywhere within the goal area and can be played to any teammate, including passes within the penalty area - opposing players must remain outside the penalty area until the ball is in play. The goalkeeper does not have to take the goal kick; any defending player can take it.",
     "tags": [
       "goal kick",
       "goal area",
@@ -755,7 +755,7 @@
     "id": "football-rules-017",
     "sport": "football",
     "category": "rules",
-    "title": "Offside — Goal Kick, Corner Kick, and Throw-In Exceptions",
+    "title": "Offside - Goal Kick, Corner Kick, and Throw-In Exceptions",
     "content": "A player cannot be penalised for offside if they receive the ball directly from a goal kick, corner kick, or throw-in, even if they were in an offside position when the ball was played. This exception exists because these are restarts of play rather than open-play situations, and applying the offside rule here would unnecessarily restrict attacking opportunities from these set pieces.",
     "tags": [
       "offside exception",
@@ -770,7 +770,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Drop Ball Rule",
-    "content": "A dropped ball is used to restart play after a temporary stoppage where the ball was in play but the game needed to be paused for reasons not covered by other restart methods — for example, a serious injury or interference by an outside agent (such as a ball boy or an animal entering the pitch). The referee drops the ball for one player (usually from the team that last touched it, or the goalkeeper if the stoppage occurred inside the penalty area) at the location where play was stopped, and it is in play once it touches the ground.",
+    "content": "A dropped ball is used to restart play after a temporary stoppage where the ball was in play but the game needed to be paused for reasons not covered by other restart methods - for example, a serious injury or interference by an outside agent (such as a ball boy or an animal entering the pitch). The referee drops the ball for one player (usually from the team that last touched it, or the goalkeeper if the stoppage occurred inside the penalty area) at the location where play was stopped, and it is in play once it touches the ground.",
     "tags": [
       "dropped ball",
       "restart",
@@ -784,7 +784,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Kick-Off Rules",
-    "content": "A kick-off starts each half of the match and restarts play after a goal is scored. All players must be in their own half of the pitch, and opponents of the team taking the kick-off must remain at least 9.15 metres (10 yards) from the ball until it is in play. The ball must be stationary on the centre mark and is in play once it is kicked and clearly moves. A goal cannot be scored directly from a kick-off — the ball must touch another player first.",
+    "content": "A kick-off starts each half of the match and restarts play after a goal is scored. All players must be in their own half of the pitch, and opponents of the team taking the kick-off must remain at least 9.15 metres (10 yards) from the ball until it is in play. The ball must be stationary on the centre mark and is in play once it is kicked and clearly moves. A goal cannot be scored directly from a kick-off - the ball must touch another player first.",
     "tags": [
       "kick-off",
       "centre mark",
@@ -811,8 +811,8 @@
     "id": "football-rules-021",
     "sport": "football",
     "category": "rules",
-    "title": "Offside — Goalkeeper Exception",
-    "content": "The goalkeeper is generally treated like any other defending player for offside purposes — the 'second-last opponent' in the offside rule is usually the goalkeeper plus the last outfield defender, or simply the last two defenders if the goalkeeper is out of position. If a goalkeeper is caught far out of their goal (e.g. having rushed forward), the offside line is determined by the two players closest to their own goal line, regardless of whether one of them is the goalkeeper.",
+    "title": "Offside - Goalkeeper Exception",
+    "content": "The goalkeeper is generally treated like any other defending player for offside purposes - the 'second-last opponent' in the offside rule is usually the goalkeeper plus the last outfield defender, or simply the last two defenders if the goalkeeper is out of position. If a goalkeeper is caught far out of their goal (e.g. having rushed forward), the offside line is determined by the two players closest to their own goal line, regardless of whether one of them is the goalkeeper.",
     "tags": [
       "offside",
       "goalkeeper",
@@ -826,7 +826,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Denying a Goal-Scoring Opportunity (DOGSO)",
-    "content": "If a player commits a foul that denies an opponent an obvious goal-scoring opportunity (commonly abbreviated DOGSO), the offending player is sent off with a red card, regardless of where the foul occurs. Factors considered include the distance to goal, the direction of play, the likelihood of keeping or gaining control of the ball, and the proximity of defenders. If the foul also results in a penalty kick and the offence was an attempt to play the ball (not purely a tactical foul), the punishment may be downgraded to a yellow card under some recent rule amendments — but a clear DOGSO foul not attempting to play the ball remains a red card.",
+    "content": "If a player commits a foul that denies an opponent an obvious goal-scoring opportunity (commonly abbreviated DOGSO), the offending player is sent off with a red card, regardless of where the foul occurs. Factors considered include the distance to goal, the direction of play, the likelihood of keeping or gaining control of the ball, and the proximity of defenders. If the foul also results in a penalty kick and the offence was an attempt to play the ball (not purely a tactical foul), the punishment may be downgraded to a yellow card under some recent rule amendments - but a clear DOGSO foul not attempting to play the ball remains a red card.",
     "tags": [
       "DOGSO",
       "red card",
@@ -839,8 +839,8 @@
     "id": "football-rules-023",
     "sport": "football",
     "category": "rules",
-    "title": "Offside Rule Refinement — Daylight Rule",
-    "content": "Following IFAB clarifications, the offside rule uses a strict 'any part of the body that can score a goal' standard — meaning if any part of an attacker's body (other than hands and arms) that could legally score a goal is level with or behind the second-last defender, they are not offside. There is no longer a requirement for daylight or clear space between the attacker and defender; if level, the attacker is considered onside. VAR uses calibrated lines on key body parts to make this determination as precisely as possible.",
+    "title": "Offside Rule Refinement - Daylight Rule",
+    "content": "Following IFAB clarifications, the offside rule uses a strict 'any part of the body that can score a goal' standard - meaning if any part of an attacker's body (other than hands and arms) that could legally score a goal is level with or behind the second-last defender, they are not offside. There is no longer a requirement for daylight or clear space between the attacker and defender; if level, the attacker is considered onside. VAR uses calibrated lines on key body parts to make this determination as precisely as possible.",
     "tags": [
       "offside",
       "VAR",
@@ -869,7 +869,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Back-Pass Rule",
-    "content": "A goalkeeper is not permitted to handle the ball with their hands if it has been deliberately kicked to them by a teammate (commonly known as the back-pass rule). If the goalkeeper handles the ball in this situation, an indirect free kick is awarded to the opposing team from the location of the handball. This rule does not apply if the ball is headed, chested, or kneed back to the goalkeeper — only a deliberate kick triggers the restriction. The rule was introduced in 1992 to discourage time-wasting through repeated passes back to the goalkeeper.",
+    "content": "A goalkeeper is not permitted to handle the ball with their hands if it has been deliberately kicked to them by a teammate (commonly known as the back-pass rule). If the goalkeeper handles the ball in this situation, an indirect free kick is awarded to the opposing team from the location of the handball. This rule does not apply if the ball is headed, chested, or kneed back to the goalkeeper - only a deliberate kick triggers the restriction. The rule was introduced in 1992 to discourage time-wasting through repeated passes back to the goalkeeper.",
     "tags": [
       "back-pass rule",
       "goalkeeper",
@@ -883,7 +883,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Offside Position vs Offside Offence",
-    "content": "Being in an offside position is not itself an offence — it only becomes a punishable offence if the player in that position becomes 'involved in active play'. This happens in three ways: playing or touching the ball passed by a teammate, interfering with an opponent by obstructing their line of sight or movement, or gaining an advantage by playing a ball that rebounds off a goalpost, crossbar, or opponent. A player can stand in an offside position all match without penalty as long as they don't become involved in any of these ways when the ball comes near them.",
+    "content": "Being in an offside position is not itself an offence - it only becomes a punishable offence if the player in that position becomes 'involved in active play'. This happens in three ways: playing or touching the ball passed by a teammate, interfering with an opponent by obstructing their line of sight or movement, or gaining an advantage by playing a ball that rebounds off a goalpost, crossbar, or opponent. A player can stand in an offside position all match without penalty as long as they don't become involved in any of these ways when the ball comes near them.",
     "tags": [
       "offside position",
       "offside offence",
@@ -897,7 +897,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Dangerous Play",
-    "content": "Dangerous play is an offence where a player makes a move that threatens injury to themselves or another player while trying to play the ball, even without making contact — for example, a high kick near an opponent's head, or playing the ball while in a position dangerous to an opponent (such as on the ground near other players' feet). It results in an indirect free kick to the opposing team. Unlike most fouls, dangerous play does not require contact between players to be penalised.",
+    "content": "Dangerous play is an offence where a player makes a move that threatens injury to themselves or another player while trying to play the ball, even without making contact - for example, a high kick near an opponent's head, or playing the ball while in a position dangerous to an opponent (such as on the ground near other players' feet). It results in an indirect free kick to the opposing team. Unlike most fouls, dangerous play does not require contact between players to be penalised.",
     "tags": [
       "dangerous play",
       "indirect free kick",
@@ -953,7 +953,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Indirect Free Kick Offences Summary",
-    "content": "An indirect free kick is awarded for several technical offences: a goalkeeper handling a deliberate back-pass from a teammate, a goalkeeper holding the ball for more than 6 seconds before releasing it, dangerous play, obstruction without contact, preventing the goalkeeper from releasing the ball, and certain dissent or unsporting behaviour offences that don't warrant a card. Unlike a direct free kick, a goal cannot be scored straight from an indirect free kick — the ball must touch another player (teammate or opponent) before entering the goal.",
+    "content": "An indirect free kick is awarded for several technical offences: a goalkeeper handling a deliberate back-pass from a teammate, a goalkeeper holding the ball for more than 6 seconds before releasing it, dangerous play, obstruction without contact, preventing the goalkeeper from releasing the ball, and certain dissent or unsporting behaviour offences that don't warrant a card. Unlike a direct free kick, a goal cannot be scored straight from an indirect free kick - the ball must touch another player (teammate or opponent) before entering the goal.",
     "tags": [
       "indirect free kick",
       "goalkeeper",
@@ -980,8 +980,8 @@
     "id": "football-rules-033",
     "sport": "football",
     "category": "rules",
-    "title": "Offside — Interfering with an Opponent",
-    "content": "A player in an offside position is penalised for 'interfering with an opponent' if they prevent an opponent from playing or being able to play the ball by clearly obstructing their line of vision, or by making a movement or gesture that, in the referee's opinion, deceives or distracts an opponent. Simply standing in an offside position near an opponent without affecting their ability to play is not enough — there must be a clear obstruction or deceptive action involved.",
+    "title": "Offside - Interfering with an Opponent",
+    "content": "A player in an offside position is penalised for 'interfering with an opponent' if they prevent an opponent from playing or being able to play the ball by clearly obstructing their line of vision, or by making a movement or gesture that, in the referee's opinion, deceives or distracts an opponent. Simply standing in an offside position near an opponent without affecting their ability to play is not enough - there must be a clear obstruction or deceptive action involved.",
     "tags": [
       "offside",
       "interference",
@@ -1022,7 +1022,7 @@
     "id": "football-rules-036",
     "sport": "football",
     "category": "rules",
-    "title": "Offside — Last Touch by a Defender",
+    "title": "Offside - Last Touch by a Defender",
     "content": "If the ball was last played or touched by a defending player (deliberately or via deflection) before reaching an attacker in an offside position, the offside offence is typically not penalised, since the attacker did not gain an advantage from a teammate's pass. However, a deliberate save or clearance attempt by a defender that is then played by the attacker can still be reviewed by VAR to determine whether the original pass from a teammate, not the defender's action, is what set up the offside situation.",
     "tags": [
       "offside",
@@ -1037,7 +1037,7 @@
     "sport": "football",
     "category": "rules",
     "title": "Misconduct Outside the Field of Play",
-    "content": "A player or substitute can be cautioned or sent off for misconduct even when not on the field of play — for example, while warming up, during a stoppage, or after being substituted but still in the technical area. Red and yellow cards can be shown to anyone on the team list, including substitutes and substituted players, for offences such as violent conduct towards an opponent, official, or spectator, even if it occurs away from the immediate play.",
+    "content": "A player or substitute can be cautioned or sent off for misconduct even when not on the field of play - for example, while warming up, during a stoppage, or after being substituted but still in the technical area. Red and yellow cards can be shown to anyone on the team list, including substitutes and substituted players, for offences such as violent conduct towards an opponent, official, or spectator, even if it occurs away from the immediate play.",
     "tags": [
       "misconduct",
       "substitutes",
@@ -1050,7 +1050,7 @@
     "id": "football-rules-038",
     "sport": "football",
     "category": "rules",
-    "title": "Offside Rule — Defender Leaving the Field",
+    "title": "Offside Rule - Defender Leaving the Field",
     "content": "If a defending player leaves the field of play (without the referee's permission) during the course of play, they are still considered to be on the goal line for offside purposes when determining the position of the second-last defender, until the next phase of play. This prevents teams from manipulating the offside line by having a defender deliberately step off the pitch to play an attacker offside or onside.",
     "tags": [
       "offside",
@@ -1064,8 +1064,8 @@
     "id": "football-rules-039",
     "sport": "football",
     "category": "rules",
-    "title": "Use of Technology — Goal-Line Technology",
-    "content": "Goal-line technology (GLT) is used in many top competitions to determine instantly and definitively whether the ball has fully crossed the goal line for a goal to be awarded. The system uses multiple high-speed cameras (or in some cases a sensor-equipped ball) to track the ball's position and sends an immediate signal — typically a vibration to the referee's watch — within one second of the ball crossing the line. This is separate from VAR, which handles broader decisions, while GLT specifically resolves the binary question of whether a goal was scored.",
+    "title": "Use of Technology - Goal-Line Technology",
+    "content": "Goal-line technology (GLT) is used in many top competitions to determine instantly and definitively whether the ball has fully crossed the goal line for a goal to be awarded. The system uses multiple high-speed cameras (or in some cases a sensor-equipped ball) to track the ball's position and sends an immediate signal - typically a vibration to the referee's watch - within one second of the ball crossing the line. This is separate from VAR, which handles broader decisions, while GLT specifically resolves the binary question of whether a goal was scored.",
     "tags": [
       "goal-line technology",
       "GLT",
@@ -1138,7 +1138,7 @@
     "sport": "football",
     "category": "formation",
     "title": "4-3-3 with Double Pivot Variation",
-    "content": "Some teams play a 4-3-3 with a 'double pivot' — two holding midfielders sitting side by side rather than one defensive midfielder with two more advanced players. This provides extra defensive security and passing options in deep areas, with the most advanced of the three midfielders (often an attacking midfielder or '10') given freedom to roam between the lines. This variation balances the attacking width of a 4-3-3 with added defensive solidity in central midfield, useful against opponents with strong central attacking threats.",
+    "content": "Some teams play a 4-3-3 with a 'double pivot' - two holding midfielders sitting side by side rather than one defensive midfielder with two more advanced players. This provides extra defensive security and passing options in deep areas, with the most advanced of the three midfielders (often an attacking midfielder or '10') given freedom to roam between the lines. This variation balances the attacking width of a 4-3-3 with added defensive solidity in central midfield, useful against opponents with strong central attacking threats.",
     "tags": [
       "4-3-3",
       "double pivot",
@@ -1168,7 +1168,7 @@
     "sport": "football",
     "category": "formation",
     "title": "3-1-4-2 Formation",
-    "content": "The 3-1-4-2 formation has 3 central defenders, a single holding midfielder shielding them, 4 midfielders ahead (including wide players providing width), and 2 forwards. The lone holding midfielder is crucial — they must cover large areas of space in front of the back three, especially when the wide players push forward to attack, leaving the team susceptible to counter-attacks through the vacated central channel if the holding midfielder is bypassed.",
+    "content": "The 3-1-4-2 formation has 3 central defenders, a single holding midfielder shielding them, 4 midfielders ahead (including wide players providing width), and 2 forwards. The lone holding midfielder is crucial - they must cover large areas of space in front of the back three, especially when the wide players push forward to attack, leaving the team susceptible to counter-attacks through the vacated central channel if the holding midfielder is bypassed.",
     "tags": [
       "3-1-4-2",
       "formation",
@@ -1183,7 +1183,7 @@
     "sport": "football",
     "category": "formation",
     "title": "4-4-2 Flat vs Staggered",
-    "content": "Within the broad 4-4-2 formation, the front two strikers can be arranged 'flat' (side by side on the same horizontal line) or 'staggered' (one slightly ahead of the other). A staggered front two allows one striker to drop into midfield to receive the ball and link play, while the other stays higher to stretch the defensive line and provide a final pass option or run in behind. This subtle variation changes how the strikers combine — flat pairs often rely on simultaneous movement and direct combinations, while staggered pairs create more layered attacking options.",
+    "content": "Within the broad 4-4-2 formation, the front two strikers can be arranged 'flat' (side by side on the same horizontal line) or 'staggered' (one slightly ahead of the other). A staggered front two allows one striker to drop into midfield to receive the ball and link play, while the other stays higher to stretch the defensive line and provide a final pass option or run in behind. This subtle variation changes how the strikers combine - flat pairs often rely on simultaneous movement and direct combinations, while staggered pairs create more layered attacking options.",
     "tags": [
       "4-4-2",
       "staggered strikers",
@@ -1227,7 +1227,7 @@
     "sport": "football",
     "category": "formation",
     "title": "WM Formation (3-2-2-3, Historical)",
-    "content": "The WM formation, developed by Herbert Chapman at Arsenal in the late 1920s, rearranged the 2-3-5 into a shape resembling the letters W and M when viewed on the pitch — effectively 3-2-2-3 (3 defenders, 2 holding midfielders, 2 attacking midfielders, 3 forwards). It was revolutionary at the time for introducing a 'centre-half' as a defensive player rather than an attacking one, in response to changes to the offside law in 1925. The WM dominated football tactics for decades and laid the foundation for modern formations with distinct defensive and attacking midfield roles.",
+    "content": "The WM formation, developed by Herbert Chapman at Arsenal in the late 1920s, rearranged the 2-3-5 into a shape resembling the letters W and M when viewed on the pitch - effectively 3-2-2-3 (3 defenders, 2 holding midfielders, 2 attacking midfielders, 3 forwards). It was revolutionary at the time for introducing a 'centre-half' as a defensive player rather than an attacking one, in response to changes to the offside law in 1925. The WM dominated football tactics for decades and laid the foundation for modern formations with distinct defensive and attacking midfield roles.",
     "tags": [
       "WM formation",
       "Herbert Chapman",
@@ -1305,7 +1305,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Compactness and Defensive Distances",
-    "content": "Compactness refers to how close together a team's players are positioned, both vertically (between defence and attack) and horizontally (across the width of the pitch). A compact team reduces the space between lines, making it harder for the opposition to find passing lanes through midfield. Teams achieve compactness by adjusting their defensive line height relative to the position of the ball — pushing up when the ball is far away and dropping deeper as the ball approaches their goal, while midfielders and forwards narrow to support the press.",
+    "content": "Compactness refers to how close together a team's players are positioned, both vertically (between defence and attack) and horizontally (across the width of the pitch). A compact team reduces the space between lines, making it harder for the opposition to find passing lanes through midfield. Teams achieve compactness by adjusting their defensive line height relative to the position of the ball - pushing up when the ball is far away and dropping deeper as the ball approaches their goal, while midfielders and forwards narrow to support the press.",
     "tags": [
       "compactness",
       "defensive shape",
@@ -1333,7 +1333,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Half-Spaces (Channels) Exploitation",
-    "content": "The 'half-spaces' or channels are the vertical zones of the pitch between the central area and the wide flanks — roughly where a winger and central midfielder's zones overlap. These areas are often less tightly marked than the centre or the touchline, making them valuable for attacking players (often inverted wingers or attacking midfielders) to receive the ball and turn towards goal with options to pass centrally, cross, or shoot. Modern possession-based teams deliberately position players in these half-spaces to create passing triangles and disorganise defensive structures built around marking central and wide zones.",
+    "content": "The 'half-spaces' or channels are the vertical zones of the pitch between the central area and the wide flanks - roughly where a winger and central midfielder's zones overlap. These areas are often less tightly marked than the centre or the touchline, making them valuable for attacking players (often inverted wingers or attacking midfielders) to receive the ball and turn towards goal with options to pass centrally, cross, or shoot. Modern possession-based teams deliberately position players in these half-spaces to create passing triangles and disorganise defensive structures built around marking central and wide zones.",
     "tags": [
       "half-spaces",
       "channels",
@@ -1347,7 +1347,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "High Defensive Line and Offside Trap Combination",
-    "content": "Teams that play with a high defensive line (positioning the back four or back three far from their own goal) do so to compress the space available to the opposition and support a high press. This strategy is often combined with the offside trap — by stepping up as a unit when the ball is played forward, defenders can catch attackers offside, nullifying through-balls. The risk is significant: if the line is beaten by a pass into space behind the defenders, fast attackers can exploit the large gap between the high line and the goalkeeper.",
+    "content": "Teams that play with a high defensive line (positioning the back four or back three far from their own goal) do so to compress the space available to the opposition and support a high press. This strategy is often combined with the offside trap - by stepping up as a unit when the ball is played forward, defenders can catch attackers offside, nullifying through-balls. The risk is significant: if the line is beaten by a pass into space behind the defenders, fast attackers can exploit the large gap between the high line and the goalkeeper.",
     "tags": [
       "high line",
       "offside trap",
@@ -1375,7 +1375,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Quick Throw-Ins as an Attacking Tool",
-    "content": "A quick throw-in, taken rapidly before the opposition can reorganise defensively, can be used as an attacking weapon to catch defenders out of position — similar to a fast break in transition. Because the rules require only that the thrower has both feet on or behind the line and uses two hands over the head, a well-drilled team can execute a quick throw-in into space behind a defender who has not yet retreated to a defensive position, creating an immediate 1v1 or 2v1 attacking situation.",
+    "content": "A quick throw-in, taken rapidly before the opposition can reorganise defensively, can be used as an attacking weapon to catch defenders out of position - similar to a fast break in transition. Because the rules require only that the thrower has both feet on or behind the line and uses two hands over the head, a well-drilled team can execute a quick throw-in into space behind a defender who has not yet retreated to a defensive position, creating an immediate 1v1 or 2v1 attacking situation.",
     "tags": [
       "quick throw-in",
       "transition",
@@ -1403,7 +1403,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Game Management (Time and Score Control)",
-    "content": "Game management refers to how a team adjusts its strategy based on the scoreline and time remaining — for example, a team leading late in a match may shift to a more conservative shape, slow the tempo through controlled possession, or make defensive substitutions to protect the result. Conversely, a team trailing late may push more players forward, take more risks, and increase tempo to create scoring chances. Effective game management requires squad players capable of executing different tactical instructions depending on the match situation.",
+    "content": "Game management refers to how a team adjusts its strategy based on the scoreline and time remaining - for example, a team leading late in a match may shift to a more conservative shape, slow the tempo through controlled possession, or make defensive substitutions to protect the result. Conversely, a team trailing late may push more players forward, take more risks, and increase tempo to create scoring chances. Effective game management requires squad players capable of executing different tactical instructions depending on the match situation.",
     "tags": [
       "game management",
       "scoreline",
@@ -1417,7 +1417,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Pressing Traps",
-    "content": "A pressing trap is a deliberate strategy where a team allows the opposition to play into a specific area of the pitch — often a wide channel or towards a weaker passer — before suddenly applying intense pressure to force a turnover in a pre-planned location. Unlike general pressing, a pressing trap is designed around predicting where the opponent is most likely to play next, based on their habitual passing patterns, and positioning players to spring the trap the moment the ball arrives there.",
+    "content": "A pressing trap is a deliberate strategy where a team allows the opposition to play into a specific area of the pitch - often a wide channel or towards a weaker passer - before suddenly applying intense pressure to force a turnover in a pre-planned location. Unlike general pressing, a pressing trap is designed around predicting where the opponent is most likely to play next, based on their habitual passing patterns, and positioning players to spring the trap the moment the ball arrives there.",
     "tags": [
       "pressing trap",
       "turnover",
@@ -1459,7 +1459,7 @@
     "sport": "football",
     "category": "strategy",
     "title": "Combination Play (One-Twos and Third-Man Runs)",
-    "content": "Combination play involves quick, short passing sequences between two or more players to bypass defenders, most commonly a 'one-two' (also called a wall pass), where a player passes to a teammate and immediately receives the ball back after running past a defender. A 'third-man run' extends this concept — a player passes to a teammate, who then plays a first-time pass to a third player making a run into space, bypassing a defender who anticipated the ball returning to the first player. These combinations rely on quick decision-making, first-touch quality, and players making intelligent supporting runs.",
+    "content": "Combination play involves quick, short passing sequences between two or more players to bypass defenders, most commonly a 'one-two' (also called a wall pass), where a player passes to a teammate and immediately receives the ball back after running past a defender. A 'third-man run' extends this concept - a player passes to a teammate, who then plays a first-time pass to a third player making a run into space, bypassing a defender who anticipated the ball returning to the first player. These combinations rely on quick decision-making, first-touch quality, and players making intelligent supporting runs.",
     "tags": [
       "combination play",
       "one-two",

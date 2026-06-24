@@ -1,33 +1,33 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Footer from "@/components/ui/Footer";
+import { SignalRProvider } from "@/hooks/useSignalR";
 
 export const metadata: Metadata = {
-  title: "SportScore",
-  description: "Real-time sports tracking",
+  title: "SportScore - Stop app-hopping like a maniac.",
+  description: "Real-time scores, stats, news and commentary across football, cricket, rugby and F1.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
-        <Navbar />
-        {children}
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://rsms.me/" />
+        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+      </head>
+      <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+        <SignalRProvider>
+          <Navbar />
+          <main style={{ flex: 1, width: "100%", maxWidth: "100%", overflowX: "hidden" }}>{children}</main>
+          <Footer />
+        </SignalRProvider>
       </body>
     </html>
   );

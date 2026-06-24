@@ -62,7 +62,7 @@ for item in players:
         "id": f"football-player-{player_id}",
         "sport": "football",
         "category": "player",
-        "title": f"{name} — Player Profile",
+        "title": f"{name} - Player Profile",
         "content": content,
         "tags": [name, nationality, team_name, position, league_name],
         "source": "api-football.com",
@@ -171,7 +171,7 @@ if standings_data:
             "id": f"football-team-{team_id}",
             "sport": "football",
             "category": "team",
-            "title": f"{team_name} — Premier League {SEASON} Season",
+            "title": f"{team_name} - Premier League {SEASON} Season",
             "content": content,
             "tags": [team_name, "Premier League", "standings", str(SEASON)],
             "source": "api-football.com",
@@ -184,7 +184,7 @@ if standings_data:
 
 time.sleep(1)
 
-# ── PART 3: ADD COMPETITION FORMAT (manual — no API needed) ─
+# ── PART 3: ADD COMPETITION FORMAT (manual - no API needed) ─
 print("Adding competition format entries...")
 
 competition_entries = [
@@ -192,7 +192,7 @@ competition_entries = [
         "id": "football-competition-001",
         "sport": "football",
         "category": "competition",
-        "title": "Premier League — Format and Rules",
+        "title": "Premier League - Format and Rules",
         "content": (
             "The Premier League is the top division of English football, "
             "featuring 20 clubs. Each team plays 38 matches per season "
@@ -212,7 +212,7 @@ competition_entries = [
         "id": "football-competition-002",
         "sport": "football",
         "category": "competition",
-        "title": "UEFA Champions League — Format",
+        "title": "UEFA Champions League - Format",
         "content": (
             "The UEFA Champions League is Europe's premier club football competition. "
             "From the 2024-25 season, the format changed to a league phase with 36 clubs, "
@@ -231,7 +231,7 @@ competition_entries = [
         "id": "football-competition-003",
         "sport": "football",
         "category": "competition",
-        "title": "FIFA World Cup — Format",
+        "title": "FIFA World Cup - Format",
         "content": (
             "The FIFA World Cup is held every four years and is the most prestigious "
             "international football tournament. 32 teams (expanding to 48 from 2026) "

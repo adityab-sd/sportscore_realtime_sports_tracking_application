@@ -1,107 +1,90 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { mockMatches } from '@/lib/mock/footballData';
-import MatchCard from '@/components/football/MatchCard';
+import { getFixtures } from "@/lib/api/espn";
+import { LEAGUES } from "@/types/football";
+import LiveFootball from "@/components/football/LiveFootball";
+import FixtureCard from "@/components/football/FixtureCard";
 
-type FilterType = 'all' | 'live' | 'scheduled' | 'finished';
+export const dynamic = "force-dynamic";
 
-export default function FootballPage() {
-  const [filter, setFilter] = useState<FilterType>('all');
+// Fetch results + upcoming across all leagues in parallel
+async function getAllFixtures() {
+  const slugs = LEAGUES.map(l => l.slug);
+  const results = await Promise.allSettled(slugs.map(s => getFixtures(s)));
+  const seen = new Set<string>();
+  let allResults: any[] = [];
+  let allUpcoming: any[] = [];
 
-  const live = mockMatches.filter(m => m.status === '1H' || m.status === '2H' || m.status === 'HT');
-  const upcoming = mockMatches.filter(m => m.status === 'NS');
-  const finished = mockMatches.filter(m => m.status === 'FT');
+  results.forEach((r, i) => {
+    if (r.status !== "fulfilled") return;
+    const slug = slugs[i];
+    r.value.results.forEach(f => {
+      if (!seen.has(f.id)) { seen.add(f.id); allResults.push({ ...f, _slug: slug }); }
+    });
+    r.value.upcoming.forEach(f => {
+      if (!seen.has(f.id)) { seen.add(f.id); allUpcoming.push({ ...f, _slug: slug }); }
+    });
+  });
 
-  const filters: { key: FilterType; label: string; count: number }[] = [
-    { key: 'all', label: 'All', count: mockMatches.length },
-    { key: 'live', label: 'Live', count: live.length },
-    { key: 'scheduled', label: 'Scheduled', count: upcoming.length },
-    { key: 'finished', label: 'Finished', count: finished.length },
-  ];
+  // Sort: results newest first, upcoming earliest first
+  allResults.sort((a,b) => new Date(b.kickoff ?? 0).getTime() - new Date(a.kickoff ?? 0).getTime());
+  allUpcoming.sort((a,b) => new Date(a.kickoff ?? 0).getTime() - new Date(b.kickoff ?? 0).getTime());
+  return { allResults: allResults.slice(0, 20), allUpcoming: allUpcoming.slice(0, 20) };
+}
 
-  const showLive = filter === 'all' || filter === 'live';
-  const showUpcoming = filter === 'all' || filter === 'scheduled';
-  const showFinished = filter === 'all' || filter === 'finished';
+export default async function FootballPage() {
+  const { allResults, allUpcoming } = await getAllFixtures();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Football</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Live scores, fixtures & results</p>
-          </div>
-          <Link
-            href="/football/standings"
-            className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
-          >
-            📊 Standings
-          </Link>
+    <div className="container" style={{ paddingTop: 28, paddingBottom: 40 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>Football</h1>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Live scores, results &amp; upcoming fixtures</p>
         </div>
-
-        {/* Filter pills */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1">
-          {filters.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all ${
-                filter === f.key
-                  ? "bg-gray-900 text-white shadow-sm"
-                  : "bg-white text-gray-600 border border-gray-100 hover:border-gray-200 hover:shadow-sm"
-              }`}
-            >
-              {f.key === 'live' && (
-                <span className={`w-1.5 h-1.5 rounded-full ${filter === f.key ? "bg-green-400" : "bg-green-500"} ${f.count > 0 ? "animate-pulse" : ""}`} />
-              )}
-              {f.label}
-              <span className={`text-xs font-semibold ${filter === f.key ? "text-gray-400" : "text-gray-300"}`}>
-                {f.count}
-              </span>
-            </button>
-          ))}
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/football/news" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>News</Link>
+          <Link href="/football/standings" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>Standings</Link>
         </div>
+      </div>
 
-        {showLive && live.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Live Now</h2>
-            </div>
-            <div className="flex flex-col gap-3">
-              {live.map(match => <MatchCard key={match.id} match={match} />)}
-            </div>
-          </section>
-        )}
+      {/* Live - from SignalR */}
+      <section style={{ marginBottom: 40 }}>
+        <LiveFootball />
+      </section>
 
-        {showUpcoming && upcoming.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scheduled</h2>
-            <div className="flex flex-col gap-3">
-              {upcoming.map(match => <MatchCard key={match.id} match={match} />)}
-            </div>
-          </section>
-        )}
+      {/* Two column: Results + Upcoming */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }} className="page-split">
 
-        {showFinished && finished.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Finished</h2>
-            <div className="flex flex-col gap-3">
-              {finished.map(match => <MatchCard key={match.id} match={match} />)}
-            </div>
-          </section>
-        )}
-
-        {((filter === 'live' && live.length === 0) ||
-          (filter === 'scheduled' && upcoming.length === 0) ||
-          (filter === 'finished' && finished.length === 0)) && (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            <div className="text-3xl mb-2">⚽</div>
-            No matches in this category
+        {/* Recent Results */}
+        <section>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Recent Results</h2>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{allResults.length}</span>
           </div>
-        )}
+          {allResults.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No recent results available.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {allResults.map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={f._slug} />)}
+            </div>
+          )}
+        </section>
+
+        {/* Upcoming Fixtures */}
+        <section>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Upcoming Fixtures</h2>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{allUpcoming.length}</span>
+          </div>
+          {allUpcoming.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No upcoming fixtures available.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {allUpcoming.map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={f._slug} />)}
+            </div>
+          )}
+        </section>
+
       </div>
     </div>
   );
