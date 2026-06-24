@@ -1,20 +1,23 @@
 import requests
 import json
 import time
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ── CONFIG ──────────────────────────────────────────────
-API_KEY = "3c4567049053d8e049d531f872a2a107"
+API_KEY  = os.getenv("FOOTBALL_API_KEY")
 BASE_URL = "https://v3.football.api-sports.io"
-HEADERS = {"x-apisports-key": API_KEY}
+HEADERS  = {"x-apisports-key": API_KEY}
 
 OUTPUT_FILE = "corpus/football_corpus.json"
 
-# We will fetch data for the Premier League
-# League ID 39 = Premier League, Season 2024
+# Premier League, Season 2024
 LEAGUE_ID = 39
-SEASON = 2024
+SEASON    = 2024
 
-corpus = []  # this list will hold all our entries
+corpus = []
 
 # ── HELPER: make API call ────────────────────────────────
 def call_api(endpoint, params={}):
@@ -23,14 +26,12 @@ def call_api(endpoint, params={}):
     data = response.json()
     return data.get("response", [])
 
-# ── PART 1: FETCH TOP PLAYERS ────────────────────────────
-# We fetch top scorers for Premier League 2024
-# This uses only 1 API request
+# ── PART 1: FETCH TOP SCORERS ────────────────────────────
 print("Fetching top scorers...")
 players = call_api("players/topscorers", {"league": LEAGUE_ID, "season": SEASON})
 
 for item in players:
-    p = item.get("player", {})
+    p     = item.get("player", {})
     stats = item.get("statistics", [{}])[0]
 
     player_id   = p.get("id", "")
@@ -59,33 +60,32 @@ for item in players:
     )
 
     entry = {
-        "id": f"football-player-{player_id}",
-        "sport": "football",
-        "category": "player",
-        "title": f"{name} — Player Profile",
-        "content": content,
-        "tags": [name, nationality, team_name, position, league_name],
-        "source": "api-football.com",
-        "source_id": player_id,
+        "id":           f"football-player-{player_id}",
+        "sport":        "football",
+        "category":     "player",
+        "title":        f"{name} — Player Profile",
+        "content":      content,
+        "tags":         [name, nationality, team_name, position, league_name],
+        "source":       "api-football.com",
+        "source_id":    player_id,
         "last_updated": f"{SEASON}-season"
     }
     corpus.append(entry)
 
 print(f" Got {len(players)} players")
-time.sleep(1)  # be polite to the API
+time.sleep(1)
 
 # ── PART 1B: FETCH TOP ASSISTS ───────────────────────────
 print("Fetching top assists...")
 assist_players = call_api("players/topassists", {"league": LEAGUE_ID, "season": SEASON})
 
 for item in assist_players:
-    p = item.get("player", {})
+    p     = item.get("player", {})
     stats = item.get("statistics", [{}])[0]
 
-    player_id   = p.get("id", "")
-    name        = p.get("name", "Unknown")
+    player_id = p.get("id", "")
+    name      = p.get("name", "Unknown")
 
-    # Skip if this player was already added from top scorers
     if any(entry["source_id"] == player_id and entry["category"] == "player" for entry in corpus):
         continue
 
@@ -113,14 +113,14 @@ for item in assist_players:
     )
 
     entry = {
-        "id": f"football-player-{player_id}",
-        "sport": "football",
-        "category": "player",
-        "title": f"{name} — Player Profile",
-        "content": content,
-        "tags": [name, nationality, team_name, position, league_name],
-        "source": "api-football.com",
-        "source_id": player_id,
+        "id":           f"football-player-{player_id}",
+        "sport":        "football",
+        "category":     "player",
+        "title":        f"{name} — Player Profile",
+        "content":      content,
+        "tags":         [name, nationality, team_name, position, league_name],
+        "source":       "api-football.com",
+        "source_id":    player_id,
         "last_updated": f"{SEASON}-season"
     }
     corpus.append(entry)
@@ -128,8 +128,7 @@ for item in assist_players:
 print(f" Got {len(assist_players)} assist leaders (new ones added)")
 time.sleep(1)
 
-# ── PART 2: FETCH STANDINGS (team info + league position) ─
-# This uses only 1 API request
+# ── PART 2: FETCH STANDINGS ──────────────────────────────
 print("Fetching standings...")
 standings_data = call_api("standings", {"league": LEAGUE_ID, "season": SEASON})
 
@@ -157,34 +156,28 @@ if standings_data:
             f"with {points} points from {played} games "
             f"({win} wins, {draw} draws, {lose} losses). "
             f"Goals scored: {goals_for}, Goals conceded: {goals_ag}, "
-            f"Goal difference: {goal_diff}. "
-            f"Recent form: {form}. "
-            f"Status: {description}." if description else
-            f"{team_name} finished {rank} in the Premier League {SEASON} season "
-            f"with {points} points from {played} games "
-            f"({win} wins, {draw} draws, {lose} losses). "
-            f"Goals scored: {goals_for}, Goals conceded: {goals_ag}, "
             f"Goal difference: {goal_diff}. Recent form: {form}."
+            + (f" Status: {description}." if description else "")
         )
 
         entry = {
-            "id": f"football-team-{team_id}",
-            "sport": "football",
-            "category": "team",
-            "title": f"{team_name} — Premier League {SEASON} Season",
-            "content": content,
-            "tags": [team_name, "Premier League", "standings", str(SEASON)],
-            "source": "api-football.com",
-            "source_id": team_id,
+            "id":           f"football-team-{team_id}",
+            "sport":        "football",
+            "category":     "team",
+            "title":        f"{team_name} — Premier League {SEASON} Season",
+            "content":      content,
+            "tags":         [team_name, "Premier League", "standings", str(SEASON)],
+            "source":       "api-football.com",
+            "source_id":    team_id,
             "last_updated": f"{SEASON}-season"
         }
         corpus.append(entry)
 
-    print(f"  Got {len(table)} teams from standings")
+    print(f" Got {len(table)} teams from standings")
 
 time.sleep(1)
 
-# ── PART 3: ADD COMPETITION FORMAT (manual — no API needed) ─
+# ── PART 3: COMPETITION FORMAT ───────────────────────────
 print("Adding competition format entries...")
 
 competition_entries = [
@@ -200,8 +193,7 @@ competition_entries = [
             "for a win, 1 for a draw, and 0 for a loss. The team with the most "
             "points at the end of the season wins the title. The bottom 3 teams "
             "are relegated to the Championship. The top 4 teams qualify for the "
-            "UEFA Champions League. Teams finishing 5th and 6th qualify for the "
-            "UEFA Europa League. The league runs from August to May each year."
+            "UEFA Champions League. The league runs from August to May each year."
         ),
         "tags": ["Premier League", "format", "relegation", "Champions League", "football"],
         "source": "premierleague.com",
@@ -218,8 +210,7 @@ competition_entries = [
             "From the 2024-25 season, the format changed to a league phase with 36 clubs, "
             "each playing 8 matches against different opponents. The top 8 teams advance "
             "directly to the Round of 16. Teams finishing 9th to 24th enter a knockout "
-            "playoff round. Teams finishing 25th or below are eliminated. "
-            "The competition then follows a standard knockout format through "
+            "playoff round. The competition then follows a standard knockout format through "
             "Round of 16, Quarter-finals, Semi-finals, and the Final."
         ),
         "tags": ["Champions League", "UEFA", "format", "European football"],
@@ -237,23 +228,22 @@ competition_entries = [
             "international football tournament. 32 teams (expanding to 48 from 2026) "
             "compete across a group stage and knockout rounds. In the group stage, "
             "teams are divided into groups of 4, with the top 2 from each group "
-            "advancing to the Round of 16. The tournament then follows a straight "
-            "knockout format through Quarter-finals, Semi-finals, Third place play-off, "
-            "and the Final. The 2026 World Cup will be hosted by USA, Canada, and Mexico."
+            "advancing to the Round of 16. The 2026 World Cup will be hosted by "
+            "USA, Canada, and Mexico."
         ),
         "tags": ["World Cup", "FIFA", "format", "international football"],
         "source": "fifa.com",
         "source_id": 1,
         "last_updated": "2024"
-    } 
+    }
 ]
 
 corpus.extend(competition_entries)
-print(f"  Added {len(competition_entries)} competition entries")
+print(f" Added {len(competition_entries)} competition entries")
 
 # ── SAVE TO FILE ─────────────────────────────────────────
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     json.dump(corpus, f, indent=2, ensure_ascii=False)
 
-print(f"\nDone! Total entries: {len(corpus)}")
-print(f"Saved to: {OUTPUT_FILE}")
+print(f"\n Done! Total entries: {len(corpus)}")
+print(f" Saved to: {OUTPUT_FILE}")
