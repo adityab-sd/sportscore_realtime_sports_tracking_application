@@ -1,11 +1,5 @@
 package org.Spring.Coresports;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.Spring.Coresports.CoreSportsAdapter;
-import org.Spring.model.Match;
-import org.Spring.producer.EventHubProducer;
-import org.springframework.stereotype.Component;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -14,6 +8,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.Spring.model.Match;
+import org.Spring.producer.EventHubProducer;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Fetches football data from the Core Sports provider across many competitions,
@@ -48,10 +48,18 @@ public class CoreSportsFetcher {
         this.producer = producer;
     }
 
-    /** Fetches FIFA World Cup matches and publishes to Event Hub. */
+    /**
+     * Publishes ONLY in-progress matches (LIVE or HT) across all leagues to
+     * Event Hub. Scheduled and finished matches are served via REST, not pushed.
+     */
     public void fetchAndPublishLive() throws Exception {
-        List<Match> matches = fetchMatches("fifa.world");
-        producer.send(mapper.writeValueAsString(matches));
+        List<Match> live = new ArrayList<>();
+        for (Match m : fetchAllMatches()) {
+            if ("LIVE".equals(m.status()) || "HT".equals(m.status())) {
+                live.add(m);
+            }
+        }
+        producer.send(mapper.writeValueAsString(live));
     }
 
     /** Raw JSON for one competition's scoreboard. */
@@ -89,55 +97,83 @@ public class CoreSportsFetcher {
         return response.body();
     }
 
+    // ---- quick manual test: prints matches grouped by real status ----
+
     public static void main(String[] args) throws Exception {
         CoreSportsFetcher fetcher = new CoreSportsFetcher(null);
 
-        int totalMatches = 0;
-        int liveMatches = 0;
+        List<String> live = new ArrayList<>();
+        List<String> scheduled = new ArrayList<>();
+        List<String> finished = new ArrayList<>();
+        List<String> other = new ArrayList<>();
 
         for (Map.Entry<String, String> entry : LEAGUES.entrySet()) {
-            String slug = entry.getKey();
             String name = entry.getValue();
             List<Match> matches;
             try {
-                matches = fetcher.fetchMatches(slug);
+                matches = fetcher.fetchMatches(entry.getKey());
             } catch (Exception e) {
-                System.out.println("\n[" + name + "] could not fetch (" + e.getMessage() + ")");
+                System.out.println("(" + name + " unavailable: " + e.getMessage() + ")");
                 continue;
             }
-
-            System.out.println("\n===== " + name + " (" + slug + ") : "
-                    + matches.size() + " matches =====");
             for (Match m : matches) {
-                totalMatches++;
-                boolean isLive = isLiveStatus(m.status());
-                if (isLive)
-                    liveMatches++;
-                System.out.println(
-                        (isLive ? "  >> LIVE  " : "  ")
-                                + m.homeTeam().name() + " " + m.homeScore()
-                                + "-" + m.awayScore() + " " + m.awayTeam().name()
-                                + "  [" + m.status() + "]  events: " + m.events().size());
+                String line = format(name, m);
+                switch (category(m.status())) {
+                    case "LIVE" -> live.add(line);
+                    case "SCHEDULED" -> scheduled.add(line);
+                    case "FINISHED" -> finished.add(line);
+                    default -> other.add(line);
+                }
             }
         }
 
-        System.out.println("\n========================================");
-        System.out.println("TOTAL matches fetched: " + totalMatches);
-        System.out.println("LIVE right now: " + liveMatches);
+        printSection("LIVE NOW", live);
+        printSection("SCHEDULED", scheduled);
+        printSection("FINISHED", finished);
+        printSection("OTHER (canceled / postponed)", other);
+
+        System.out.println("\n----------------------------------------");
+        System.out.println("Live: " + live.size()
+                + "   Scheduled: " + scheduled.size()
+                + "   Finished: " + finished.size()
+                + "   Other: " + other.size());
     }
 
-    /** A match is live if its status is not a finished/scheduled marker. */
-    private static boolean isLiveStatus(String status) {
-        if (status == null)
-            return false;
-        String s = status.toUpperCase();
-        // finished or not-started markers -> not live
-        if (s.contains("FT") || s.contains("FULL"))
-            return false;
-        if (s.contains("NS") || s.contains("SCHEDULED"))
-            return false;
-        // anything with a minute/half indication is live
-        return s.contains("'") || s.contains("H") || s.contains("LIVE")
-                || s.matches(".*\\d+.*");
+    /** Buckets the adapter's status vocabulary into the three display groups. */
+    private static String category(String status) {
+        if (status == null) return "OTHER";
+        return switch (status) {
+            case "LIVE", "HT" -> "LIVE";
+            case "FT", "FT-Pens", "AET" -> "FINISHED";
+            case "Scheduled", "TBD" -> "SCHEDULED";
+            default -> "OTHER"; // Canceled, Postponed
+        };
+    }
+
+    private static String format(String league, Match m) {
+        String home = m.homeTeam() != null ? m.homeTeam().name() : "?";
+        String away = m.awayTeam() != null ? m.awayTeam().name() : "?";
+
+        if ("SCHEDULED".equals(category(m.status()))) {
+            return String.format("  [%s] %s vs %s   kickoff: %s",
+                    league, home, away, m.kickoff());
+        }
+
+        String score = m.homeScore() + "-" + m.awayScore();
+        String tail = m.status();
+        if (m.elapsed() != null) {
+            tail = m.status() + " " + m.elapsed() + "'";
+        }
+        return String.format("  [%s] %s %s %s   (%s)   events: %d",
+                league, home, score, away, tail, m.events().size());
+    }
+
+    private static void printSection(String title, List<String> lines) {
+        System.out.println("\n===== " + title + " (" + lines.size() + ") =====");
+        if (lines.isEmpty()) {
+            System.out.println("  (none)");
+        } else {
+            lines.forEach(System.out::println);
+        }
     }
 }
