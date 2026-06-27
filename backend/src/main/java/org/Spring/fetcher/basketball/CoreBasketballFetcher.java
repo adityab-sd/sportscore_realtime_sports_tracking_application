@@ -1,97 +1,100 @@
-package org.Spring.Coresports;
+package org.Spring.fetcher.basketball;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.Spring.adapter.basketball.CoreBasketballAdapter;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * Fetches football data from the ESPN provider across many competitions,
- * including the World Cup. No API key required.
- */
 @Component
-public class CoreSportsFetcher {
+public class CoreBasketballFetcher {
 
-    private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+    private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/basketball";
 
-    /** Competitions to pull. Key = slug, value = friendly name. */
     private static final Map<String, String> LEAGUES = new LinkedHashMap<>();
     static {
-        LEAGUES.put("fifa.world",        "World Cup 2026");
-        LEAGUES.put("fifa.friendly",     "International Friendly");
-        LEAGUES.put("uefa.champions",    "Champions League");
-        LEAGUES.put("uefa.europa",       "Europa League");
-        LEAGUES.put("uefa.europaconf",   "Conference League");
-        LEAGUES.put("eng.1",             "Premier League");
-        LEAGUES.put("eng.2",             "Championship");
-        LEAGUES.put("esp.1",             "La Liga");
-        LEAGUES.put("ita.1",             "Serie A");
-        LEAGUES.put("ger.1",             "Bundesliga");
-        LEAGUES.put("fra.1",             "Ligue 1");
-        LEAGUES.put("usa.1",             "MLS");
-        LEAGUES.put("bra.1",             "Brazil Serie A");
-        LEAGUES.put("ned.1",             "Eredivisie");
-        LEAGUES.put("por.1",             "Primeira Liga");
-        LEAGUES.put("mex.1",             "Liga MX");
-        LEAGUES.put("arg.1",             "Argentina Primera");
-        LEAGUES.put("jpn.1",             "J-League");
-        LEAGUES.put("aus.1",             "A-League");
+        // ── Professional (US) ─────────────────────────────────────────────
+        LEAGUES.put("nba",                        "NBA");
+        LEAGUES.put("wnba",                       "WNBA");
+        LEAGUES.put("nba-development",            "NBA G League");
+
+        // ── NBA Summer Leagues (active June–July) ─────────────────────────
+        LEAGUES.put("nba-summer-las-vegas",       "NBA Summer League (Las Vegas)");
+        LEAGUES.put("nba-summer-california",      "NBA Summer League (California)");
+        LEAGUES.put("nba-summer-orlando",         "NBA Summer League (Orlando)");
+        LEAGUES.put("nba-summer-utah",            "NBA Summer League (Salt Lake City)");
+        LEAGUES.put("nba-summer-golden-state",    "NBA Summer League (Golden State)");
+        LEAGUES.put("nba-summer-sacramento",      "NBA Summer League (Sacramento)");
+
+        // ── College (US) ──────────────────────────────────────────────────
+        LEAGUES.put("mens-college-basketball",    "NCAA Men's");
+        LEAGUES.put("womens-college-basketball",  "NCAA Women's");
+
+        // ── International ─────────────────────────────────────────────────
+        LEAGUES.put("fiba",                       "FIBA World Cup");
+        LEAGUES.put("nbl",                        "NBL (Australia)");
+        LEAGUES.put("mens-olympics-basketball",   "Olympics Men's Basketball");
+        LEAGUES.put("womens-olympics-basketball", "Olympics Women's Basketball");
     }
 
-    private final HttpClient     client   = HttpClient.newHttpClient();
-    private final CoreSportsAdapter adapter = new CoreSportsAdapter();
-    private final ObjectMapper   mapper   = new ObjectMapper();
-    private final EventHubProducer producer;
+    private final HttpClient            client   = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10)).build();
+    private final CoreBasketballAdapter adapter  = new CoreBasketballAdapter();
+    private final ObjectMapper          mapper   = new ObjectMapper();
+    private final EventHubProducer      producer;
 
-    public CoreSportsFetcher(EventHubProducer producer) {
+    public CoreBasketballFetcher(EventHubProducer producer) {
         this.producer = producer;
     }
 
-    /**
-     * Publishes ONLY in-progress matches (LIVE or HT) across all leagues to
-     * Event Hub. Scheduled and finished matches are served via REST, not pushed.
-     */
+    // -----------------------------------------------------------------------
+    // Pipeline
+    // -----------------------------------------------------------------------
+
     public void fetchAndPublishLive() throws Exception {
         List<Match> live = new ArrayList<>();
         for (Match m : fetchAllMatches()) {
-            if ("LIVE".equals(m.status()) || "HT".equals(m.status())) {
-                live.add(m);
-            }
+            if (isLive(m.status())) live.add(m);
         }
-        // Guard: only send if there are live matches (avoids sending empty arrays)
         if (!live.isEmpty()) {
             producer.send(mapper.writeValueAsString(live));
         }
     }
 
-    /** Raw JSON for one competition's scoreboard. */
+    private static boolean isLive(String status) {
+        if (status == null) return false;
+        return switch (status) {
+            case "LIVE", "HT", "Q1", "Q2", "Q3", "Q4", "OT" -> true;
+            default -> false;
+        };
+    }
+
     public String fetchScoreboardRaw(String league) throws Exception {
         return get("/" + league + "/scoreboard");
     }
 
-    /** Parsed matches for one competition. */
     public List<Match> fetchMatches(String league) throws Exception {
         return adapter.toMatches(fetchScoreboardRaw(league));
     }
 
-    /** Parsed matches across ALL configured competitions, combined. */
     public List<Match> fetchAllMatches() throws Exception {
         List<Match> all = new ArrayList<>();
         for (String slug : LEAGUES.keySet()) {
             try {
                 all.addAll(fetchMatches(slug));
             } catch (Exception e) {
-                System.out.println("  (skipped " + slug + ": " + e.getMessage() + ")");
+                System.out.println("  (basketball skipped " + slug + ": " + e.getMessage() + ")");
             }
         }
         return all;
@@ -101,12 +104,12 @@ public class CoreSportsFetcher {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + path))
                 .header("User-Agent", "SportScore/1.0")
-                .GET()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
+                .timeout(Duration.ofSeconds(15))
+                .GET().build();
+        HttpResponse<String> response =
+                client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200)
             throw new RuntimeException("API error " + response.statusCode());
-        }
         return response.body();
     }
 
@@ -117,14 +120,14 @@ public class CoreSportsFetcher {
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
         // so live matches are logged instead of crashing with NullPointerException
-        CoreSportsFetcher fetcher = new CoreSportsFetcher(new EventHubProducer("", ""));
+        CoreBasketballFetcher fetcher = new CoreBasketballFetcher(new EventHubProducer("", ""));
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();
         List<String> finished  = new ArrayList<>();
         List<String> other     = new ArrayList<>();
 
-        System.out.println("Fetching " + LEAGUES.size() + " football competitions...\n");
+        System.out.println("Fetching " + LEAGUES.size() + " basketball competitions...\n");
 
         for (Map.Entry<String, String> entry : LEAGUES.entrySet()) {
             String slug = entry.getKey();
@@ -159,7 +162,7 @@ public class CoreSportsFetcher {
         printSection("OTHER (canceled / postponed)", other);
 
         System.out.println("\n----------------------------------------");
-        System.out.println("Live: "     + live.size()
+        System.out.println("Live: "      + live.size()
                 + "   Scheduled: " + scheduled.size()
                 + "   Finished: "  + finished.size()
                 + "   Other: "     + other.size());
@@ -169,14 +172,13 @@ public class CoreSportsFetcher {
     // Helpers
     // -----------------------------------------------------------------------
 
-    /** Buckets the adapter's status vocabulary into the three display groups. */
     private static String category(String status) {
         if (status == null) return "OTHER";
         return switch (status) {
-            case "LIVE", "HT"            -> "LIVE";
-            case "FT", "FT-Pens", "AET" -> "FINISHED";
-            case "Scheduled", "TBD"      -> "SCHEDULED";
-            default                      -> "OTHER"; // Canceled, Postponed
+            case "LIVE", "HT", "Q1", "Q2", "Q3", "Q4", "OT" -> "LIVE";
+            case "FT", "FT-OT", "END"                        -> "FINISHED";
+            case "Scheduled", "TBD"                          -> "SCHEDULED";
+            default                                          -> "OTHER";
         };
     }
 
@@ -185,25 +187,27 @@ public class CoreSportsFetcher {
         String away = m.awayTeam() != null ? m.awayTeam().name() : "?";
 
         if ("SCHEDULED".equals(category(m.status()))) {
-            return String.format("  [%s] %s vs %s   kickoff: %s",
+            return String.format("  [%s] %s vs %s   tip-off: %s",
                     league, home, away, m.kickoff());
         }
 
         String score = m.homeScore() + "-" + m.awayScore();
-        String tail  = m.status();
-        if (m.elapsed() != null) {
-            tail = m.status() + " " + m.elapsed() + "'";
+        String tail;
+        if (m.period() != null && m.clock() != null) {
+            tail = "Q" + m.period() + " " + m.clock();
+        } else if (m.period() != null) {
+            tail = "Q" + m.period();
+        } else {
+            tail = m.statusDetail() != null ? m.statusDetail() : m.status();
         }
-        return String.format("  [%s] %s %s %s   (%s)   events: %d",
-                league, home, score, away, tail, m.events().size());
+
+        return String.format("  [%s] %s %s %s   (%s)",
+                league, home, score, away, tail);
     }
 
     private static void printSection(String title, List<String> lines) {
         System.out.println("\n===== " + title + " (" + lines.size() + ") =====");
-        if (lines.isEmpty()) {
-            System.out.println("  (none)");
-        } else {
-            lines.forEach(System.out::println);
-        }
+        if (lines.isEmpty()) System.out.println("  (none)");
+        else lines.forEach(System.out::println);
     }
 }

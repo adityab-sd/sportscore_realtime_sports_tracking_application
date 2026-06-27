@@ -1,15 +1,14 @@
 package org.sportscore.validator;
 
+import java.util.List;
+
 import org.sportscore.model.Match;
 import org.sportscore.model.MatchEvent;
-
-import java.util.List;
 
 public class MatchValidator {
 
     /**
      * Returns true if the match has enough data to be forwarded.
-     * Rejects matches with null teams, scores, or unrecognised statuses.
      */
     public boolean isValid(Match match) {
         return match.homeTeam() != null
@@ -19,10 +18,7 @@ public class MatchValidator {
     }
 
     /**
-     * Sanitises a match before broadcasting:
-     * - Trims whitespace from team names
-     * - Removes events with blank player names
-     * - Clamps elapsed to 0 if negative
+     * Sanitises a match before broadcasting, carrying all unified fields through.
      */
     public Match transform(Match match) {
         List<MatchEvent> cleanedEvents = match.events() == null ? List.of() :
@@ -32,14 +28,20 @@ public class MatchValidator {
 
         return new Match(
                 match.id(),
+                match.sport() == null ? "football" : match.sport(),
                 match.status().trim(),
                 match.elapsed() == null ? null : (match.elapsed() < 0 ? 0 : match.elapsed()),
+                match.clock(),
+                match.period(),
+                match.statusDetail(),
                 match.kickoff(),
                 match.competition(),
                 match.homeTeam(),
                 match.awayTeam(),
                 match.homeScore(),
                 match.awayScore(),
+                match.homeScoreDisplay(),
+                match.awayScoreDisplay(),
                 cleanedEvents);
     }
 }

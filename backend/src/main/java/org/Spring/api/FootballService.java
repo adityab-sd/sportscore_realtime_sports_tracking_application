@@ -24,10 +24,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class FootballService {
 
-    private static final String SITE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
-    private static final String STANDINGS = "https://site.web.api.espn.com/apis/v2/sports/soccer";
+    private static final String SITE      = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+    private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/soccer";
+    // ^^^ CHANGED: was site.web.api.espn.com — correct host is site.api.espn.com
 
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    private final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
 
     // ---------------- scoreboard / fixtures ----------------
@@ -43,18 +44,18 @@ public class FootballService {
     }
 
     public Dto.Fixtures fixtures(String league) throws Exception {
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+        DateTimeFormatter fmt  = DateTimeFormatter.ofPattern("yyyyMMdd");
         String from = LocalDate.now().minusDays(21).format(fmt);
-        String to = LocalDate.now().plusDays(21).format(fmt);
+        String to   = LocalDate.now().plusDays(21).format(fmt);
         JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + from + "-" + to + "&limit=100");
 
-        List<Dto.MatchDto> results = new ArrayList<>();
+        List<Dto.MatchDto> results  = new ArrayList<>();
         List<Dto.MatchDto> upcoming = new ArrayList<>();
         for (JsonNode e : raw.path("events")) {
             Dto.MatchDto m = parseEvent(e);
             if (m == null) continue;
-            if ("post".equals(m.statusState())) results.add(m);
-            else if ("pre".equals(m.statusState())) upcoming.add(m);
+            if ("post".equals(m.statusState()))      results.add(m);
+            else if ("pre".equals(m.statusState()))  upcoming.add(m);
         }
         java.util.Collections.reverse(results); // most recent first
         return new Dto.Fixtures(results, upcoming);
@@ -63,15 +64,17 @@ public class FootballService {
     private Dto.MatchDto parseEvent(JsonNode e) {
         JsonNode comp = e.path("competitions").path(0);
         if (comp.isMissingNode()) return null;
-        JsonNode st = comp.path("status").path("type");
+        JsonNode st   = comp.path("status").path("type");
         JsonNode home = competitor(comp, "home", 0);
         JsonNode away = competitor(comp, "away", 1);
         if (home == null || away == null) return null;
 
-        String status = first(txt(st.path("shortDetail")), txt(st.path("detail")), txt(st.path("name")), "");
-        String state = txt(st.path("state")) != null ? txt(st.path("state")) : "pre";
-        String competition = first(txt(e.path("season").path("type").path("name")),
+        String status      = first(txt(st.path("shortDetail")), txt(st.path("detail")), txt(st.path("name")), "");
+        String state       = txt(st.path("state")) != null ? txt(st.path("state")) : "pre";
+        String competition = first(
+                txt(e.path("season").path("type").path("name")),
                 txt(comp.path("tournament").path("name")), "");
+
         return new Dto.MatchDto(
                 str(e.path("id")), status, state, txt(e.path("date")), competition,
                 teamRef(home.path("team")), teamRef(away.path("team")),
@@ -98,7 +101,7 @@ public class FootballService {
     // ---------------- standings ----------------
 
     public List<Dto.StandingRow> standings(String league) throws Exception {
-        JsonNode raw = get(STANDINGS + "/" + league + "/standings");
+        JsonNode raw     = get(STANDINGS + "/" + league + "/standings");
         JsonNode entries = raw.path("children").path(0).path("standings").path("entries");
         if (entries.isMissingNode() || !entries.isArray() || entries.isEmpty())
             entries = raw.path("standings").path("entries");
@@ -110,10 +113,10 @@ public class FootballService {
         for (JsonNode e : entries) {
             i++;
             JsonNode stats = e.path("stats");
-            JsonNode t = e.path("team");
-            int gf = stat(stats, "pointsFor", "goalsFor");
-            int ga = stat(stats, "pointsAgainst", "goalsAgainst");
-            int gd = stat(stats, "pointDifferential", "goalDifferential");
+            JsonNode t     = e.path("team");
+            int gf   = stat(stats, "pointsFor",          "goalsFor");
+            int ga   = stat(stats, "pointsAgainst",      "goalsAgainst");
+            int gd   = stat(stats, "pointDifferential",  "goalDifferential");
             String note = e.path("note").path("color").isMissingNode() ? null
                     : txt(e.path("note").path("description"));
             int rank = stat(stats, "rank");
@@ -123,9 +126,12 @@ public class FootballService {
                     first(txt(t.path("displayName")), txt(t.path("name")), "-"),
                     txt(t.path("abbreviation")) != null ? txt(t.path("abbreviation")) : "",
                     first(txt(t.path("logos").path(0).path("href")), txt(t.path("logo")), null),
-                    stat(stats, "gamesPlayed"), stat(stats, "wins"),
-                    stat(stats, "ties", "draws"), stat(stats, "losses"),
-                    gf, ga, gd != 0 ? gd : gf - ga, stat(stats, "points"), note));
+                    stat(stats, "gamesPlayed"),
+                    stat(stats, "wins"),
+                    stat(stats, "ties", "draws"),
+                    stat(stats, "losses"),
+                    gf, ga, gd != 0 ? gd : gf - ga,
+                    stat(stats, "points"), note));
         }
         return out;
     }
@@ -153,7 +159,8 @@ public class FootballService {
             "activat(e|ed|ion)?|option|clause|replac(e|ed|ing|ement)?|successor|appointment|" +
             "manag(er|ement|orial)?|sack(ed|ing)?|resign(ed|ation|ing)?|hire(d|s)?|appoint(ed|ment|ing)?)\\b",
             Pattern.CASE_INSENSITIVE);
-    private static final java.util.Set<String> GENERIC = java.util.Set.of("Soccer", "Football", "Sports", "Sport");
+    private static final java.util.Set<String> GENERIC =
+            java.util.Set.of("Soccer", "Football", "Sports", "Sport");
 
     public List<Dto.NewsItem> news(String league, int limit) throws Exception {
         JsonNode raw = get(SITE + "/" + league + "/news?limit=" + limit);
@@ -161,13 +168,9 @@ public class FootballService {
         int i = 0;
         for (JsonNode a : raw.path("articles")) {
             String headline = first(txt(a.path("headline")), "Untitled");
-            String desc = txt(a.path("description")) != null ? txt(a.path("description")) : "";
-            String category;
-            if (TRANSFER.matcher(headline + " " + desc).find()) {
-                category = "Transfer";
-            } else {
-                category = newsCategory(a.path("categories"));
-            }
+            String desc     = txt(a.path("description")) != null ? txt(a.path("description")) : "";
+            String category = TRANSFER.matcher(headline + " " + desc).find()
+                    ? "Transfer" : newsCategory(a.path("categories"));
             out.add(new Dto.NewsItem(
                     str(a.has("id") ? a.path("id") : null, String.valueOf(i)),
                     headline, desc,
@@ -182,24 +185,23 @@ public class FootballService {
     private String newsCategory(JsonNode cats) {
         String league = null, team = null, other = null;
         for (JsonNode c : cats) {
-            String d = txt(c.path("description"));
+            String d    = txt(c.path("description"));
             if (d == null) continue;
             String type = c.path("type").asText();
             if ("league".equals(type) && !GENERIC.contains(d) && league == null) league = d;
-            else if ("team".equals(type) && team == null) team = d;
-            else if (!GENERIC.contains(d) && other == null) other = d;
+            else if ("team".equals(type) && team == null)                         team   = d;
+            else if (!GENERIC.contains(d) && other == null)                       other  = d;
         }
         if (league != null) return league;
-        if (team != null) return team;
-        if (other != null) return other;
+        if (team   != null) return team;
+        if (other  != null) return other;
         return "Football";
     }
 
     private String bestImage(JsonNode images) {
-        String best = null;
-        int bestW = -1;
+        String best = null; int bestW = -1;
         for (JsonNode img : images) {
-            int w = img.path("width").asInt(0);
+            int    w   = img.path("width").asInt(0);
             String src = first(txt(img.path("href")), txt(img.path("url")), txt(img.path("src")), null);
             if (src != null && src.startsWith("http") && w > bestW) { best = src; bestW = w; }
         }
@@ -210,7 +212,7 @@ public class FootballService {
 
     public Dto.TeamDetail team(String league, String teamId) throws Exception {
         JsonNode raw = get(SITE + "/" + league + "/teams/" + teamId);
-        JsonNode t = raw.path("team").isMissingNode() ? raw : raw.path("team");
+        JsonNode t   = raw.path("team").isMissingNode() ? raw : raw.path("team");
         if (txt(t.path("displayName")) == null && txt(t.path("name")) == null) return null;
         String color = txt(t.path("color"));
         return new Dto.TeamDetail(
@@ -224,7 +226,7 @@ public class FootballService {
     }
 
     public List<Dto.Player> roster(String league, String teamId) throws Exception {
-        JsonNode raw = get(SITE + "/" + league + "/teams/" + teamId + "/roster");
+        JsonNode raw      = get(SITE + "/" + league + "/teams/" + teamId + "/roster");
         JsonNode athletes = raw.path("athletes");
         List<JsonNode> list = new ArrayList<>();
         if (athletes.isArray() && athletes.size() > 0 && athletes.get(0).has("items")) {
@@ -251,9 +253,9 @@ public class FootballService {
     // ---------------- leaders ----------------
 
     public List<Dto.Leader> leaders(String league) throws Exception {
-        JsonNode raw = get(SITE + "/" + league + "/leaders");
+        JsonNode raw  = get(SITE + "/" + league + "/leaders");
         JsonNode cats = raw.path("categories");
-        JsonNode cat = null;
+        JsonNode cat  = null;
         for (JsonNode c : cats) {
             if (c.path("name").asText("").matches("(?i).*(goal|scor).*")) { cat = c; break; }
         }
@@ -280,27 +282,29 @@ public class FootballService {
     // ---------------- match detail ----------------
 
     public Dto.MatchDetail matchDetail(String league, String eventId) throws Exception {
-        JsonNode raw = get(SITE + "/" + league + "/summary?event=" + eventId);
+        JsonNode raw    = get(SITE + "/" + league + "/summary?event=" + eventId);
         JsonNode header = raw.path("header");
-        JsonNode comp = header.path("competitions").path(0);
-        JsonNode st = comp.path("status").path("type");
-        JsonNode home = competitor(comp, "home", 0);
-        JsonNode away = competitor(comp, "away", 1);
+        JsonNode comp   = header.path("competitions").path(0);
+        JsonNode st     = comp.path("status").path("type");
+        JsonNode home   = competitor(comp, "home", 0);
+        JsonNode away   = competitor(comp, "away", 1);
         if (home == null || away == null) return null;
 
         List<Dto.MatchEventDto> events = new ArrayList<>();
-        // source 1: comp.details (same shape CoreSportsAdapter uses - reliable)
         for (JsonNode d : comp.path("details")) {
             Dto.MatchEventDto ev = parseSummaryEvent(d);
             if (ev != null && noDup(events, ev)) events.add(ev);
         }
-        // source 2: keyEvents / scoringPlays
         for (String key : new String[]{"keyEvents", "plays", "scoringPlays"}) {
             for (JsonNode d : raw.path(key)) {
                 Dto.MatchEventDto ev = parseSummaryEvent(d);
                 if (ev != null && noDup(events, ev)) events.add(ev);
             }
         }
+
+        // Sort events by minute ascending
+        events.sort(java.util.Comparator.comparingInt(Dto.MatchEventDto::minute));
+        // ^^^ ADDED: events were unsorted when pulled from multiple sources
 
         JsonNode gi = raw.path("gameInfo");
         return new Dto.MatchDetail(
@@ -310,7 +314,8 @@ public class FootballService {
                 txt(comp.path("date")),
                 txt(header.path("league").path("name")),
                 txt(gi.path("venue").path("fullName")),
-                gi.path("attendance").isMissingNode() || gi.path("attendance").isNull() ? null : gi.path("attendance").asInt(),
+                gi.path("attendance").isMissingNode() || gi.path("attendance").isNull()
+                        ? null : gi.path("attendance").asInt(),
                 teamRef(home.path("team")), teamRef(away.path("team")),
                 num(home.path("score")), num(away.path("score")),
                 events);
@@ -318,11 +323,12 @@ public class FootballService {
 
     private Dto.MatchEventDto parseSummaryEvent(JsonNode d) {
         String typeText = d.path("type").path("text").asText("").toLowerCase();
-        boolean isGoal = d.path("scoringPlay").asBoolean(false) || typeText.contains("goal");
-        boolean isCard = d.path("redCard").asBoolean(false) || d.path("yellowCard").asBoolean(false) || typeText.contains("card");
+        boolean isGoal  = d.path("scoringPlay").asBoolean(false) || typeText.contains("goal");
+        boolean isCard  = d.path("redCard").asBoolean(false) || d.path("yellowCard").asBoolean(false)
+                          || typeText.contains("card");
         if (!isGoal && !isCard) return null;
         String detail = isGoal ? d.path("type").path("text").asText("Goal")
-                : d.path("redCard").asBoolean(false) ? "Red Card"
+                : d.path("redCard").asBoolean(false)    ? "Red Card"
                 : d.path("yellowCard").asBoolean(false) ? "Yellow Card"
                 : d.path("type").path("text").asText("Card");
         JsonNode ath = d.path("athletesInvolved");
@@ -364,14 +370,13 @@ public class FootballService {
     }
 
     private Integer num(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull() || n.asText().isBlank()) ? null : (int) n.asDouble();
+        return (n == null || n.isMissingNode() || n.isNull() || n.asText().isBlank())
+                ? null : (int) n.asDouble();
     }
 
-    private String str(JsonNode n) { return str(n, ""); }
-
+    private String str(JsonNode n)               { return str(n, ""); }
     private String str(JsonNode n, String fallback) {
-        String s = txt(n);
-        return s != null ? s : fallback;
+        String s = txt(n); return s != null ? s : fallback;
     }
 
     private String first(String... vals) {
