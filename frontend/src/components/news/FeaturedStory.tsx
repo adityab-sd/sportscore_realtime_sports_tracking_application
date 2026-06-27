@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { ESPNNews } from "@/lib/api/espn";
 
 function timeAgo(iso: string): string {
@@ -22,10 +23,7 @@ function HeroImage({ src, category }: { src: string | null; category: string }) 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={category} onError={() => setFailed(true)}
-      style={{
-        position: "absolute", inset: 0, width: "100%", height: "100%",
-        objectFit: "cover", objectPosition: "center center",
-      }} />
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }} />
   );
 }
 
@@ -41,16 +39,19 @@ function SideImage({ src }: { src: string | null }) {
   );
 }
 
-function Wrap({ link, children }: { link: string | null; children: React.ReactNode }) {
-  if (link) return <a href={link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>{children}</a>;
-  return <div>{children}</div>;
+function Wrap({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <Link href={`/football/news/${id}`} style={{ textDecoration: "none" }}>
+      {children}
+    </Link>
+  );
 }
 
 export default function FeaturedStory({ article, side }: { article: ESPNNews; side?: ESPNNews[] }) {
   return (
     <div className="hero-split">
       {/* Main hero */}
-      <Wrap link={article.link}>
+      <Wrap id={article.id}>
         <article className="news-card card-hover" style={{
           position: "relative", borderRadius: 14, overflow: "hidden",
           aspectRatio: "16/8", width: "100%", display: "flex",
@@ -59,16 +60,20 @@ export default function FeaturedStory({ article, side }: { article: ESPNNews; si
           <HeroImage src={article.image} category={article.category} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)" }} />
           <div style={{ position: "relative", padding: "28px 26px", color: "#fff" }}>
-            <span style={{
-              display: "inline-block", background: "var(--blue)", color: "#fff",
-              fontSize: 11, fontWeight: 700, letterSpacing: "0.5px",
-              textTransform: "uppercase", padding: "4px 10px", borderRadius: 5, marginBottom: 14,
-            }}>{article.category}</span>
-            <h2 style={{ fontSize: "clamp(22px, 3.5vw, 30px)", fontWeight: 800, lineHeight: 1.2, letterSpacing: "-0.5px", margin: "0 0 10px" }}>{article.headline}</h2>
+            <span style={{ display: "inline-block", background: "var(--blue)", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", padding: "4px 10px", borderRadius: 5, marginBottom: 14 }}>
+              {article.category}
+            </span>
+            <h2 style={{ fontSize: "clamp(22px, 3.5vw, 30px)", fontWeight: 800, lineHeight: 1.2, letterSpacing: "-0.5px", margin: "0 0 10px" }}>
+              {article.headline}
+            </h2>
             {article.description && (
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.55, margin: "0 0 10px", maxWidth: 560, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{article.description}</p>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.55, margin: "0 0 10px", maxWidth: 560, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {article.description}
+              </p>
             )}
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }} suppressHydrationWarning>{timeAgo(article.published)}</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }} suppressHydrationWarning>
+              {timeAgo(article.published)}
+            </span>
           </div>
         </article>
       </Wrap>
@@ -77,12 +82,8 @@ export default function FeaturedStory({ article, side }: { article: ESPNNews; si
       {side && side.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {side.slice(0, 3).map(a => (
-            <Wrap key={a.id} link={a.link}>
-              <article className="card-hover" style={{
-                display: "flex", gap: 12, background: "var(--white)",
-                border: "1px solid var(--border)", borderRadius: 10, padding: 10,
-                flex: 1, alignItems: "center",
-              }}>
+            <Wrap key={a.id} id={a.id}>
+              <article className="card-hover" style={{ display: "flex", gap: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: 10, flex: 1, alignItems: "center" }}>
                 <SideImage src={a.image} />
                 <div style={{ minWidth: 0 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "0.4px" }}>{a.category}</span>

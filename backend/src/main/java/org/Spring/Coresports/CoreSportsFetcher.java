@@ -57,21 +57,9 @@ public class CoreSportsFetcher {
         this.producer = producer;
     }
 
-    /**
-     * Publishes ONLY in-progress matches (LIVE or HT) across all leagues to
-     * Event Hub. Scheduled and finished matches are served via REST, not pushed.
-     */
     public void fetchAndPublishLive() throws Exception {
-        List<Match> live = new ArrayList<>();
-        for (Match m : fetchAllMatches()) {
-            if ("LIVE".equals(m.status()) || "HT".equals(m.status())) {
-                live.add(m);
-            }
-        }
-        // Guard: only send if there are live matches (avoids sending empty arrays)
-        if (!live.isEmpty()) {
-            producer.send(mapper.writeValueAsString(live));
-        }
+        List<Match> all = fetchAllMatches();
+        producer.send(mapper.writeValueAsString(all));
     }
 
     /** Raw JSON for one competition's scoreboard. */

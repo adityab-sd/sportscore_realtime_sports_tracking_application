@@ -22,6 +22,8 @@ export const SIGNALR_EVENT = "matchUpdate";
 export const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 export const ESPN_CORE = "https://sports.core.api.espn.com/v2/sports/soccer/leagues";
 
+export const HAS_REST_BACKEND = true;
+
 /** Fetch from ESPN server-side. Returns null on any failure - never throws. */
 export async function espnGet<T>(url: string, revalidate = 300): Promise<T | null> {
   try {
