@@ -1,13 +1,14 @@
 package org.Spring.Coresports;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Adapter for the Core Sports football provider.
@@ -32,9 +33,17 @@ public class CoreSportsAdapter {
         int id = event.path("id").asInt();
         JsonNode comp = event.path("competitions").path(0);
 
-        JsonNode statusType = comp.path("status").path("type");
-        String status = textOrNull(statusType.path("detail")); // e.g. "FT"
-        Integer elapsed = intOrNull(comp.path("status").path("period"));
+        // The reliable signal is status.type.state ("pre" | "in" | "post"),
+        // NOT status.type.detail (which holds the kickoff date for unplayed games).
+        JsonNode statusNode = comp.path("status");
+        JsonNode statusType = statusNode.path("type");
+        String status = mapStatus(statusType);
+
+        // Real match minute only exists while a game is in progress.
+        Integer elapsed = ("LIVE".equals(status) || "HT".equals(status))
+                ? liveMinute(statusNode)
+                : null;
+
         String kickoff = textOrNull(event.path("date"));
         JsonNode leagueNode = event.path("competitions").path(0).path("league");
         String competition = textOrNull(leagueNode.path("name"));
@@ -59,6 +68,37 @@ public class CoreSportsAdapter {
 
         return new Match(id, status, elapsed, kickoff, competition,
                 home, away, homeScore, awayScore, events);
+    }
+
+    /**
+     * Turns ESPN's status.type into a small, reliable vocabulary the rest of
+     * the system can group on: LIVE, HT, FT, FT-Pens, Scheduled, TBD,
+     * Canceled, Postponed.
+     */
+    private String mapStatus(JsonNode type) {
+        String state = type.path("state").asText("");   // pre | in | post
+        String name = type.path("name").asText("");      // STATUS_*
+
+        if ("in".equals(state)) {
+            return name.contains("HALFTIME") ? "HT" : "LIVE";
+        }
+        if ("post".equals(state)) {
+            if (name.contains("PEN")) return "FT-Pens";
+            if (name.contains("CANCEL")) return "Canceled";
+            if (name.contains("POSTPON")) return "Postponed";
+            return "FT";
+        }
+        // state == "pre" (or unknown) -> not started yet
+        if (name.contains("CANCEL")) return "Canceled";
+        if (name.contains("POSTPON")) return "Postponed";
+        if (name.contains("TBD")) return "TBD";
+        return "Scheduled";
+    }
+
+    /** Parses the live minute from displayClock (e.g. "67'") into 67. */
+    private Integer liveMinute(JsonNode statusNode) {
+        int m = parseMinute(statusNode.path("displayClock").asText(""));
+        return m > 0 ? m : null;
     }
 
     private Team toTeam(JsonNode t) {
