@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "java",
+    "EVENTHUB_CONNECTION_STRING": "",
+    "EVENTHUB_NAME": "",
+    "SIGNALR_CONNECTION_STRING": "",
+    "SIGNALR_REST_ENDPOINT": "",
+    "SIGNALR_ACCESS_KEY": ""
+  }
+}

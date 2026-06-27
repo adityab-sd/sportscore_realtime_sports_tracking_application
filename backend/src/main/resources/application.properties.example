@@ -1,0 +1,8 @@
+server.port=8081
+
+# API Sports key (https://www.api-sports.io)
+apisports.key=
+
+# Azure Event Hub
+eventhub.connection-string=
+eventhub.name=
