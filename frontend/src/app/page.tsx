@@ -1,28 +1,26 @@
 import Link from "next/link";
 import LiveTicker from "@/components/ui/LiveTicker";
-import SportCards from "@/components/ui/SportCards";
 import HomeLiveStrip from "@/components/football/HomeLiveStrip";
-import FeaturedStory from "@/components/news/FeaturedStory";
 import NewsCard from "@/components/news/NewsCard";
+import NewsCarousel from "@/components/news/NewsCarousel";
 import { getNews } from "@/lib/api/espn";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const news = await getNews("eng.1", 16);
-  const featured = news[0];
-  const rest = news.slice(1);
+  const rest = news.slice(6);
 
   return (
     <div>
       <LiveTicker />
 
-      {/* Featured story */}
-      {featured ? (
+      {/* Carousel hero */}
+      {news.length > 0 ? (
         <section style={{ background: "var(--cloud)", borderBottom: "1px solid var(--border)", paddingTop: 28, paddingBottom: 32 }}>
           <div className="container">
-            <div className="section-label">Top Story</div>
-            <FeaturedStory article={featured} />
+            <div className="section-label">Top Stories</div>
+            <NewsCarousel articles={news.slice(0, 6)} />
           </div>
         </section>
       ) : (
@@ -44,8 +42,8 @@ export default async function HomePage() {
       {/* Live strip */}
       <HomeLiveStrip />
 
-      {/* News - full container width, 3 columns */}
-      <section style={{ paddingTop: 40, paddingBottom: 8 }}>
+      {/* Latest news */}
+      <section style={{ paddingTop: 40, paddingBottom: 40 }}>
         <div className="container">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
             <h2 style={{ fontSize: "clamp(20px,3vw,24px)", fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.4px" }}>Latest News</h2>
@@ -56,7 +54,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
     </div>
   );
 }
