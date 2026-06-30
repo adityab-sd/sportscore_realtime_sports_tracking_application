@@ -1,652 +1,9 @@
 [
   {
-    "id": "football-player-306",
-    "sport": "football",
-    "category": "player",
-    "title": "Mohamed Salah — Player Profile",
-    "content": "Mohamed Salah is a Egypt footballer aged 33. They play as a Attacker for Liverpool in the Premier League. Height: 175, Weight: 71. In the 2024 season, they made 38 appearances totalling 3377 minutes, scoring 29 goals and providing 18 assists. Cards: 1 yellow, 0 red.",
-    "tags": [
-      "Mohamed Salah",
-      "Egypt",
-      "Liverpool",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 306,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-2864",
-    "sport": "football",
-    "category": "player",
-    "title": "A. Isak — Player Profile",
-    "content": "A. Isak is a Sweden footballer aged 26. They play as a Attacker for Newcastle in the Premier League. Height: 192, Weight: 77. In the 2024 season, they made 34 appearances totalling 2769 minutes, scoring 23 goals and providing 6 assists. Cards: 1 yellow, 0 red.",
-    "tags": [
-      "A. Isak",
-      "Sweden",
-      "Newcastle",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 2864,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-1100",
-    "sport": "football",
-    "category": "player",
-    "title": "E. Haaland — Player Profile",
-    "content": "E. Haaland is a Norway footballer aged 25. They play as a Attacker for Manchester City in the Premier League. Height: 195, Weight: 88. In the 2024 season, they made 32 appearances totalling 2741 minutes, scoring 22 goals and providing 3 assists. Cards: 2 yellow, 0 red.",
-    "tags": [
-      "E. Haaland",
-      "Norway",
-      "Manchester City",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 1100,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-18931",
-    "sport": "football",
-    "category": "player",
-    "title": "C. Wood — Player Profile",
-    "content": "C. Wood is a New Zealand footballer aged 34. They play as a Attacker for Nottingham Forest in the Premier League. Height: 191, Weight: 81. In the 2024 season, they made 36 appearances totalling 2978 minutes, scoring 20 goals and providing 3 assists. Cards: 1 yellow, 0 red.",
-    "tags": [
-      "C. Wood",
-      "New Zealand",
-      "Nottingham Forest",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 18931,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-20589",
-    "sport": "football",
-    "category": "player",
-    "title": "B. Mbeumo — Player Profile",
-    "content": "B. Mbeumo is a Cameroon footballer aged 26. They play as a Attacker for Brentford in the Premier League. Height: 173, Weight: 64. In the 2024 season, they made 38 appearances totalling 3417 minutes, scoring 20 goals and providing 7 assists. Cards: 3 yellow, 0 red.",
-    "tags": [
-      "B. Mbeumo",
-      "Cameroon",
-      "Brentford",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 20589,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-20649",
-    "sport": "football",
-    "category": "player",
-    "title": "Y. Wissa — Player Profile",
-    "content": "Y. Wissa is a Congo DR footballer aged 29. They play as a Attacker for Brentford in the Premier League. Height: 176, Weight: 74. In the 2024 season, they made 35 appearances totalling 2929 minutes, scoring 19 goals and providing 4 assists. Cards: 5 yellow, 0 red.",
-    "tags": [
-      "Y. Wissa",
-      "Congo DR",
-      "Brentford",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 20649,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-19366",
-    "sport": "football",
-    "category": "player",
-    "title": "O. Watkins — Player Profile",
-    "content": "O. Watkins is a England footballer aged 30. They play as a Attacker for Aston Villa in the Premier League. Height: 180, Weight: 75. In the 2024 season, they made 38 appearances totalling 2610 minutes, scoring 16 goals and providing 8 assists. Cards: 2 yellow, 0 red.",
-    "tags": [
-      "O. Watkins",
-      "England",
-      "Aston Villa",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 19366,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-1165",
-    "sport": "football",
-    "category": "player",
-    "title": "Matheus Cunha — Player Profile",
-    "content": "Matheus Cunha is a Brazil footballer aged 26. They play as a Attacker for Manchester United in the Premier League. Height: 183, Weight: 76. In the 2024 season, they made 33 appearances totalling 2600 minutes, scoring 15 goals and providing 6 assists. Cards: 4 yellow, 0 red.",
-    "tags": [
-      "Matheus Cunha",
-      "Brazil",
-      "Manchester United",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 1165,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-152982",
-    "sport": "football",
-    "category": "player",
-    "title": "C. Palmer — Player Profile",
-    "content": "C. Palmer is a England footballer aged 23. They play as a Midfielder for Chelsea in the Premier League. Height: 189, Weight: 76. In the 2024 season, they made 37 appearances totalling 3199 minutes, scoring 15 goals and providing 8 assists. Cards: 7 yellow, 0 red.",
-    "tags": [
-      "C. Palmer",
-      "England",
-      "Chelsea",
-      "Midfielder",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 152982,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-2032",
-    "sport": "football",
-    "category": "player",
-    "title": "J. Strand Larsen — Player Profile",
-    "content": "J. Strand Larsen is a Norway footballer aged 25. They play as a Attacker for Wolves in the Premier League. Height: 193, Weight: 79. In the 2024 season, they made 35 appearances totalling 2601 minutes, scoring 14 goals and providing 4 assists. Cards: 4 yellow, 0 red.",
-    "tags": [
-      "J. Strand Larsen",
-      "Norway",
-      "Wolves",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 2032,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-25927",
-    "sport": "football",
-    "category": "player",
-    "title": "J. Mateta — Player Profile",
-    "content": "J. Mateta is a France footballer aged 28. They play as a Attacker for Crystal Palace in the Premier League. Height: 192, Weight: 88. In the 2024 season, they made 37 appearances totalling 2658 minutes, scoring 14 goals and providing 2 assists. Cards: 2 yellow, 0 red.",
-    "tags": [
-      "J. Mateta",
-      "France",
-      "Crystal Palace",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 25927,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-2489",
-    "sport": "football",
-    "category": "player",
-    "title": "L. Díaz — Player Profile",
-    "content": "L. Díaz is a Colombia footballer aged 28. They play as a Attacker for Liverpool in the Premier League. Height: 178, Weight: 65. In the 2024 season, they made 36 appearances totalling 2413 minutes, scoring 13 goals and providing 5 assists. Cards: 2 yellow, 0 red.",
-    "tags": [
-      "L. Díaz",
-      "Colombia",
-      "Liverpool",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 2489,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-19428",
-    "sport": "football",
-    "category": "player",
-    "title": "J. Bowen — Player Profile",
-    "content": "J. Bowen is a England footballer aged 29. They play as a Attacker for West Ham in the Premier League. Height: 176, Weight: 70. In the 2024 season, they made 34 appearances totalling 2979 minutes, scoring 13 goals and providing 8 assists. Cards: 1 yellow, 0 red.",
-    "tags": [
-      "J. Bowen",
-      "England",
-      "West Ham",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 19428,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-161948",
-    "sport": "football",
-    "category": "player",
-    "title": "L. Delap — Player Profile",
-    "content": "L. Delap is a England footballer aged 22. They play as a Attacker for Ipswich in the Premier League. Height: 186, Weight: 72. In the 2024 season, they made 37 appearances totalling 2612 minutes, scoring 12 goals and providing 2 assists. Cards: 11 yellow, 0 red.",
-    "tags": [
-      "L. Delap",
-      "England",
-      "Ipswich",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 161948,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-2887",
-    "sport": "football",
-    "category": "player",
-    "title": "R. Jiménez — Player Profile",
-    "content": "R. Jiménez is a Mexico footballer aged 34. They play as a Attacker for Fulham in the Premier League. Height: 190, Weight: 76. In the 2024 season, they made 38 appearances totalling 2505 minutes, scoring 12 goals and providing 3 assists. Cards: 4 yellow, 0 red.",
-    "tags": [
-      "R. Jiménez",
-      "Mexico",
-      "Fulham",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 2887,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-792",
-    "sport": "football",
-    "category": "player",
-    "title": "J. Kluivert — Player Profile",
-    "content": "J. Kluivert is a Netherlands footballer aged 26. They play as a Attacker for Bournemouth in the Premier League. Height: 171, Weight: 67. In the 2024 season, they made 34 appearances totalling 2356 minutes, scoring 12 goals and providing 6 assists. Cards: 8 yellow, 0 red.",
-    "tags": [
-      "J. Kluivert",
-      "Netherlands",
-      "Bournemouth",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 792,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-19281",
-    "sport": "football",
-    "category": "player",
-    "title": "A. Semenyo — Player Profile",
-    "content": "A. Semenyo is a Ghana footballer aged 25. They play as a Attacker for Bournemouth in the Premier League. Height: 185, Weight: 79. In the 2024 season, they made 37 appearances totalling 3209 minutes, scoring 11 goals and providing 5 assists. Cards: 9 yellow, 0 red.",
-    "tags": [
-      "A. Semenyo",
-      "Ghana",
-      "Bournemouth",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 19281,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-129711",
-    "sport": "football",
-    "category": "player",
-    "title": "B. Johnson — Player Profile",
-    "content": "B. Johnson is a Wales footballer aged 24. They play as a Attacker for Tottenham in the Premier League. Height: 186, Weight: 73. In the 2024 season, they made 33 appearances totalling 2178 minutes, scoring 11 goals and providing 3 assists. Cards: 5 yellow, 0 red.",
-    "tags": [
-      "B. Johnson",
-      "Wales",
-      "Tottenham",
-      "Attacker",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 129711,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-player-178077",
-    "sport": "football",
-    "category": "player",
-    "title": "K. Schade — Player Profile",
-    "content": "K. Schade is a Germany footballer aged 24. They play as a Midfielder for Brentford in the Premier League. Height: 183, Weight: 74. In the 2024 season, they made 38 appearances totalling 2300 minutes, scoring 11 goals and providing 2 assists. Cards: 3 yellow, 0 red.",
-    "tags": [
-      "K. Schade",
-      "Germany",
-      "Brentford",
-      "Midfielder",
-      "Premier League"
-    ],
-    "source": "api-football.com",
-    "source_id": 178077,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-40",
-    "sport": "football",
-    "category": "team",
-    "title": "Liverpool — Premier League 2024 Season",
-    "content": "Liverpool finished 1 in the Premier League 2024 season with 84 points from 38 games (25 wins, 9 draws, 4 losses). Goals scored: 86, Goals conceded: 41, Goal difference: 45. Recent form: DLDLW. Status: Champions League.",
-    "tags": [
-      "Liverpool",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 40,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-42",
-    "sport": "football",
-    "category": "team",
-    "title": "Arsenal — Premier League 2024 Season",
-    "content": "Arsenal finished 2 in the Premier League 2024 season with 74 points from 38 games (20 wins, 14 draws, 4 losses). Goals scored: 69, Goals conceded: 34, Goal difference: 35. Recent form: WWDLD. Status: Champions League.",
-    "tags": [
-      "Arsenal",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 42,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-50",
-    "sport": "football",
-    "category": "team",
-    "title": "Manchester City — Premier League 2024 Season",
-    "content": "Manchester City finished 3 in the Premier League 2024 season with 71 points from 38 games (21 wins, 8 draws, 9 losses). Goals scored: 72, Goals conceded: 44, Goal difference: 28. Recent form: WWDWW. Status: Champions League.",
-    "tags": [
-      "Manchester City",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 50,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-49",
-    "sport": "football",
-    "category": "team",
-    "title": "Chelsea — Premier League 2024 Season",
-    "content": "Chelsea finished 4 in the Premier League 2024 season with 69 points from 38 games (20 wins, 9 draws, 9 losses). Goals scored: 64, Goals conceded: 43, Goal difference: 21. Recent form: WWLWW. Status: Champions League.",
-    "tags": [
-      "Chelsea",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 49,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-34",
-    "sport": "football",
-    "category": "team",
-    "title": "Newcastle — Premier League 2024 Season",
-    "content": "Newcastle finished 5 in the Premier League 2024 season with 66 points from 38 games (20 wins, 6 draws, 12 losses). Goals scored: 68, Goals conceded: 47, Goal difference: 21. Recent form: LLWDW. Status: Champions League.",
-    "tags": [
-      "Newcastle",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 34,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-66",
-    "sport": "football",
-    "category": "team",
-    "title": "Aston Villa — Premier League 2024 Season",
-    "content": "Aston Villa finished 6 in the Premier League 2024 season with 66 points from 38 games (19 wins, 9 draws, 10 losses). Goals scored: 58, Goals conceded: 51, Goal difference: 7. Recent form: LWWWL. Status: UEFA Europa League.",
-    "tags": [
-      "Aston Villa",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 66,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-65",
-    "sport": "football",
-    "category": "team",
-    "title": "Nottingham Forest — Premier League 2024 Season",
-    "content": "Nottingham Forest finished 7 in the Premier League 2024 season with 65 points from 38 games (19 wins, 8 draws, 11 losses). Goals scored: 58, Goals conceded: 46, Goal difference: 12. Recent form: LWDDL. Status: Conference League Qualification.",
-    "tags": [
-      "Nottingham Forest",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 65,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-51",
-    "sport": "football",
-    "category": "team",
-    "title": "Brighton — Premier League 2024 Season",
-    "content": "Brighton finished 8 in the Premier League 2024 season with 61 points from 38 games (16 wins, 13 draws, 9 losses). Goals scored: 66, Goals conceded: 59, Goal difference: 7. Recent form: WWWDW.",
-    "tags": [
-      "Brighton",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 51,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-35",
-    "sport": "football",
-    "category": "team",
-    "title": "Bournemouth — Premier League 2024 Season",
-    "content": "Bournemouth finished 9 in the Premier League 2024 season with 56 points from 38 games (15 wins, 11 draws, 12 losses). Goals scored: 58, Goals conceded: 46, Goal difference: 12. Recent form: WLLWD.",
-    "tags": [
-      "Bournemouth",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 35,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-55",
-    "sport": "football",
-    "category": "team",
-    "title": "Brentford — Premier League 2024 Season",
-    "content": "Brentford finished 10 in the Premier League 2024 season with 56 points from 38 games (16 wins, 8 draws, 14 losses). Goals scored: 66, Goals conceded: 57, Goal difference: 9. Recent form: DLWWW.",
-    "tags": [
-      "Brentford",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 55,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-36",
-    "sport": "football",
-    "category": "team",
-    "title": "Fulham — Premier League 2024 Season",
-    "content": "Fulham finished 11 in the Premier League 2024 season with 54 points from 38 games (15 wins, 9 draws, 14 losses). Goals scored: 54, Goals conceded: 54, Goal difference: 0. Recent form: LWLLW.",
-    "tags": [
-      "Fulham",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 36,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-52",
-    "sport": "football",
-    "category": "team",
-    "title": "Crystal Palace — Premier League 2024 Season",
-    "content": "Crystal Palace finished 12 in the Premier League 2024 season with 53 points from 38 games (13 wins, 14 draws, 11 losses). Goals scored: 51, Goals conceded: 51, Goal difference: 0. Recent form: DWWDD. Status: UEFA Europa League.",
-    "tags": [
-      "Crystal Palace",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 52,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-45",
-    "sport": "football",
-    "category": "team",
-    "title": "Everton — Premier League 2024 Season",
-    "content": "Everton finished 13 in the Premier League 2024 season with 48 points from 38 games (11 wins, 15 draws, 12 losses). Goals scored: 42, Goals conceded: 44, Goal difference: -2. Recent form: WWWDL.",
-    "tags": [
-      "Everton",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 45,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-48",
-    "sport": "football",
-    "category": "team",
-    "title": "West Ham — Premier League 2024 Season",
-    "content": "West Ham finished 14 in the Premier League 2024 season with 43 points from 38 games (11 wins, 10 draws, 17 losses). Goals scored: 46, Goals conceded: 62, Goal difference: -16. Recent form: WLWDL.",
-    "tags": [
-      "West Ham",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 48,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-33",
-    "sport": "football",
-    "category": "team",
-    "title": "Manchester United — Premier League 2024 Season",
-    "content": "Manchester United finished 15 in the Premier League 2024 season with 42 points from 38 games (11 wins, 9 draws, 18 losses). Goals scored: 44, Goals conceded: 54, Goal difference: -10. Recent form: WLLLD.",
-    "tags": [
-      "Manchester United",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 33,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-39",
-    "sport": "football",
-    "category": "team",
-    "title": "Wolves — Premier League 2024 Season",
-    "content": "Wolves finished 16 in the Premier League 2024 season with 42 points from 38 games (12 wins, 6 draws, 20 losses). Goals scored: 54, Goals conceded: 69, Goal difference: -15. Recent form: DLLLW.",
-    "tags": [
-      "Wolves",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 39,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-47",
-    "sport": "football",
-    "category": "team",
-    "title": "Tottenham — Premier League 2024 Season",
-    "content": "Tottenham finished 17 in the Premier League 2024 season with 38 points from 38 games (11 wins, 5 draws, 22 losses). Goals scored: 64, Goals conceded: 65, Goal difference: -1. Recent form: LLLDL. Status: Champions League.",
-    "tags": [
-      "Tottenham",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 47,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-46",
-    "sport": "football",
-    "category": "team",
-    "title": "Leicester — Premier League 2024 Season",
-    "content": "Leicester finished 18 in the Premier League 2024 season with 25 points from 38 games (6 wins, 7 draws, 25 losses). Goals scored: 33, Goals conceded: 80, Goal difference: -47. Recent form: LWDWL. Status: Relegation.",
-    "tags": [
-      "Leicester",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 46,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-57",
-    "sport": "football",
-    "category": "team",
-    "title": "Ipswich — Premier League 2024 Season",
-    "content": "Ipswich finished 19 in the Premier League 2024 season with 22 points from 38 games (4 wins, 10 draws, 24 losses). Goals scored: 36, Goals conceded: 82, Goal difference: -46. Recent form: LLLDL. Status: Relegation.",
-    "tags": [
-      "Ipswich",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 57,
-    "last_updated": "2024-season"
-  },
-  {
-    "id": "football-team-41",
-    "sport": "football",
-    "category": "team",
-    "title": "Southampton — Premier League 2024 Season",
-    "content": "Southampton finished 20 in the Premier League 2024 season with 12 points from 38 games (2 wins, 6 draws, 30 losses). Goals scored: 26, Goals conceded: 86, Goal difference: -60. Recent form: LLDLL. Status: Relegation.",
-    "tags": [
-      "Southampton",
-      "Premier League",
-      "standings",
-      "2024"
-    ],
-    "source": "api-football.com",
-    "source_id": 41,
-    "last_updated": "2024-season"
-  },
-  {
     "id": "football-competition-001",
     "sport": "football",
     "category": "competition",
-    "title": "Premier League — Format and Rules",
+    "title": "Premier League - Format and Rules",
     "content": "The Premier League is the top division of English football, featuring 20 clubs. Each team plays 38 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The team with the most points at the end of the season wins the title. The bottom 3 teams are relegated to the Championship. The top 4 teams qualify for the UEFA Champions League. Teams finishing 5th and 6th qualify for the UEFA Europa League. The league runs from August to May each year.",
     "tags": [
       "Premier League",
@@ -663,7 +20,7 @@
     "id": "football-competition-002",
     "sport": "football",
     "category": "competition",
-    "title": "UEFA Champions League — Format",
+    "title": "UEFA Champions League - Format",
     "content": "The UEFA Champions League is Europe's premier club football competition. From the 2024-25 season, the format changed to a league phase with 36 clubs, each playing 8 matches against different opponents. The top 8 teams advance directly to the Round of 16. Teams finishing 9th to 24th enter a knockout playoff round. Teams finishing 25th or below are eliminated. The competition then follows a standard knockout format through Round of 16, Quarter-finals, Semi-finals, and the Final.",
     "tags": [
       "Champions League",
@@ -679,7 +36,7 @@
     "id": "football-competition-003",
     "sport": "football",
     "category": "competition",
-    "title": "FIFA World Cup — Format",
+    "title": "FIFA World Cup - Format",
     "content": "The FIFA World Cup is held every four years and is the most prestigious international football tournament. 32 teams (expanding to 48 from 2026) compete across a group stage and knockout rounds. In the group stage, teams are divided into groups of 4, with the top 2 from each group advancing to the Round of 16. The tournament then follows a straight knockout format through Quarter-finals, Semi-finals, Third place play-off, and the Final. The 2026 World Cup will be hosted by USA, Canada, and Mexico.",
     "tags": [
       "World Cup",
@@ -690,5 +47,1425 @@
     "source": "fifa.com",
     "source_id": 1,
     "last_updated": "2024"
+  },
+  {
+    "id": "football-rules-001",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside Rule",
+    "content": "A player is in an offside position if they are nearer to the opponent's goal line than both the ball and the second-last opponent (usually the last defender excluding the goalkeeper) at the moment the ball is played to them by a teammate. Being in an offside position is only an offence if the player becomes involved in active play by playing the ball, interfering with an opponent, or gaining an advantage. A player is not offside if level with the second-last opponent or in their own half of the pitch. VAR is used to check close offside decisions using a virtual line drawn across the pitch.",
+    "tags": [
+      "offside",
+      "VAR",
+      "defender",
+      "attacking",
+      "FIFA Laws"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-002",
+    "sport": "football",
+    "category": "rules",
+    "title": "VAR (Video Assistant Referee)",
+    "content": "VAR is a video review system used to assist the on-field referee in four match-changing situations: goals and whether the build-up to a goal was legal, penalty decisions, direct red card incidents, and mistaken identity when issuing cards. The VAR team reviews footage from multiple camera angles and communicates with the referee, who can either accept the recommendation or review the incident themselves on a pitch-side monitor before making a final decision. VAR does not review every decision - only clear and obvious errors or serious missed incidents.",
+    "tags": [
+      "VAR",
+      "video review",
+      "referee",
+      "goal",
+      "penalty",
+      "red card"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-003",
+    "sport": "football",
+    "category": "rules",
+    "title": "Red Card and Sending Off",
+    "content": "A red card results in a player being sent off and the team playing the remainder of the match with one fewer player, with no substitution allowed for the dismissed player. A direct red card is shown for serious foul play, violent conduct, denying an obvious goal-scoring opportunity through a foul, or using offensive language or gestures. A player can also receive an indirect red card by collecting two yellow cards in the same match. Red-carded players typically face additional suspension for upcoming matches depending on the competition's disciplinary rules.",
+    "tags": [
+      "red card",
+      "sending off",
+      "dismissal",
+      "suspension",
+      "foul"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-004",
+    "sport": "football",
+    "category": "rules",
+    "title": "Yellow Card and Cautions",
+    "content": "A yellow card is a caution shown for unsporting behaviour, such as a reckless foul, dissent by word or action, persistent rule infringements, delaying the restart of play, or unauthorised entry/exit from the field. A player who receives two yellow cards in the same match is shown a red card and sent off. In tournaments, players who accumulate a set number of yellow cards across multiple matches (commonly two) receive an automatic one-match suspension, after which the yellow card count typically resets.",
+    "tags": [
+      "yellow card",
+      "caution",
+      "booking",
+      "suspension",
+      "discipline"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-005",
+    "sport": "football",
+    "category": "rules",
+    "title": "Penalty Kick Rule",
+    "content": "A penalty kick is awarded when a direct free-kick offence is committed by a player inside their own penalty area. The ball is placed on the penalty mark, 11 metres from the goal line, and only the kicker and the goalkeeper are allowed inside the penalty area and the arc in front of it until the kick is taken. The goalkeeper must have at least part of one foot on or in line with the goal line and cannot move off the line before the ball is kicked, though minor movements are permitted. If the kick is saved or misses, the ball remains in play unless it goes out of bounds.",
+    "tags": [
+      "penalty kick",
+      "penalty area",
+      "goalkeeper",
+      "spot kick"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-006",
+    "sport": "football",
+    "category": "rules",
+    "title": "Free Kick - Direct and Indirect",
+    "content": "A direct free kick is awarded for fouls such as tripping, pushing, holding, or handball, and the kicker can score directly from it. An indirect free kick is awarded for offences such as offside, dangerous play, obstruction, or a goalkeeper handling a deliberate back-pass from a teammate; a goal cannot be scored directly from an indirect free kick - the ball must touch another player first. Opponents must retreat at least 9.15 metres (10 yards) from the ball unless they are on their own goal line between the posts.",
+    "tags": [
+      "free kick",
+      "direct",
+      "indirect",
+      "foul",
+      "set piece"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-007",
+    "sport": "football",
+    "category": "rules",
+    "title": "Handball Rule",
+    "content": "A handball offence occurs when a player deliberately touches the ball with their hand or arm, including throwing an object at the ball, scoring directly from the hand or arm even accidentally, or gaining an unfair advantage from the ball touching their hand or arm immediately before scoring or creating a goal-scoring opportunity. It is not usually an offence if the ball touches a player's hand or arm directly from their own head, body, or leg, or from a deflection off a nearby player, or if the hand/arm is in a natural position close to the body.",
+    "tags": [
+      "handball",
+      "hand",
+      "arm",
+      "foul",
+      "VAR"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-008",
+    "sport": "football",
+    "category": "rules",
+    "title": "Throw-In Rule",
+    "content": "A throw-in is awarded to the opposing team of the player who last touched the ball before it crossed the touchline (sideline). The throwing player must face the field of play, have part of each foot on or behind the touchline (or on the ground outside it), and use both hands to deliver the ball from behind and over their head from the point where it left the field. A goal cannot be scored directly from a throw-in. If the throw is performed incorrectly, the throw-in is awarded to the opposing team.",
+    "tags": [
+      "throw-in",
+      "touchline",
+      "restart",
+      "out of play"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-009",
+    "sport": "football",
+    "category": "rules",
+    "title": "Corner Kick Rule",
+    "content": "A corner kick is awarded to the attacking team when the ball, having last touched a player of the defending team, fully crosses the goal line (either on the ground or in the air) without a goal being scored. The ball is placed inside the corner arc nearest to where it went out, and a goal can be scored directly from a corner kick. Opponents must remain at least 9.15 metres (10 yards) from the corner arc until the ball is in play.",
+    "tags": [
+      "corner kick",
+      "goal line",
+      "restart",
+      "set piece"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-010",
+    "sport": "football",
+    "category": "rules",
+    "title": "Extra Time and Penalty Shootout",
+    "content": "In knockout competitions, if a match is level at the end of normal time (90 minutes), it proceeds to extra time, consisting of two 15-minute halves. If the score remains level after extra time, the match is decided by a penalty shootout. Each team takes alternating penalty kicks from the penalty mark, initially in a best-of-five format. If still tied after five kicks each, the shootout continues in sudden-death rounds where each team takes one kick per round until one team scores and the other misses.",
+    "tags": [
+      "extra time",
+      "penalty shootout",
+      "knockout",
+      "tiebreaker"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-formation-001",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-4-2 Formation",
+    "content": "The 4-4-2 is one of the most traditional football formations, consisting of 4 defenders, 4 midfielders, and 2 forwards. The back four typically includes 2 central defenders and 2 full-backs who provide width. The midfield line of four can play flat or with one player slightly advanced. The two forwards usually consist of a target man and a more mobile striker who runs in behind. This formation offers balance and compactness, making it easy for players to understand their roles, but can be outnumbered in midfield against formations with three central midfielders. Leicester City famously used a 4-4-2 to win the 2015-16 Premier League title.",
+    "tags": [
+      "4-4-2",
+      "formation",
+      "defenders",
+      "midfielders",
+      "forwards",
+      "Leicester City"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-002",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-3-3 Formation",
+    "content": "The 4-3-3 formation uses 4 defenders, 3 midfielders, and 3 forwards, with the front three typically consisting of two wide forwards (wingers) and a central striker. The midfield three usually has one defensive midfielder protecting the back line and two more advanced midfielders supporting attacks. This formation provides attacking width and the ability to press high up the pitch, but can leave gaps in midfield if the wide forwards do not track back. Pep Guardiola's Barcelona (2008-2012) used a 4-3-3 built around possession and pressing, with wingers like Messi cutting inside to score.",
+    "tags": [
+      "4-3-3",
+      "formation",
+      "wingers",
+      "striker",
+      "pressing",
+      "Barcelona"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-003",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-2-3-1 Formation",
+    "content": "The 4-2-3-1 formation has 4 defenders, 2 holding midfielders, 3 attacking midfielders/wingers, and 1 striker. The double pivot in midfield provides defensive stability and allows the team to control possession, while the three players ahead of them (often a central attacking midfielder flanked by two wingers) create chances for the lone striker. This formation is popular in modern football for its balance between defensive solidity and attacking creativity. Germany used a variation of this formation extensively during their 2014 World Cup winning campaign.",
+    "tags": [
+      "4-2-3-1",
+      "formation",
+      "double pivot",
+      "attacking midfielder",
+      "Germany"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-004",
+    "sport": "football",
+    "category": "formation",
+    "title": "3-5-2 Formation",
+    "content": "The 3-5-2 formation uses 3 central defenders, 5 midfielders (including 2 wing-backs who provide width on both flanks), and 2 forwards. The wing-backs are crucial - they must contribute both defensively (tracking back to form a back five when out of possession) and offensively (overlapping to provide crosses). This formation overloads the midfield with numbers and is effective against teams playing with two forwards, but can be exploited if the wing-backs are caught out of position. Antonio Conte used a 3-5-2 (often described as 3-4-3 in possession) to win the Premier League with Chelsea in 2016-17.",
+    "tags": [
+      "3-5-2",
+      "formation",
+      "wing-backs",
+      "back three",
+      "Chelsea",
+      "Conte"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-005",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-1-4-1 Formation",
+    "content": "The 4-1-4-1 formation features 4 defenders, a single defensive midfielder (the '1'), a bank of 4 midfielders, and a lone striker. The defensive midfielder sits just in front of the back four, screening passes into dangerous areas and allowing the four midfielders ahead to press higher up the pitch. This formation is often used out of possession as a defensive shape that can shift into a 4-3-3 or 4-2-3-1 when attacking. It is commonly used by teams looking to control midfield numerically while remaining compact defensively.",
+    "tags": [
+      "4-1-4-1",
+      "formation",
+      "defensive midfielder",
+      "compact",
+      "pressing"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-006",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-5-1 Formation",
+    "content": "The 4-5-1 formation deploys 4 defenders, 5 midfielders, and a single striker who often plays as a lone target man. This formation prioritises defensive solidity and midfield control, frequently used by teams looking to absorb pressure away from home or protect a lead. The five midfielders can include two wide players who tuck in defensively but offer width in transition. Critics argue it can isolate the lone striker, but it is highly effective for teams focused on counter-attacking football.",
+    "tags": [
+      "4-5-1",
+      "formation",
+      "lone striker",
+      "defensive",
+      "counter-attack"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-007",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-3-3 False Nine Variation",
+    "content": "A variation of the 4-3-3 involves playing a 'false nine' - a forward who drops deep into midfield rather than staying as a traditional central striker. This pulls opposition centre-backs out of position, creating space for wingers to run into. Lionel Messi famously played as a false nine under Pep Guardiola at Barcelona (2009-2012), dropping into midfield to link play before bursting into the box. The false nine requires intelligent movement and strong technical ability rather than traditional target-man physicality.",
+    "tags": [
+      "false nine",
+      "4-3-3",
+      "Messi",
+      "Barcelona",
+      "movement"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-008",
+    "sport": "football",
+    "category": "formation",
+    "title": "5-3-2 Formation",
+    "content": "The 5-3-2 formation uses 5 defenders (3 centre-backs plus 2 full-backs/wing-backs who sit deeper than in a 3-5-2), 3 midfielders, and 2 forwards. This is a highly defensive setup, often used by underdog teams looking to frustrate stronger opposition by packing the defence and midfield, then relying on quick transitions or set pieces. It sacrifices attacking width and creativity for defensive numbers, making it a common 'park the bus' formation in must-not-lose matches.",
+    "tags": [
+      "5-3-2",
+      "formation",
+      "defensive",
+      "underdog",
+      "five at the back"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-009",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-4-2 Diamond Formation",
+    "content": "The 4-4-2 diamond is a variation where the midfield four are arranged in a diamond shape rather than flat - one holding midfielder at the base, two central midfielders on either side, and one attacking midfielder at the tip, just behind the two strikers. This shape overloads central areas and supports the strikers closely, but can be vulnerable to opposition full-backs exploiting the lack of natural width in midfield, requiring the full-backs to push very high to compensate.",
+    "tags": [
+      "4-4-2 diamond",
+      "formation",
+      "central overload",
+      "attacking midfielder"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-010",
+    "sport": "football",
+    "category": "formation",
+    "title": "3-4-3 Formation",
+    "content": "The 3-4-3 formation uses 3 central defenders, 4 midfielders (often 2 central midfielders and 2 wide players or wing-backs), and 3 forwards across the front line. This formation is aggressive and attack-minded, designed to dominate possession and press high up the pitch with numbers in advanced positions. It requires the back three to be comfortable defending in wide areas when the wing-backs push forward, leaving space behind them that can be exploited on the counter-attack.",
+    "tags": [
+      "3-4-3",
+      "formation",
+      "attacking",
+      "wing-backs",
+      "high press"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-011",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-2-4 Formation",
+    "content": "The 4-2-4 formation features 4 defenders, 2 central midfielders, and 4 forwards (typically 2 wingers and 2 central strikers). This is one of the most attack-heavy formations in football history, famously used by Brazil during their 1958 and 1962 World Cup winning campaigns. While extremely potent in attack, the lack of midfield numbers makes it vulnerable defensively, and it has largely fallen out of favour in modern football where midfield control is prioritised.",
+    "tags": [
+      "4-2-4",
+      "formation",
+      "Brazil",
+      "attacking",
+      "World Cup history"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-012",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-1-2-1-2 Narrow Diamond Formation",
+    "content": "The 4-1-2-1-2 (narrow diamond) consists of 4 defenders, a defensive midfielder, 2 central midfielders, an attacking midfielder, and 2 forwards - all concentrated through the centre of the pitch with no natural wide players. This formation aims to dominate the central areas with numerical superiority, relying on full-backs to provide the only width. It can be very effective against teams that also play narrow, but is highly exploitable by opponents with strong wingers, since there is minimal cover out wide.",
+    "tags": [
+      "4-1-2-1-2",
+      "narrow diamond",
+      "formation",
+      "central dominance",
+      "full-backs"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-001",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Gegenpressing (High Pressing)",
+    "content": "Gegenpressing, or 'counter-pressing', is a strategy where a team immediately presses the opponent the moment they lose possession, aiming to win the ball back in the area where it was lost - typically high up the pitch. This is based on the idea that the opponent is most disorganised immediately after winning the ball, making it the best moment to apply pressure. The strategy requires high fitness levels, quick decision-making, and coordinated team movement. Jurgen Klopp's Liverpool and Borussia Dortmund teams were renowned for executing gegenpressing, often winning the ball back within seconds and converting it into fast attacking transitions.",
+    "tags": [
+      "gegenpressing",
+      "high press",
+      "Klopp",
+      "Liverpool",
+      "counter-press",
+      "transition"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-002",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Offside Trap",
+    "content": "The offside trap is a defensive strategy where the defensive line moves forward in a coordinated manner just before the opposing attacker receives a pass, leaving the attacker in an offside position. This requires excellent communication and timing among defenders - if even one defender mistimes the movement, it can leave the attacker with a clear run on goal. The offside trap was a hallmark of Arsenal's defence under Arsene Wenger in the late 1990s and early 2000s, led by experienced defenders like Tony Adams who coordinated the line's movement.",
+    "tags": [
+      "offside trap",
+      "defensive line",
+      "Arsenal",
+      "Wenger",
+      "coordination"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-003",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Tiki-Taka (Possession-Based Play)",
+    "content": "Tiki-taka is a style of play characterised by short passing, constant movement, and maintaining possession to control the tempo of the game and tire out the opposition. Players consistently make themselves available for passes, creating triangles across the pitch so the ball can always be moved forward, sideways, or backward depending on what space is available. This strategy reduces the opponent's time on the ball and creates openings through patient build-up. Spain's national team (2008-2012) and Pep Guardiola's Barcelona used tiki-taka to dominate possession statistics, often exceeding 70% in matches, while wearing down opponents physically and mentally.",
+    "tags": [
+      "tiki-taka",
+      "possession",
+      "Spain",
+      "Barcelona",
+      "Guardiola",
+      "passing"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-004",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Park the Bus (Defensive Strategy)",
+    "content": "'Park the bus' is a term describing an extremely defensive strategy where a team commits the majority of its players behind the ball, often forming two deep banks of defenders, to prevent the opposition from scoring. The team typically concedes possession and territory, relying on compact defensive shape, blocking shots and crosses, and looking to hit the opposition on the counter-attack or via set pieces. This strategy is commonly used by underdog teams against stronger opposition, or by teams protecting a slim lead in the closing stages of a match. Jose Mourinho's Chelsea and Inter Milan teams were often associated with this approach in high-stakes matches.",
+    "tags": [
+      "park the bus",
+      "defensive",
+      "underdog",
+      "Mourinho",
+      "counter-attack",
+      "compact"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-005",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Counter-Attacking Football",
+    "content": "Counter-attacking is a strategy where a team deliberately allows the opponent to have possession in less dangerous areas, then rapidly transitions from defence to attack the moment they win the ball back, exploiting the space left behind by an attacking opponent. This requires quick, direct passing, fast forwards capable of exploiting space in behind defenders, and disciplined defensive organisation to win the ball cleanly. Leicester City's title-winning 2015-16 season relied heavily on counter-attacking football, using the pace of players like Jamie Vardy to exploit space left by attacking opponents.",
+    "tags": [
+      "counter-attack",
+      "transition",
+      "Leicester City",
+      "Vardy",
+      "space"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-006",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Zonal Marking vs Man Marking",
+    "content": "Zonal marking is a defensive strategy where players are responsible for defending a specific area or zone of the pitch, regardless of which opponent enters it, maintaining defensive shape collectively. Man marking assigns each defender to track a specific opposing player wherever they go on the pitch. Zonal marking is more common in modern football as it maintains team shape and reduces the risk of being dragged out of position, but requires excellent communication to avoid gaps between zones. Man marking can be effective against a specific dangerous player but risks defenders being isolated 1v1 in space if dragged away from their zone.",
+    "tags": [
+      "zonal marking",
+      "man marking",
+      "defensive organisation",
+      "set pieces"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-007",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Overlapping Full-Backs",
+    "content": "Overlapping is when a full-back makes a forward run on the outside of a winger who has drifted inside, providing an additional attacking option down the flank and creating a 2v1 situation against the opposing full-back. This adds width to attacks and creates crossing or cutback opportunities. Pep Guardiola's Manchester City frequently used inverted full-backs (tucking into midfield) combined with wingers staying wide, while other systems use traditional overlaps. This strategy requires full-backs with high stamina and attacking awareness, and defensive midfielders who can cover the space they leave behind.",
+    "tags": [
+      "overlapping full-backs",
+      "width",
+      "wingers",
+      "Manchester City",
+      "attacking"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-008",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Inverted Wingers",
+    "content": "An inverted winger is a player who plays on the opposite flank to their stronger foot - for example, a left-footed player playing on the right wing. This allows the winger to cut inside onto their stronger foot when running at defenders, opening up shooting or passing angles towards goal rather than crossing with their weaker foot. Inverted wingers are highly effective for cutting in and shooting, as demonstrated by players like Mohamed Salah (left-footed, plays right wing) and Arjen Robben, both renowned for cutting inside and curling shots into the far corner.",
+    "tags": [
+      "inverted winger",
+      "Salah",
+      "Robben",
+      "cutting inside",
+      "shooting angle"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-009",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Long Ball / Direct Play",
+    "content": "Long ball or direct play is a strategy that bypasses midfield by playing long passes from defence directly towards forwards, often a target man who can hold up the ball or win aerial duels. This strategy reduces the risk of losing possession in midfield through short passing errors and can be effective against teams that press high, as it skips the press entirely. It is often combined with quick wide players who can latch onto knockdowns or flick-ons from the target man. While sometimes criticised as unsophisticated, direct play has been used effectively by teams like Sam Allardyce's Bolton Wanderers and various physical, well-organised sides in lower divisions.",
+    "tags": [
+      "long ball",
+      "direct play",
+      "target man",
+      "aerial duels",
+      "Bolton"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-010",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Build-Up Play from the Back",
+    "content": "Build-up from the back is a strategy where a team constructs attacks starting from the goalkeeper and defenders, using short passes to draw the opposition's press out of position before progressing the ball into midfield and attack. This requires a goalkeeper comfortable playing with their feet (a 'sweeper-keeper') and centre-backs with good passing range. The aim is to create numerical advantages by luring opponents forward, then exploiting the space they leave behind with progressive passes. Manchester City under Guardiola consistently builds from the back, with goalkeeper Ederson often acting as an additional outfield passer.",
+    "tags": [
+      "build-up play",
+      "sweeper-keeper",
+      "Ederson",
+      "Manchester City",
+      "press resistance"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-011",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Set Piece Routines",
+    "content": "Set piece routines are pre-planned movements and patterns designed for corners, free kicks, and throw-ins to create scoring opportunities. Common routines include near-post runs where a player flicks the ball on for an attacker arriving at the far post, short corners that draw defenders out before crossing, and free-kick routines involving dummy runners to confuse the defensive wall. Set pieces account for a significant percentage of goals scored in professional football, making dedicated practice and rehearsed movements a key tactical area for coaches.",
+    "tags": [
+      "set pieces",
+      "corners",
+      "free kicks",
+      "near-post run",
+      "routines"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-012",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Pressing Triggers",
+    "content": "Pressing triggers are specific cues that signal a team to initiate a coordinated press, such as an opponent receiving a pass with their back to goal, a poor first touch, a pass played towards the sideline (reducing the receiver's options), or a backwards pass to the goalkeeper. Recognising and reacting to these triggers as a unit allows a team to press effectively without exhausting players by pressing constantly. Coaches train players to identify these moments collectively so the press is synchronised rather than just one or two players chasing the ball individually.",
+    "tags": [
+      "pressing triggers",
+      "coordinated press",
+      "first touch",
+      "synchronised"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-013",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Width and Overloads",
+    "content": "Creating overloads involves a team deliberately positioning more players than the opposition in a specific area of the pitch, usually the wide channels, to create numerical superiority (e.g. 3v2 or 4v3). This can be achieved through full-backs, wingers, and midfielders all moving into the same flank, drawing defenders out of position and creating space either to combine through the overload or switch play quickly to the opposite, now-underloaded flank. Overloads are a core principle of possession-based and positional play systems, used to systematically break down organised defences.",
+    "tags": [
+      "overloads",
+      "width",
+      "numerical superiority",
+      "switching play",
+      "positional play"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-014",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Low Block Defending",
+    "content": "A low block is a defensive strategy where a team sets up with both banks of players (defenders and midfielders) close to their own penalty area, conceding space in midfield and the opposition's half but compressing the space near their own goal. This makes it difficult for the opposition to find gaps to play through, forcing them into wide areas or long-range shots. Unlike 'parking the bus', a low block can still be aggressive in winning the ball back once the opposition enters the final third, and is often paired with quick counter-attacks once possession is regained. Atletico Madrid under Diego Simeone became famous for an organised, disciplined low block.",
+    "tags": [
+      "low block",
+      "defensive shape",
+      "Atletico Madrid",
+      "Simeone",
+      "compact defence"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-015",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Rotational Play / Positional Rotations",
+    "content": "Rotational play involves players deliberately swapping positions during attacking phases - for example, a full-back moving into midfield while a midfielder drops into the full-back position, or a winger and full-back exchanging vertical positions. This creates confusion for marking defenders, who must decide whether to follow a player out of their zone or stay in position and pick up a new opponent. These rotations are a key feature of positional play systems and are designed to consistently create small spatial and numerical advantages that can be exploited to progress the ball or create chances.",
+    "tags": [
+      "rotational play",
+      "positional rotations",
+      "positional play",
+      "marking confusion"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-competition-004",
+    "sport": "football",
+    "category": "competition",
+    "title": "La Liga - Format and Rules",
+    "content": "La Liga is the top division of Spanish football, featuring 20 clubs. Each team plays 38 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The team with the most points at the end of the season is crowned champion. The bottom 3 teams are relegated to the Segunda Division. The top 4 teams qualify for the UEFA Champions League, with the next 1-2 teams qualifying for the UEFA Europa League depending on cup outcomes. The season runs from August to May.",
+    "tags": [
+      "La Liga",
+      "Spain",
+      "format",
+      "relegation",
+      "Champions League",
+      "football"
+    ],
+    "source": "laliga.com"
+  },
+  {
+    "id": "football-competition-005",
+    "sport": "football",
+    "category": "competition",
+    "title": "Bundesliga - Format and Rules",
+    "content": "The Bundesliga is the top division of German football, featuring 18 clubs (fewer than most other major European leagues). Each team plays 34 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The bottom 2 teams are automatically relegated to the 2. Bundesliga, while the team finishing 16th plays a two-legged relegation playoff against the third-placed team from the second division. The top 4 teams qualify for the UEFA Champions League. The season runs from August to May.",
+    "tags": [
+      "Bundesliga",
+      "Germany",
+      "format",
+      "relegation playoff",
+      "Champions League",
+      "football"
+    ],
+    "source": "bundesliga.com"
+  },
+  {
+    "id": "football-competition-006",
+    "sport": "football",
+    "category": "competition",
+    "title": "Serie A - Format and Rules",
+    "content": "Serie A is the top division of Italian football, featuring 20 clubs. Each team plays 38 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The bottom 3 teams are relegated to Serie B. The top 4 teams qualify for the UEFA Champions League, with additional places available for the UEFA Europa League and Conference League depending on domestic cup results. The season runs from August to May.",
+    "tags": [
+      "Serie A",
+      "Italy",
+      "format",
+      "relegation",
+      "Champions League",
+      "football"
+    ],
+    "source": "legaseriea.it"
+  },
+  {
+    "id": "football-competition-007",
+    "sport": "football",
+    "category": "competition",
+    "title": "Ligue 1 - Format and Rules",
+    "content": "Ligue 1 is the top division of French football, featuring 18 clubs. Each team plays 34 matches per season (home and away against every other team). Teams receive 3 points for a win, 1 for a draw, and 0 for a loss. The bottom 2 teams are automatically relegated, while the team finishing 16th enters a relegation playoff. The top 3 teams qualify directly for the UEFA Champions League, with the 4th-placed team entering Champions League qualifying rounds. The season runs from August to May.",
+    "tags": [
+      "Ligue 1",
+      "France",
+      "format",
+      "relegation playoff",
+      "Champions League",
+      "football"
+    ],
+    "source": "ligue1.com"
+  },
+  {
+    "id": "football-rules-011",
+    "sport": "football",
+    "category": "rules",
+    "title": "Match Duration",
+    "content": "A standard football match consists of two halves of 45 minutes each, totalling 90 minutes, with a half-time break of usually 15 minutes between them. The referee can add extra time at the end of each half (known as stoppage time or injury time) to compensate for time lost due to substitutions, injuries, time-wasting, or other stoppages. In knockout competitions, if the score is level after 90 minutes, the match may proceed to extra time and potentially a penalty shootout.",
+    "tags": [
+      "match duration",
+      "90 minutes",
+      "half-time",
+      "stoppage time",
+      "extra time"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-012",
+    "sport": "football",
+    "category": "rules",
+    "title": "Number of Players",
+    "content": "Each team fields 11 players, including 1 goalkeeper, at the start of a match. A match cannot continue if a team has fewer than 7 players. The goalkeeper is the only player allowed to handle the ball with their hands, and only within their own penalty area. If the goalkeeper is sent off or injured with no substitute goalkeeper available, another player must wear the goalkeeper jersey and take over the role.",
+    "tags": [
+      "players",
+      "11 players",
+      "goalkeeper",
+      "minimum players"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-013",
+    "sport": "football",
+    "category": "rules",
+    "title": "Substitution Rules",
+    "content": "In most professional competitions, each team is allowed to make up to 5 substitutions during a match, with an additional substitution permitted if the match goes to extra time. Substitutions can only be made during a stoppage in play with the referee's permission. Once a player is substituted, they cannot return to the pitch for the remainder of the match. Teams are typically limited to 3 separate stoppages for substitutions (excluding half-time) to reduce time-wasting, though rules can vary slightly by competition.",
+    "tags": [
+      "substitution",
+      "5 substitutions",
+      "extra time",
+      "stoppage"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-014",
+    "sport": "football",
+    "category": "rules",
+    "title": "The Pitch and Goal Dimensions",
+    "content": "A football pitch must be rectangular, with a length between 90-120 metres and a width between 45-90 metres for international matches (100x64 metres is a common standard). The goal is 7.32 metres (8 yards) wide and 2.44 metres (8 feet) high. The penalty area extends 16.5 metres from each goalpost and 16.5 metres into the pitch, forming an 18-yard box. The penalty mark is placed 11 metres from the goal line, centred between the posts.",
+    "tags": [
+      "pitch dimensions",
+      "goal size",
+      "penalty area",
+      "18-yard box"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-015",
+    "sport": "football",
+    "category": "rules",
+    "title": "Goal Kick Rule",
+    "content": "A goal kick is awarded to the defending team when the ball, having last touched a player of the attacking team, fully crosses the goal line (either on the ground or in the air) without a goal being scored. The ball is placed anywhere within the goal area and can be played to any teammate, including passes within the penalty area - opposing players must remain outside the penalty area until the ball is in play. The goalkeeper does not have to take the goal kick; any defending player can take it.",
+    "tags": [
+      "goal kick",
+      "goal area",
+      "restart",
+      "defending team"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-016",
+    "sport": "football",
+    "category": "rules",
+    "title": "Advantage Rule",
+    "content": "The advantage rule allows the referee to refrain from stopping play for a foul if doing so would benefit the team that committed the foul. If the fouled team retains or gains an advantageous position despite the foul, the referee signals 'advantage' (typically with arm gestures) and allows play to continue. The referee can still go back and caution or send off the offending player for the original foul once play stops, even though the foul itself was not stopped for at the time.",
+    "tags": [
+      "advantage rule",
+      "referee",
+      "foul",
+      "play on"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-017",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside - Goal Kick, Corner Kick, and Throw-In Exceptions",
+    "content": "A player cannot be penalised for offside if they receive the ball directly from a goal kick, corner kick, or throw-in, even if they were in an offside position when the ball was played. This exception exists because these are restarts of play rather than open-play situations, and applying the offside rule here would unnecessarily restrict attacking opportunities from these set pieces.",
+    "tags": [
+      "offside exception",
+      "goal kick",
+      "corner kick",
+      "throw-in"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-018",
+    "sport": "football",
+    "category": "rules",
+    "title": "Drop Ball Rule",
+    "content": "A dropped ball is used to restart play after a temporary stoppage where the ball was in play but the game needed to be paused for reasons not covered by other restart methods - for example, a serious injury or interference by an outside agent (such as a ball boy or an animal entering the pitch). The referee drops the ball for one player (usually from the team that last touched it, or the goalkeeper if the stoppage occurred inside the penalty area) at the location where play was stopped, and it is in play once it touches the ground.",
+    "tags": [
+      "dropped ball",
+      "restart",
+      "injury stoppage",
+      "referee"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-019",
+    "sport": "football",
+    "category": "rules",
+    "title": "Kick-Off Rules",
+    "content": "A kick-off starts each half of the match and restarts play after a goal is scored. All players must be in their own half of the pitch, and opponents of the team taking the kick-off must remain at least 9.15 metres (10 yards) from the ball until it is in play. The ball must be stationary on the centre mark and is in play once it is kicked and clearly moves. A goal cannot be scored directly from a kick-off - the ball must touch another player first.",
+    "tags": [
+      "kick-off",
+      "centre mark",
+      "restart",
+      "half-time"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-020",
+    "sport": "football",
+    "category": "rules",
+    "title": "Captain's Role and the Coin Toss",
+    "content": "Before the match, the referee conducts a coin toss between the two team captains. The team that wins the toss decides either which goal to attack in the first half, or whether to take the kick-off. The other team is given the remaining choice. Teams switch ends at half-time. The captain has no special privileges under the Laws of the Game beyond the coin toss, but is often the player who communicates with the referee on behalf of the team during disputes.",
+    "tags": [
+      "captain",
+      "coin toss",
+      "kick-off choice",
+      "half-time switch"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-021",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside - Goalkeeper Exception",
+    "content": "The goalkeeper is generally treated like any other defending player for offside purposes - the 'second-last opponent' in the offside rule is usually the goalkeeper plus the last outfield defender, or simply the last two defenders if the goalkeeper is out of position. If a goalkeeper is caught far out of their goal (e.g. having rushed forward), the offside line is determined by the two players closest to their own goal line, regardless of whether one of them is the goalkeeper.",
+    "tags": [
+      "offside",
+      "goalkeeper",
+      "defensive line",
+      "second-last opponent"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-022",
+    "sport": "football",
+    "category": "rules",
+    "title": "Denying a Goal-Scoring Opportunity (DOGSO)",
+    "content": "If a player commits a foul that denies an opponent an obvious goal-scoring opportunity (commonly abbreviated DOGSO), the offending player is sent off with a red card, regardless of where the foul occurs. Factors considered include the distance to goal, the direction of play, the likelihood of keeping or gaining control of the ball, and the proximity of defenders. If the foul also results in a penalty kick and the offence was an attempt to play the ball (not purely a tactical foul), the punishment may be downgraded to a yellow card under some recent rule amendments - but a clear DOGSO foul not attempting to play the ball remains a red card.",
+    "tags": [
+      "DOGSO",
+      "red card",
+      "goal-scoring opportunity",
+      "penalty"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-023",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside Rule Refinement - Daylight Rule",
+    "content": "Following IFAB clarifications, the offside rule uses a strict 'any part of the body that can score a goal' standard - meaning if any part of an attacker's body (other than hands and arms) that could legally score a goal is level with or behind the second-last defender, they are not offside. There is no longer a requirement for daylight or clear space between the attacker and defender; if level, the attacker is considered onside. VAR uses calibrated lines on key body parts to make this determination as precisely as possible.",
+    "tags": [
+      "offside",
+      "VAR",
+      "IFAB",
+      "level",
+      "body part"
+    ],
+    "source": "IFAB Laws of the Game Clarifications"
+  },
+  {
+    "id": "football-rules-024",
+    "sport": "football",
+    "category": "rules",
+    "title": "Encroachment on Penalty Kicks",
+    "content": "Encroachment occurs when players other than the kicker and goalkeeper enter the penalty area or the penalty arc before a penalty kick is taken, or when the goalkeeper moves off the goal line before the ball is kicked. If the defending team encroaches and the kick is missed or saved, the kick is retaken. If the attacking team encroaches and the goal is scored, the kick is retaken; if missed, no retake is given. If both teams encroach, the kick is retaken regardless of outcome.",
+    "tags": [
+      "penalty kick",
+      "encroachment",
+      "retake",
+      "goalkeeper"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-025",
+    "sport": "football",
+    "category": "rules",
+    "title": "Back-Pass Rule",
+    "content": "A goalkeeper is not permitted to handle the ball with their hands if it has been deliberately kicked to them by a teammate (commonly known as the back-pass rule). If the goalkeeper handles the ball in this situation, an indirect free kick is awarded to the opposing team from the location of the handball. This rule does not apply if the ball is headed, chested, or kneed back to the goalkeeper - only a deliberate kick triggers the restriction. The rule was introduced in 1992 to discourage time-wasting through repeated passes back to the goalkeeper.",
+    "tags": [
+      "back-pass rule",
+      "goalkeeper",
+      "handball",
+      "indirect free kick"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-026",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside Position vs Offside Offence",
+    "content": "Being in an offside position is not itself an offence - it only becomes a punishable offence if the player in that position becomes 'involved in active play'. This happens in three ways: playing or touching the ball passed by a teammate, interfering with an opponent by obstructing their line of sight or movement, or gaining an advantage by playing a ball that rebounds off a goalpost, crossbar, or opponent. A player can stand in an offside position all match without penalty as long as they don't become involved in any of these ways when the ball comes near them.",
+    "tags": [
+      "offside position",
+      "offside offence",
+      "active play",
+      "interference"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-027",
+    "sport": "football",
+    "category": "rules",
+    "title": "Dangerous Play",
+    "content": "Dangerous play is an offence where a player makes a move that threatens injury to themselves or another player while trying to play the ball, even without making contact - for example, a high kick near an opponent's head, or playing the ball while in a position dangerous to an opponent (such as on the ground near other players' feet). It results in an indirect free kick to the opposing team. Unlike most fouls, dangerous play does not require contact between players to be penalised.",
+    "tags": [
+      "dangerous play",
+      "indirect free kick",
+      "high kick",
+      "no contact"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-028",
+    "sport": "football",
+    "category": "rules",
+    "title": "Time-Wasting and Sanctions",
+    "content": "Referees can caution (yellow card) players for persistent time-wasting, which includes excessively slow restarts, kicking the ball away after a foul, feigning injury, or excessive delays during substitutions. Since the 2023 IFAB updates, many competitions have introduced stricter enforcement of stoppage time calculations, with referees instructed to add back all time lost during goal celebrations, substitutions, and treatment of injuries to ensure a fuller amount of actual playing time within the 90 minutes.",
+    "tags": [
+      "time-wasting",
+      "yellow card",
+      "stoppage time",
+      "IFAB"
+    ],
+    "source": "IFAB Laws of the Game Clarifications"
+  },
+  {
+    "id": "football-rules-029",
+    "sport": "football",
+    "category": "rules",
+    "title": "Mass Confrontation and Technical Area Conduct",
+    "content": "If a mass confrontation (a melee involving multiple players from both teams) occurs, the referee can issue cards to any players involved in physical altercations once order is restored, even if the original incident has passed. Team officials, including managers, are restricted to a designated technical area near the bench and can receive cautions or be sent from the technical area (and stadium) for entering the field of play without permission, using offensive language, or inciting confrontation.",
+    "tags": [
+      "mass confrontation",
+      "technical area",
+      "team officials",
+      "discipline"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-030",
+    "sport": "football",
+    "category": "rules",
+    "title": "Concussion Substitutes",
+    "content": "Many competitions have introduced additional permanent concussion substitutes, separate from a team's normal substitution allowance, to allow a player suspected of having a head injury to be replaced for assessment without using one of the team's standard substitutions. This was introduced to prioritise player safety, removing pressure on medical staff and coaches to keep a potentially concussed player on the pitch due to a limited substitution count. The substituted player cannot return to the match even if later cleared.",
+    "tags": [
+      "concussion substitute",
+      "player safety",
+      "head injury",
+      "substitution"
+    ],
+    "source": "IFAB Laws of the Game Clarifications"
+  },
+  {
+    "id": "football-rules-031",
+    "sport": "football",
+    "category": "rules",
+    "title": "Indirect Free Kick Offences Summary",
+    "content": "An indirect free kick is awarded for several technical offences: a goalkeeper handling a deliberate back-pass from a teammate, a goalkeeper holding the ball for more than 6 seconds before releasing it, dangerous play, obstruction without contact, preventing the goalkeeper from releasing the ball, and certain dissent or unsporting behaviour offences that don't warrant a card. Unlike a direct free kick, a goal cannot be scored straight from an indirect free kick - the ball must touch another player (teammate or opponent) before entering the goal.",
+    "tags": [
+      "indirect free kick",
+      "goalkeeper",
+      "obstruction",
+      "offences"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-032",
+    "sport": "football",
+    "category": "rules",
+    "title": "Six-Second Goalkeeper Rule",
+    "content": "Once a goalkeeper has controlled the ball with their hands, they must release it into play within 6 seconds. If they fail to do so, an indirect free kick is awarded to the opposing team from the edge of the penalty area at the point nearest to where the offence occurred. In practice, this rule is rarely strictly enforced by referees unless a goalkeeper is clearly time-wasting, but it exists to prevent goalkeepers from holding the ball indefinitely.",
+    "tags": [
+      "goalkeeper",
+      "six seconds",
+      "time-wasting",
+      "indirect free kick"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-033",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside - Interfering with an Opponent",
+    "content": "A player in an offside position is penalised for 'interfering with an opponent' if they prevent an opponent from playing or being able to play the ball by clearly obstructing their line of vision, or by making a movement or gesture that, in the referee's opinion, deceives or distracts an opponent. Simply standing in an offside position near an opponent without affecting their ability to play is not enough - there must be a clear obstruction or deceptive action involved.",
+    "tags": [
+      "offside",
+      "interference",
+      "obstruction",
+      "deception"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-034",
+    "sport": "football",
+    "category": "rules",
+    "title": "Fouls Resulting in a Direct Free Kick",
+    "content": "A direct free kick is awarded when a player commits any of the following against an opponent in a careless, reckless, or excessive-force manner: kicking or attempting to kick, tripping, jumping at, charging, striking or attempting to strike, pushing, tackling, or holding. Additionally, handling the ball deliberately (except by the goalkeeper in their own area) results in a direct free kick. If any of these offences occur inside the offending player's own penalty area, a penalty kick is awarded instead of a direct free kick.",
+    "tags": [
+      "direct free kick",
+      "foul",
+      "tackling",
+      "penalty kick"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-035",
+    "sport": "football",
+    "category": "rules",
+    "title": "Goal Celebrations and Sanctions",
+    "content": "While celebrating a goal is a normal part of the game, certain celebration actions can result in a caution, including: removing the shirt or covering the head with it, climbing perimeter fencing, using offensive, insulting, or abusive gestures, language, or actions, and excessive time-wasting through prolonged celebration. Referees are instructed to allow reasonable celebration time but to caution players who clearly cross these boundaries.",
+    "tags": [
+      "goal celebration",
+      "yellow card",
+      "shirt removal",
+      "conduct"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-036",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside - Last Touch by a Defender",
+    "content": "If the ball was last played or touched by a defending player (deliberately or via deflection) before reaching an attacker in an offside position, the offside offence is typically not penalised, since the attacker did not gain an advantage from a teammate's pass. However, a deliberate save or clearance attempt by a defender that is then played by the attacker can still be reviewed by VAR to determine whether the original pass from a teammate, not the defender's action, is what set up the offside situation.",
+    "tags": [
+      "offside",
+      "deflection",
+      "defender touch",
+      "VAR"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-037",
+    "sport": "football",
+    "category": "rules",
+    "title": "Misconduct Outside the Field of Play",
+    "content": "A player or substitute can be cautioned or sent off for misconduct even when not on the field of play - for example, while warming up, during a stoppage, or after being substituted but still in the technical area. Red and yellow cards can be shown to anyone on the team list, including substitutes and substituted players, for offences such as violent conduct towards an opponent, official, or spectator, even if it occurs away from the immediate play.",
+    "tags": [
+      "misconduct",
+      "substitutes",
+      "red card",
+      "off the ball"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-038",
+    "sport": "football",
+    "category": "rules",
+    "title": "Offside Rule - Defender Leaving the Field",
+    "content": "If a defending player leaves the field of play (without the referee's permission) during the course of play, they are still considered to be on the goal line for offside purposes when determining the position of the second-last defender, until the next phase of play. This prevents teams from manipulating the offside line by having a defender deliberately step off the pitch to play an attacker offside or onside.",
+    "tags": [
+      "offside",
+      "defender leaves field",
+      "goal line",
+      "manipulation"
+    ],
+    "source": "IFAB Laws of the Game Clarifications"
+  },
+  {
+    "id": "football-rules-039",
+    "sport": "football",
+    "category": "rules",
+    "title": "Use of Technology - Goal-Line Technology",
+    "content": "Goal-line technology (GLT) is used in many top competitions to determine instantly and definitively whether the ball has fully crossed the goal line for a goal to be awarded. The system uses multiple high-speed cameras (or in some cases a sensor-equipped ball) to track the ball's position and sends an immediate signal - typically a vibration to the referee's watch - within one second of the ball crossing the line. This is separate from VAR, which handles broader decisions, while GLT specifically resolves the binary question of whether a goal was scored.",
+    "tags": [
+      "goal-line technology",
+      "GLT",
+      "referee watch",
+      "goal decision"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-rules-040",
+    "sport": "football",
+    "category": "rules",
+    "title": "Equipment and Kit Regulations",
+    "content": "Players must wear a jersey, shorts, socks, shin guards (covered entirely by the socks), and footwear. Goalkeepers must wear colours that distinguish them from other players and the match officials. Players are not permitted to wear jewellery or anything that could be dangerous to themselves or others, including rings, necklaces, bracelets, and earrings, though some competitions allow taped-over jewellery in specific cases. The two teams must wear kits of contrasting colours from each other and from the match officials.",
+    "tags": [
+      "kit",
+      "shin guards",
+      "equipment",
+      "jewellery",
+      "goalkeeper jersey"
+    ],
+    "source": "FIFA Laws of the Game 2024"
+  },
+  {
+    "id": "football-formation-013",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-4-1-1 Formation",
+    "content": "The 4-4-1-1 formation is a variation of 4-4-2 where one of the two forwards plays in a slightly deeper role, just behind the main striker, rather than alongside them on the same line. This deeper forward (a 'second striker' or attacking midfielder type) links midfield to attack, drops into space between the lines, and supports the lone striker with through-balls or by drawing defenders out of position. It offers more central creativity than a flat 4-4-2 while retaining defensive solidity from the two banks of four.",
+    "tags": [
+      "4-4-1-1",
+      "formation",
+      "second striker",
+      "deeper forward"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-014",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-3-2-1 (Christmas Tree) Formation",
+    "content": "The 4-3-2-1, nicknamed the 'Christmas Tree' due to its visual shape narrowing towards the top, consists of 4 defenders, 3 midfielders, 2 advanced playmakers/attacking midfielders, and 1 striker. This formation concentrates players centrally, aiming to overwhelm the opposition through central combinations and quick interplay between the front three. It can lack width, relying on full-backs for wide attacking contributions, and was notably used by AC Milan in the early 2000s with players like Kaka and Rui Costa operating between midfield and the striker.",
+    "tags": [
+      "4-3-2-1",
+      "Christmas Tree",
+      "formation",
+      "AC Milan",
+      "playmakers"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-015",
+    "sport": "football",
+    "category": "formation",
+    "title": "3-4-1-2 Formation",
+    "content": "The 3-4-1-2 formation uses 3 central defenders, 4 midfielders (often including wing-backs), 1 attacking midfielder operating just behind, and 2 forwards. This setup provides defensive cover with the back three while the attacking midfielder links play to the strikers, creating a narrow but vertically connected attacking structure. The wing-backs provide the primary source of width, similar to a 3-5-2, but the addition of the dedicated attacking midfielder gives more central creative freedom.",
+    "tags": [
+      "3-4-1-2",
+      "formation",
+      "wing-backs",
+      "attacking midfielder",
+      "back three"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-016",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-3-3 with Double Pivot Variation",
+    "content": "Some teams play a 4-3-3 with a 'double pivot' - two holding midfielders sitting side by side rather than one defensive midfielder with two more advanced players. This provides extra defensive security and passing options in deep areas, with the most advanced of the three midfielders (often an attacking midfielder or '10') given freedom to roam between the lines. This variation balances the attacking width of a 4-3-3 with added defensive solidity in central midfield, useful against opponents with strong central attacking threats.",
+    "tags": [
+      "4-3-3",
+      "double pivot",
+      "formation",
+      "defensive midfield",
+      "variation"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-017",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-2-2-2 Formation",
+    "content": "The 4-2-2-2 formation features 4 defenders, 2 defensive midfielders, 2 attacking midfielders/wide players positioned centrally rather than on the touchlines, and 2 forwards. Common in South American football, particularly Brazil, this formation creates a compact, narrow shape with players in close proximity for combination play, relying on full-backs for width rather than wide midfielders. It can be vulnerable on the flanks if full-backs are caught high up the pitch.",
+    "tags": [
+      "4-2-2-2",
+      "formation",
+      "Brazil",
+      "narrow",
+      "full-backs"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-018",
+    "sport": "football",
+    "category": "formation",
+    "title": "3-1-4-2 Formation",
+    "content": "The 3-1-4-2 formation has 3 central defenders, a single holding midfielder shielding them, 4 midfielders ahead (including wide players providing width), and 2 forwards. The lone holding midfielder is crucial - they must cover large areas of space in front of the back three, especially when the wide players push forward to attack, leaving the team susceptible to counter-attacks through the vacated central channel if the holding midfielder is bypassed.",
+    "tags": [
+      "3-1-4-2",
+      "formation",
+      "holding midfielder",
+      "back three",
+      "counter-attack risk"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-019",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-4-2 Flat vs Staggered",
+    "content": "Within the broad 4-4-2 formation, the front two strikers can be arranged 'flat' (side by side on the same horizontal line) or 'staggered' (one slightly ahead of the other). A staggered front two allows one striker to drop into midfield to receive the ball and link play, while the other stays higher to stretch the defensive line and provide a final pass option or run in behind. This subtle variation changes how the strikers combine - flat pairs often rely on simultaneous movement and direct combinations, while staggered pairs create more layered attacking options.",
+    "tags": [
+      "4-4-2",
+      "staggered strikers",
+      "formation",
+      "front two",
+      "link play"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-020",
+    "sport": "football",
+    "category": "formation",
+    "title": "5-4-1 Formation",
+    "content": "The 5-4-1 formation is one of the most defensively cautious setups, with 5 defenders, 4 midfielders, and a lone striker, often used to protect a result against a stronger opponent. The five defenders typically operate as a back five with wing-backs sitting deep, while the four midfielders form a second line of protection in front, leaving the lone striker isolated but providing a release valve for clearances and counter-attacks. This formation maximises defensive numbers at the cost of attacking presence.",
+    "tags": [
+      "5-4-1",
+      "formation",
+      "defensive",
+      "back five",
+      "lone striker"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-021",
+    "sport": "football",
+    "category": "formation",
+    "title": "2-3-5 Formation (Historical)",
+    "content": "The 2-3-5, also called the 'Pyramid', was one of the earliest standardised football formations, widely used from the late 1800s through the early 20th century, consisting of 2 defenders ('full-backs'), 3 midfielders ('half-backs'), and 5 forwards. It reflects football's early emphasis on attacking play, with very few players dedicated to defending. While obsolete in modern football due to its defensive vulnerabilities, understanding the 2-3-5 provides historical context for how tactical thinking evolved towards more balanced formations over the decades.",
+    "tags": [
+      "2-3-5",
+      "Pyramid",
+      "historical formation",
+      "early football tactics"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-022",
+    "sport": "football",
+    "category": "formation",
+    "title": "WM Formation (3-2-2-3, Historical)",
+    "content": "The WM formation, developed by Herbert Chapman at Arsenal in the late 1920s, rearranged the 2-3-5 into a shape resembling the letters W and M when viewed on the pitch - effectively 3-2-2-3 (3 defenders, 2 holding midfielders, 2 attacking midfielders, 3 forwards). It was revolutionary at the time for introducing a 'centre-half' as a defensive player rather than an attacking one, in response to changes to the offside law in 1925. The WM dominated football tactics for decades and laid the foundation for modern formations with distinct defensive and attacking midfield roles.",
+    "tags": [
+      "WM formation",
+      "Herbert Chapman",
+      "Arsenal",
+      "historical formation",
+      "centre-half"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-023",
+    "sport": "football",
+    "category": "formation",
+    "title": "Total Football and Fluid 4-3-3 (Historical)",
+    "content": "Total Football, pioneered by Rinus Michels and Ajax/Netherlands in the 1970s, was less a fixed formation and more a philosophy where any player could take over the role of any other, maintaining the team's overall positional structure regardless of who occupied which space. It was often based on a fluid 4-3-3, where players constantly interchanged positions, requiring extremely high tactical intelligence and technical ability across the entire squad. This philosophy heavily influenced the development of modern positional play systems, including Guardiola's tactics, decades later.",
+    "tags": [
+      "Total Football",
+      "Rinus Michels",
+      "Ajax",
+      "Netherlands",
+      "fluid formation",
+      "historical"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-024",
+    "sport": "football",
+    "category": "formation",
+    "title": "Catenaccio (Historical Defensive System)",
+    "content": "Catenaccio, meaning 'door-bolt' in Italian, was a defensive system popularised in Italian football in the 1960s, typically built on a back four or back five with an additional 'sweeper' (libero) positioned behind the main defensive line. The sweeper's role was to cover for any defender who was beaten, providing an extra layer of defensive cover. Catenaccio prioritised defensive solidity above all else and was associated with low-scoring, tactically disciplined matches, most famously used by Helenio Herrera's Inter Milan teams of the 1960s.",
+    "tags": [
+      "catenaccio",
+      "sweeper",
+      "libero",
+      "Inter Milan",
+      "historical",
+      "defensive system"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-formation-025",
+    "sport": "football",
+    "category": "formation",
+    "title": "4-6-0 Formation (No Recognised Striker)",
+    "content": "The 4-6-0 is an unconventional formation with 4 defenders and 6 midfielders, with no player occupying a traditional central striker position. Instead, attacking players occupy advanced midfield zones and rotate into the striker's space when attacking, making the team's attacking shape unpredictable for defenders used to marking a fixed striker. Spain used a version of this approach during parts of Euro 2012, with players like Cesc Fabregas operating as a 'false nine' within an extremely fluid front line.",
+    "tags": [
+      "4-6-0",
+      "false nine",
+      "formation",
+      "Spain",
+      "Euro 2012",
+      "no striker"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-016",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Wing Play and Crossing",
+    "content": "Wing play involves attacking primarily through the wide areas of the pitch, using wingers or overlapping full-backs to deliver crosses into the box for forwards to attack with headers or volleys. This strategy is effective when a team has tall, strong attacking players capable of winning aerial duels, and wide players with good crossing technique. Traditional English football has historically emphasised wing play, with crosses from deep or the byline aimed at a target man in the box, though modern football increasingly favours cutbacks (low crosses from near the byline to the edge of the box) over traditional aerial crosses.",
+    "tags": [
+      "wing play",
+      "crossing",
+      "target man",
+      "aerial duels",
+      "cutbacks"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-017",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Compactness and Defensive Distances",
+    "content": "Compactness refers to how close together a team's players are positioned, both vertically (between defence and attack) and horizontally (across the width of the pitch). A compact team reduces the space between lines, making it harder for the opposition to find passing lanes through midfield. Teams achieve compactness by adjusting their defensive line height relative to the position of the ball - pushing up when the ball is far away and dropping deeper as the ball approaches their goal, while midfielders and forwards narrow to support the press.",
+    "tags": [
+      "compactness",
+      "defensive shape",
+      "distances between lines",
+      "pressing"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-018",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Switching Play",
+    "content": "Switching play involves quickly moving the ball from one side of the pitch to the other, usually via a long diagonal pass, to exploit space on the side away from where the ball currently is. This is particularly effective against teams that shift their defensive shape towards the ball, as a switch can catch the opposition still repositioning, creating a numerical advantage (overload) on the weak side. Switching play requires players with the technical ability to execute accurate long, often first-time, passes across the pitch.",
+    "tags": [
+      "switching play",
+      "diagonal pass",
+      "weak side",
+      "overload"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-019",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Half-Spaces (Channels) Exploitation",
+    "content": "The 'half-spaces' or channels are the vertical zones of the pitch between the central area and the wide flanks - roughly where a winger and central midfielder's zones overlap. These areas are often less tightly marked than the centre or the touchline, making them valuable for attacking players (often inverted wingers or attacking midfielders) to receive the ball and turn towards goal with options to pass centrally, cross, or shoot. Modern possession-based teams deliberately position players in these half-spaces to create passing triangles and disorganise defensive structures built around marking central and wide zones.",
+    "tags": [
+      "half-spaces",
+      "channels",
+      "positional play",
+      "between the lines"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-020",
+    "sport": "football",
+    "category": "strategy",
+    "title": "High Defensive Line and Offside Trap Combination",
+    "content": "Teams that play with a high defensive line (positioning the back four or back three far from their own goal) do so to compress the space available to the opposition and support a high press. This strategy is often combined with the offside trap - by stepping up as a unit when the ball is played forward, defenders can catch attackers offside, nullifying through-balls. The risk is significant: if the line is beaten by a pass into space behind the defenders, fast attackers can exploit the large gap between the high line and the goalkeeper.",
+    "tags": [
+      "high line",
+      "offside trap",
+      "high press",
+      "space behind defence"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-021",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Funnel Defending (Mid Block)",
+    "content": "A mid block (sometimes described as 'funnel defending') is a defensive strategy positioned between a high press and a low block, where the team allows the opposition some possession in their own half but presses intensely once the ball enters the middle third of the pitch. The defensive shape often resembles a funnel, narrowing centrally to force the opposition wide, where the team can press in numbers and win the ball back. This balances the risks of a high line with the passivity of a low block.",
+    "tags": [
+      "mid block",
+      "funnel defending",
+      "middle third",
+      "balanced defending"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-022",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Quick Throw-Ins as an Attacking Tool",
+    "content": "A quick throw-in, taken rapidly before the opposition can reorganise defensively, can be used as an attacking weapon to catch defenders out of position - similar to a fast break in transition. Because the rules require only that the thrower has both feet on or behind the line and uses two hands over the head, a well-drilled team can execute a quick throw-in into space behind a defender who has not yet retreated to a defensive position, creating an immediate 1v1 or 2v1 attacking situation.",
+    "tags": [
+      "quick throw-in",
+      "transition",
+      "set piece",
+      "attacking weapon"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-023",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Underlapping Runs",
+    "content": "An underlap is when a player (often a central midfielder or inside forward) makes a forward run on the inside of a teammate who is positioned wider, rather than overlapping on the outside. This creates a different attacking angle, often allowing the underlapping player to receive the ball facing goal in a more central, dangerous position, while the wide player retains the option to cross or cut inside themselves. Underlaps are commonly used in possession-based systems to create central passing options without sacrificing width.",
+    "tags": [
+      "underlapping run",
+      "central midfielder",
+      "attacking angle",
+      "positional play"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-024",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Game Management (Time and Score Control)",
+    "content": "Game management refers to how a team adjusts its strategy based on the scoreline and time remaining - for example, a team leading late in a match may shift to a more conservative shape, slow the tempo through controlled possession, or make defensive substitutions to protect the result. Conversely, a team trailing late may push more players forward, take more risks, and increase tempo to create scoring chances. Effective game management requires squad players capable of executing different tactical instructions depending on the match situation.",
+    "tags": [
+      "game management",
+      "scoreline",
+      "substitutions",
+      "tempo control"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-025",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Pressing Traps",
+    "content": "A pressing trap is a deliberate strategy where a team allows the opposition to play into a specific area of the pitch - often a wide channel or towards a weaker passer - before suddenly applying intense pressure to force a turnover in a pre-planned location. Unlike general pressing, a pressing trap is designed around predicting where the opponent is most likely to play next, based on their habitual passing patterns, and positioning players to spring the trap the moment the ball arrives there.",
+    "tags": [
+      "pressing trap",
+      "turnover",
+      "predictive pressing",
+      "ball-oriented defending"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-026",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Verticality in Attack",
+    "content": "Verticality refers to a team's tendency to play forward passes through the central or half-space areas as directly as possible, rather than circulating the ball sideways or backwards. A vertically-minded team prioritises progressing the ball towards the opponent's goal quickly once possession is won, often through line-breaking passes into midfielders or forwards positioned between the opposition's defensive and midfield lines. This contrasts with more patient, possession-circulation-heavy approaches and is often associated with counter-attacking or direct playing styles.",
+    "tags": [
+      "verticality",
+      "forward passing",
+      "line-breaking pass",
+      "direct play"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-027",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Defensive Cover and Balance (Covering Runs)",
+    "content": "Covering runs are defensive movements made by players to fill the space vacated by a teammate who has gone to challenge for the ball or has been beaten by an opponent. For example, if a full-back is beaten by a winger, a covering central defender shifts across to cover the space, while a midfielder may drop in to cover the central defender's original position. This concept, sometimes called 'defensive balance', ensures that no individual defensive action leaves a larger gap in the team's overall shape.",
+    "tags": [
+      "covering run",
+      "defensive balance",
+      "shifting",
+      "team shape"
+    ],
+    "source": "UEFA Coaching Manual"
+  },
+  {
+    "id": "football-strategy-028",
+    "sport": "football",
+    "category": "strategy",
+    "title": "Combination Play (One-Twos and Third-Man Runs)",
+    "content": "Combination play involves quick, short passing sequences between two or more players to bypass defenders, most commonly a 'one-two' (also called a wall pass), where a player passes to a teammate and immediately receives the ball back after running past a defender. A 'third-man run' extends this concept - a player passes to a teammate, who then plays a first-time pass to a third player making a run into space, bypassing a defender who anticipated the ball returning to the first player. These combinations rely on quick decision-making, first-touch quality, and players making intelligent supporting runs.",
+    "tags": [
+      "combination play",
+      "one-two",
+      "wall pass",
+      "third-man run"
+    ],
+    "source": "UEFA Coaching Manual"
   }
 ]

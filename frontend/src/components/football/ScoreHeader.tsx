@@ -1,37 +1,52 @@
-import { Match } from '@/types/football';
-
-interface Props {
-  match: Match;
-}
+"use client";
+import Link from "next/link";
+import { Match, classifyStatus } from "@/types/football";
+import TeamLogo from "./TeamLogo";
 
 function StatusLabel({ match }: { match: Match }) {
-  if (match.status === 'NS') return <span className="text-sm text-gray-500">Not Started</span>;
-  if (match.status === 'HT') return <span className="text-sm font-semibold text-yellow-600">Half Time</span>;
-  if (match.status === 'FT') return <span className="text-sm font-semibold text-gray-500">Full Time</span>;
-  return <span className="text-sm font-semibold text-green-600 animate-pulse">{match.elapsed}' Live</span>;
+  const state = classifyStatus(match.status);
+  if (state === "scheduled") {
+    let label = match.status ?? "Scheduled";
+    if (match.kickoff) {
+      const d = new Date(match.kickoff);
+      label = d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+    }
+    return <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>{label}</span>;
+  }
+  if (state === "finished") return <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>Full Time</span>;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />
+      <span style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{match.status}</span>
+    </div>
+  );
 }
 
-export default function ScoreHeader({ match }: Props) {
+export default function ScoreHeader({ match, league }: { match: Match; league: string }) {
+  const homeWin = match.homeScore != null && match.awayScore != null && match.homeScore > match.awayScore;
+  const awayWin = match.homeScore != null && match.awayScore != null && match.awayScore > match.homeScore;
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 text-center">
-      <div className="text-xs text-gray-400 mb-4">{match.competition}</div>
-      <div className="flex items-center justify-between gap-6">
-        <div className="flex-1">
-          <div className="text-4xl mb-2">⚽</div>
-          <div className="font-bold text-lg text-gray-900">{match.homeTeam.name}</div>
-          <div className="text-xs text-gray-400">{match.homeTeam.shortName}</div>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="text-5xl font-bold text-gray-900 mb-2">
-            {match.homeScore ?? '-'} : {match.awayScore ?? '-'}
+    <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, padding: "clamp(20px,4vw,32px) clamp(16px,4vw,28px)", textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)", marginBottom: 20 }}>{match.competition}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "clamp(8px,3vw,16px)" }}>
+        <Link href={`/football/team/${match.homeTeam.id}?league=${league}`} style={{ flex: 1, textDecoration: "none", minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <TeamLogo logo={match.homeTeam.logo} shortName={match.homeTeam.shortName} size={56} highlight={homeWin} />
+          <div style={{ fontSize: "clamp(13px,2.5vw,15px)", fontWeight: homeWin ? 700 : 600, color: homeWin ? "var(--obsidian)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{match.homeTeam.name}</div>
+        </Link>
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, minWidth: "clamp(90px,20vw,130px)", flexShrink: 0 }}>
+          <div className="score-num" style={{ fontSize: "clamp(38px,8vw,56px)", lineHeight: 1, display: "flex", alignItems: "center", gap: "clamp(6px,2vw,12px)" }}>
+            <span style={{ color: homeWin ? "var(--obsidian)" : "var(--text-muted)" }}>{match.homeScore ?? "–"}</span>
+            <span style={{ color: "var(--border)", fontSize: "clamp(28px,5vw,38px)" }}>:</span>
+            <span style={{ color: awayWin ? "var(--obsidian)" : "var(--text-muted)" }}>{match.awayScore ?? "–"}</span>
           </div>
           <StatusLabel match={match} />
         </div>
-        <div className="flex-1">
-          <div className="text-4xl mb-2">⚽</div>
-          <div className="font-bold text-lg text-gray-900">{match.awayTeam.name}</div>
-          <div className="text-xs text-gray-400">{match.awayTeam.shortName}</div>
-        </div>
+
+        <Link href={`/football/team/${match.awayTeam.id}?league=${league}`} style={{ flex: 1, textDecoration: "none", minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <TeamLogo logo={match.awayTeam.logo} shortName={match.awayTeam.shortName} size={56} highlight={awayWin} />
+          <div style={{ fontSize: "clamp(13px,2.5vw,15px)", fontWeight: awayWin ? 700 : 600, color: awayWin ? "var(--obsidian)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{match.awayTeam.name}</div>
+        </Link>
       </div>
     </div>
   );

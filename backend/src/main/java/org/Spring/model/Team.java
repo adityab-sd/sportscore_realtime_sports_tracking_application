@@ -1,4 +1,10 @@
 package org.Spring.model;
 
-public record Team(int id, String name, String shortName, String logo) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record Team(
+        @JsonProperty("id") int id,
+        @JsonProperty("name") String name,
+        @JsonProperty("shortName") String shortName,
+        @JsonProperty("logo") String logo) {
 }

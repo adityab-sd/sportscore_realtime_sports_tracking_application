@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "java",
+    "EVENTHUB_CONNECTION_STRING": "Endpoint=sb://sportscore-eventhub.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=3W8p+1GwzI8QNlBvuA6jsJVkS7WcR6rH1+AEhEfWU8A=",
+    "EVENTHUB_NAME": "sportscore-eventhub-2",
+    "SIGNALR_CONNECTION_STRING": "Endpoint=https://sportscore-signalr.service.signalr.net;AccessKey=4njucz9ESKqKVFjtBYjkab4vc8rXCvyUuxlIAxZcU2EeftSyaJRrJQQJ99CFACi5YpzXJ3w3AAAAASRS0nUw;Version=1.0;",
+    "SIGNALR_REST_ENDPOINT": "https://sportscore-signalr.service.signalr.net",
+    "SIGNALR_ACCESS_KEY": "4njucz9ESKqKVFjtBYjkab4vc8rXCvyUuxlIAxZcU2EeftSyaJRrJQQJ99CFACi5YpzXJ3w3AAAAASRS0nUw"
+  }
+}
