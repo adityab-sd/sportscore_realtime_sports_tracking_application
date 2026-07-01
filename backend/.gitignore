@@ -1,5 +1,5 @@
 # Build output
-/target/
+**/target/
 
 # IDE files
 .vscode/
@@ -11,4 +11,6 @@
 # Compiled Java
 *.class
 *.log
+
+# Dependencies
 node_modules/
