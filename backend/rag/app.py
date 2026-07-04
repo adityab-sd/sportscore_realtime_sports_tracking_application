@@ -1,5 +1,5 @@
 """
-app.py — Flask API for the SportScore Knowledge Assistant
+app.py - Flask API for the SportScore Knowledge Assistant
 
 Exposes a single endpoint:
   POST /ask   { "question": "..." }  ->  JSON response

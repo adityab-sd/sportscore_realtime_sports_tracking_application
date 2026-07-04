@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Unified, multi-sport match model — mirrors org.Spring.model.Match in the
+ * Unified, multi-sport match model - mirrors org.Spring.model.Match in the
  * backend. The Event Hub payload carries football, basketball and cricket
  * matches in this single shape; the SignalR broadcast forwards it as-is.
  */

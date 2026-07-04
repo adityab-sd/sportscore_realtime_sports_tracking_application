@@ -1,9 +1,9 @@
 """
-search.py — RAG retrieval logic for SportScore Knowledge Assistant
+search.py - RAG retrieval logic for SportScore Knowledge Assistant
 
 This module implements the two-round search strategy:
-  Round 1 — exact search using the user's full question
-  Round 2 — broader search using extracted key words (fallback)
+  Round 1 - exact search using the user's full question
+  Round 2 - broader search using extracted key words (fallback)
 
 If both rounds return nothing useful, a "not found" flag is returned
 so the caller can decide what to do (e.g. show a fallback message).
@@ -22,7 +22,7 @@ SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 INDEX_NAME      = "football-index"
 
 # Common filler words to strip out when building the Round 2 broad query.
-# This is a small, deliberately simple list — not a full NLP stopword list.
+# This is a small, deliberately simple list - not a full NLP stopword list.
 STOPWORDS = {
     "what", "is", "the", "a", "an", "how", "does", "do", "in", "of",
     "to", "for", "and", "are", "was", "were", "explain", "tell", "me",

@@ -29,17 +29,13 @@ interface PageProps {
 export default async function NewsPage({ searchParams }: PageProps) {
   const { league } = await searchParams;
 
-  // Determine mode: specific league | transfer filter | all
   const isTransfer = league === "transfer";
   const isLeague   = !isTransfer && league && LEAGUES.some(l => l.slug === league);
   const selected   = isLeague ? league : null;
 
-  // Fetch - transfer needs all leagues merged, then filter client-side
   const allNews: ESPNNews[] = selected
     ? await getNews(selected, 24)
     : await getAllFootballNews();
-
-  // Apply transfer filter if needed
   const news: ESPNNews[] = isTransfer
     ? allNews.filter(a => a.category === "Transfer")
     : allNews;

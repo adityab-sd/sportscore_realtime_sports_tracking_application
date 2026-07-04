@@ -80,7 +80,7 @@ public class CoreBasketballAdapter {
 
         return new Match(
                 id, "basketball", status,
-                null,          // elapsed — football only
+                null,          // elapsed - football only
                 clock,
                 periodOut,
                 statusDetail,
@@ -88,7 +88,7 @@ public class CoreBasketballAdapter {
                 competition,
                 home, away,
                 homeScore, awayScore,
-                null, null,    // score display strings — used by cricket
+                null, null,    // score display strings - used by cricket
                 List.<MatchEvent>of());
     }
 

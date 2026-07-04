@@ -22,7 +22,7 @@ public class EventHubProducer {
     public void send(String json) {
         // Guard: skip when running main() outside Spring (no connection string)
         if (connectionString == null || connectionString.isBlank()) {
-            System.out.println("[EventHubProducer] No connection string — skipping send. Payload preview: "
+            System.out.println("[EventHubProducer] No connection string - skipping send. Payload preview: "
                     + json.substring(0, Math.min(json.length(), 120)) + "...");
             return;
         }

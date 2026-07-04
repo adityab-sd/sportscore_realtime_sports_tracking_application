@@ -1,14 +1,14 @@
 "use client";
 import { ESPNLeader } from "@/lib/api/espn";
 
-export default function TopScorers({ leaders }: { leaders: ESPNLeader[] }) {
+export default function TopScorers({ leaders, leagueLabel }: { leaders: ESPNLeader[]; leagueLabel?: string }) {
   if (leaders.length === 0) return null;
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Top Scorers</h2>
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Premier League</span>
+        {leagueLabel && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{leagueLabel}</span>}
       </div>
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
         {leaders.slice(0, 10).map((l, i) => (

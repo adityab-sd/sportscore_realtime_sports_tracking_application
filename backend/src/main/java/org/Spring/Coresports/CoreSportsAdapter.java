@@ -21,15 +21,28 @@ public class CoreSportsAdapter {
     private final ObjectMapper mapper = new ObjectMapper();
 
     public List<Match> toMatches(String json) throws Exception {
+        return toMatches(json, null);
+    }
+
+    /**
+     * @param friendlyName Known league name from the LEAGUES map (e.g. "Premier League").
+     *                     Used as a guaranteed fallback when ESPN's JSON omits league.name,
+     *                     which fixes match cards showing "Football" or "Unknown" via SignalR.
+     */
+    public List<Match> toMatches(String json, String friendlyName) throws Exception {
         JsonNode root = mapper.readTree(json);
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
-            matches.add(toMatch(event));
+            matches.add(toMatch(event, friendlyName));
         }
         return matches;
     }
 
     private Match toMatch(JsonNode event) {
+        return toMatch(event, null);
+    }
+
+    private Match toMatch(JsonNode event, String friendlyName) {
         int id = event.path("id").asInt();
         JsonNode comp = event.path("competitions").path(0);
 
@@ -48,7 +61,9 @@ public class CoreSportsAdapter {
         JsonNode leagueNode = event.path("competitions").path(0).path("league");
         String competition = textOrNull(leagueNode.path("name"));
         if (competition == null) competition = textOrNull(event.path("league").path("name"));
-        if (competition == null) competition = "Unknown";
+        // FIX (Issue 2): use the known friendly name from the LEAGUES map as a reliable
+        // fallback instead of "Unknown", so match cards via SignalR show the real league name.
+        if (competition == null) competition = friendlyName != null ? friendlyName : "Unknown";
 
         Team home = null, away = null;
         Integer homeScore = null, awayScore = null;
