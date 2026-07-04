@@ -45,10 +45,10 @@ public class BasketballService {
     public BasketballDto.Fixtures fixtures(String league) throws Exception {
         DateTimeFormatter fmt  = DateTimeFormatter.ofPattern("yyyyMMdd");
         String from = LocalDate.now().minusDays(21).format(fmt);
-        // ^^^ CHANGED: was minusDays(10) — extended to 21 to match FootballService
+        // ^^^ CHANGED: was minusDays(10) - extended to 21 to match FootballService
         //     so fixtures show a full 3-week window of results
         String to   = LocalDate.now().plusDays(21).format(fmt);
-        // ^^^ CHANGED: was plusDays(10) — extended to 21 to match FootballService
+        // ^^^ CHANGED: was plusDays(10) - extended to 21 to match FootballService
         JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + from + "-" + to + "&limit=100");
 
         List<BasketballDto.GameDto> results  = new ArrayList<>();

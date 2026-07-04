@@ -26,7 +26,6 @@ export default async function PlayerPage({ params, searchParams }: Props) {
 
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, padding: "36px 24px", textAlign: "center" }}>
         {player.headshot ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={player.headshot} alt={player.name} width={96} height={96} style={{ width: 96, height: 96, borderRadius: "50%", objectFit: "cover", background: "var(--cloud)", margin: "0 auto 16px", display: "block" }} />
         ) : (
           <div style={{ width: 96, height: 96, borderRadius: "50%", background: "var(--navy-light)", color: "var(--navy)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>

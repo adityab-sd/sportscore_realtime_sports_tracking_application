@@ -1,7 +1,7 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=sportscoreblob2;AccountKey=00f7YcplvFVmJ/E4UCqZdprQpe9w3S0CHYD41hcDg4dmWzDLejcJJvOu0P7za0o8n/RcC7Q6stVm+AStCWAkZA==;EndpointSuffix=core.windows.net",
     "FUNCTIONS_WORKER_RUNTIME": "java",
     "EVENTHUB_CONNECTION_STRING": "Endpoint=sb://sportscore-eventhub.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=3W8p+1GwzI8QNlBvuA6jsJVkS7WcR6rH1+AEhEfWU8A=",
     "EVENTHUB_NAME": "sportscore-eventhub-2",

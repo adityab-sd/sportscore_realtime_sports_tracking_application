@@ -42,7 +42,7 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
 
   useEffect(() => {
     if (paused) return;
-    timerRef.current = setTimeout(next, 5000);
+    timerRef.current = setTimeout(next, 4000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [current, paused, next]);
 
@@ -95,7 +95,7 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
         );
       })}
 
-      {/* Arrows — stopPropagation so clicking doesn't trigger the Link */}
+      {/* Arrows - stopPropagation so clicking doesn't trigger the Link */}
       <button onClick={e => { e.preventDefault(); e.stopPropagation(); prev_(); }} aria-label="Previous story"
         style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}

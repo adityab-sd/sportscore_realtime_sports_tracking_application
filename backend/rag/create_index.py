@@ -48,7 +48,7 @@ print("Uploading corpus...")
 with open(CORPUS_FILE, "r", encoding="utf-8") as f:
     documents = json.load(f)
 
-# Clean documents — remove fields not in index schema
+# Clean documents - remove fields not in index schema
 # and make sure id has no special characters
 clean_docs = []
 for doc in documents:
@@ -74,7 +74,7 @@ batch_size = 50
 for i in range(0, len(clean_docs), batch_size):
     batch = clean_docs[i:i+batch_size]
     result = search_client.upload_documents(documents=batch)
-    print(f" Uploaded batch {i//batch_size + 1} — {len(batch)} documents")
+    print(f" Uploaded batch {i//batch_size + 1} - {len(batch)} documents")
 
 print(f"\n Done! {len(clean_docs)} documents uploaded to '{INDEX_NAME}'")
 

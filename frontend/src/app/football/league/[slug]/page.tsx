@@ -1,27 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getStandings, getNews, getFixtures } from "@/lib/api/espn";
+import { getStandings, getNews, getFixtures, getLeaders } from "@/lib/api/espn";
 import { LEAGUES, leagueName } from "@/types/football";
 import NewsCard from "@/components/news/NewsCard";
 import StandingsTable from "@/components/football/StandingsTable";
 import LeagueMatchFeed from "@/components/football/LeagueMatchFeed";
 import FixtureCard from "@/components/football/FixtureCard";
+import TopScorers from "@/components/football/TopScorers";
 
 export const dynamic = "force-dynamic";
 interface Props { params: Promise<{ slug: string }> }
 
 export default async function LeaguePage({ params }: Props) {
   const { slug } = await params;
-
-  // Validate slug is one we know
   const league = LEAGUES.find(l => l.slug === slug);
   if (!league) return notFound();
 
-  // Fetch standings + news in parallel
-  const [rows, news, fixtures] = await Promise.all([
+  const [rows, news, fixtures, leaders] = await Promise.all([
     getStandings(slug),
     getNews(slug, 6),
     getFixtures(slug),
+    getLeaders(slug),
   ]);
 
   return (
@@ -64,28 +63,52 @@ export default async function LeaguePage({ params }: Props) {
         </section>
       )}
 
+      {/* Top Scorers */}
+      <section style={{ marginBottom: 40 }}>
+        {leaders.length > 0 ? (
+          <TopScorers leaders={leaders} leagueLabel={league.name} />
+        ) : (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Top Scorers</h2>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{league.name}</span>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+              No scorer data yet — this usually means the season hasn&apos;t started or no goals have been recorded.
+            </p>
+          </div>
+        )}
+      </section>
+
       {/* Results + Upcoming */}
       {(fixtures.results.length > 0 || fixtures.upcoming.length > 0) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginBottom: 40 }} className="page-split">
-          <section>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Results</h2>
-              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.results.length}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
-            </div>
-          </section>
-          <section>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Upcoming</h2>
-              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.upcoming.length}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {fixtures.upcoming.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
-            </div>
-          </section>
-        </div>
+        <>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: -8 }}>
+            <Link href={`/football/fixtures?league=${slug}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>
+              View full fixtures →
+            </Link>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginBottom: 40, marginTop: 20 }} className="page-split">
+            <section>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
+                <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Results</h2>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.results.length}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
+              </div>
+            </section>
+            <section>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
+                <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Upcoming</h2>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.upcoming.length}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {fixtures.upcoming.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
+              </div>
+            </section>
+          </div>
+        </>
       )}
 
       {/* Latest News */}

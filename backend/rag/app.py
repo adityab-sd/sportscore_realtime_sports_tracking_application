@@ -1,4 +1,17 @@
 """
+app.py - Flask API for the SportScore Knowledge Assistant
+
+Exposes a single endpoint:
+  POST /ask   { "question": "..." }  ->  JSON response
+
+Current behaviour (until Azure OpenAI quota is approved):
+  - Runs the two-round search from search.py
+  - If results are found, returns the retrieved corpus entries directly
+    as a placeholder "answer" (raw retrieval, not yet GPT-generated)
+  - If nothing is found, returns a fallback message
+
+Once Azure OpenAI is unblocked, the TODO section below gets replaced
+with an actual call to GPT-4o using the retrieved entries as context.
 app.py — Flask API for the SportScore Knowledge Assistant
 """
 

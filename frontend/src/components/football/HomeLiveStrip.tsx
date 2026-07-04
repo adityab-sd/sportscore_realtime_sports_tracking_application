@@ -6,7 +6,9 @@ import MatchCard from "./MatchCard";
 import LiveStatus from "@/components/ui/LiveStatus";
 
 export default function HomeLiveStrip() {
-  const { matches, state, lastUpdate } = useSignalR();
+  const { matches: allMatches, state, lastUpdate } = useSignalR();
+  // Filter to football only - backend publishes basketball + cricket on the same hub.
+  const matches = allMatches.filter(m => !m.sport || m.sport === "football");
   const live = matches.filter(m => classifyStatus(m.status) === "live");
   const upcoming = matches.filter(m => classifyStatus(m.status) === "scheduled").slice(0, 4);
   const strip = [...live, ...upcoming].slice(0, 6);

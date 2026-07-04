@@ -31,7 +31,7 @@ public class CoreSportsFetcher {
         LEAGUES.put("fifa.friendly",     "International Friendly");
         LEAGUES.put("uefa.champions",    "Champions League");
         LEAGUES.put("uefa.europa",       "Europa League");
-        LEAGUES.put("uefa.europaconf",   "Conference League");
+        LEAGUES.put("uefa.europa.conf",   "Conference League");
         LEAGUES.put("eng.1",             "Premier League");
         LEAGUES.put("eng.2",             "Championship");
         LEAGUES.put("esp.1",             "La Liga");
@@ -69,17 +69,21 @@ public class CoreSportsFetcher {
 
     /** Parsed matches for one competition. */
     public List<Match> fetchMatches(String league) throws Exception {
-        return adapter.toMatches(fetchScoreboardRaw(league));
+        // Pass the known friendly name so the adapter can use it as a reliable
+        // fallback when ESPN's JSON doesn't include a league.name node.
+        // This fixes the "Football" placeholder showing on match cards via SignalR.
+        String friendlyName = LEAGUES.getOrDefault(league, league);
+        return adapter.toMatches(fetchScoreboardRaw(league), friendlyName);
     }
 
     /** Parsed matches across ALL configured competitions, combined. */
     public List<Match> fetchAllMatches() throws Exception {
         List<Match> all = new ArrayList<>();
-        for (String slug : LEAGUES.keySet()) {
+        for (Map.Entry<String, String> entry : LEAGUES.entrySet()) {
             try {
-                all.addAll(fetchMatches(slug));
+                all.addAll(adapter.toMatches(fetchScoreboardRaw(entry.getKey()), entry.getValue()));
             } catch (Exception e) {
-                System.out.println("  (skipped " + slug + ": " + e.getMessage() + ")");
+                System.out.println("  (skipped " + entry.getKey() + ": " + e.getMessage() + ")");
             }
         }
         return all;

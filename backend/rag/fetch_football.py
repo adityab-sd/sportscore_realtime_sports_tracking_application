@@ -116,7 +116,7 @@ for item in assist_players:
         "id": f"football-player-{player_id}",
         "sport": "football",
         "category": "player",
-        "title": f"{name} — Player Profile",
+        "title": f"{name} - Player Profile",
         "content": content,
         "tags": [name, nationality, team_name, position, league_name],
         "source": "api-football.com",

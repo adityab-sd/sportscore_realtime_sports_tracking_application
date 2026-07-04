@@ -1,9 +1,12 @@
 """
-search.py — RAG retrieval logic for SportScore Knowledge Assistant
+search.py - RAG retrieval logic for SportScore Knowledge Assistant
 
 Implements the two-round search strategy:
   Round 1 — exact search using the user's full question
   Round 2 — broader search using extracted key words (fallback)
+This module implements the two-round search strategy:
+  Round 1 - exact search using the user's full question
+  Round 2 - broader search using extracted key words (fallback)
 
 If both rounds return nothing, a "not found" flag is returned.
 """

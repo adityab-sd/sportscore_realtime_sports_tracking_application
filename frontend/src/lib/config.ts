@@ -1,13 +1,3 @@
-/**
- * Central configuration for all data sources.
- *
- * LIVE MATCHES     → Azure SignalR push (real-time, from the team's backend)
- * REFERENCE DATA   → ESPN public API, called server-side from Next.js routes
- *                    (no key required, no CORS issues, confirmed by Aditya)
- *
- * The SignalR access key is server-only (never NEXT_PUBLIC).
- * ESPN is called only from server components / route handlers - never from the browser.
- */
 
 // ── SignalR ──
 export const SIGNALR_ENDPOINT =

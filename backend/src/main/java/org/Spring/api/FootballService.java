@@ -75,10 +75,15 @@ public class FootballService {
                 txt(e.path("season").path("type").path("name")),
                 txt(comp.path("tournament").path("name")), "");
 
+        // Knockout round label (Round of 16, Quarterfinal, Semifinal, Final, Group Stage...).
+        // ESPN puts this in competitions[0].notes[0].headline for tournament fixtures;
+        // league fixtures (Premier League etc.) simply won't have a notes array.
+        String round = txt(comp.path("notes").path(0).path("headline"));
+
         return new Dto.MatchDto(
                 str(e.path("id")), status, state, txt(e.path("date")), competition,
                 teamRef(home.path("team")), teamRef(away.path("team")),
-                num(home.path("score")), num(away.path("score")));
+                num(home.path("score")), num(away.path("score")), round);
     }
 
     private JsonNode competitor(JsonNode comp, String side, int fallbackIdx) {
@@ -101,14 +106,34 @@ public class FootballService {
     // ---------------- standings ----------------
 
     public List<Dto.StandingRow> standings(String league) throws Exception {
-        JsonNode raw     = get(STANDINGS + "/" + league + "/standings");
-        JsonNode entries = raw.path("children").path(0).path("standings").path("entries");
-        if (entries.isMissingNode() || !entries.isArray() || entries.isEmpty())
-            entries = raw.path("standings").path("entries");
-        if (entries.isMissingNode() || !entries.isArray() || entries.isEmpty())
-            entries = raw.path("entries");
-
+        JsonNode raw = get(STANDINGS + "/" + league + "/standings");
         List<Dto.StandingRow> out = new ArrayList<>();
+
+        JsonNode children = raw.path("children");
+        if (children.isArray() && children.size() > 0) {
+            // Multi-group competitions (World Cup, UCL group stage) have many children.
+            // Single-table leagues (Premier League, La Liga) have exactly one child.
+            for (JsonNode child : children) {
+                String groupName = first(
+                        txt(child.path("name")),
+                        txt(child.path("displayName")),
+                        txt(child.path("abbreviation")),
+                        null);
+                // For single-child responses we want group=null so the frontend renders one
+                // continuous table (no group header) — same behavior as before.
+                String groupForRow = children.size() > 1 ? groupName : null;
+                appendEntries(child.path("standings").path("entries"), groupForRow, out);
+            }
+        }
+        // Fallbacks for responses that omit `children`
+        if (out.isEmpty()) appendEntries(raw.path("standings").path("entries"), null, out);
+        if (out.isEmpty()) appendEntries(raw.path("entries"), null, out);
+
+        return out;
+    }
+
+    private void appendEntries(JsonNode entries, String group, List<Dto.StandingRow> out) {
+        if (entries.isMissingNode() || !entries.isArray()) return;
         int i = 0;
         for (JsonNode e : entries) {
             i++;
@@ -131,9 +156,8 @@ public class FootballService {
                     stat(stats, "ties", "draws"),
                     stat(stats, "losses"),
                     gf, ga, gd != 0 ? gd : gf - ga,
-                    stat(stats, "points"), note));
+                    stat(stats, "points"), note, group));
         }
-        return out;
     }
 
     private int stat(JsonNode stats, String... names) {
@@ -253,91 +277,467 @@ public class FootballService {
     // ---------------- leaders ----------------
 
     public List<Dto.Leader> leaders(String league) throws Exception {
-        JsonNode raw  = get(SITE + "/" + league + "/leaders");
-        JsonNode cats = raw.path("categories");
-        JsonNode cat  = null;
-        for (JsonNode c : cats) {
-            if (c.path("name").asText("").matches("(?i).*(goal|scor).*")) { cat = c; break; }
+        List<Dto.Leader> siteResult = leadersFromSiteApi(league);
+        if (!siteResult.isEmpty()) return siteResult;
+        // Site API leaders is unreliable for soccer (per ESPN's public API docs) — fall
+        // back to the Core API, which needs a season segment to return real data.
+        List<Dto.Leader> coreResult = leadersFromCoreApi(league);
+        if (!coreResult.isEmpty()) return coreResult;
+        // Both official leaders endpoints can come back genuinely empty early in a season
+        // (zero matches played = zero goals to rank). As a last resort, compute leaders
+        // ourselves from the goal events of recently finished matches in this league.
+        return leadersFromRecentMatches(league);
+    }
+
+    /** Cache of resolved current-season years per league, since this rarely changes. */
+    private final java.util.Map<String, Integer> seasonYearCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Resolve the current season year for a league from the scoreboard (always present). */
+    private int currentSeasonYear(String league) {
+        return seasonYearCache.computeIfAbsent(league, lg -> {
+            try {
+                JsonNode raw = get(SITE + "/" + lg + "/scoreboard");
+                int year = raw.path("season").path("year").asInt(0);
+                if (year > 0) return year;
+            } catch (Exception ignored) { }
+            return java.time.LocalDate.now().getYear();
+        });
+    }
+
+    /**
+     * Last-resort top scorers: tallies goals from each finished match's own event data
+     * (the same data already shown on the match detail page). Works from matchday 1 —
+     * unlike the official leaders endpoints, which can be empty until ESPN's stats
+     * pipeline catches up. Caps the match scan to keep this fast.
+     */
+    private List<Dto.Leader> leadersFromRecentMatches(String league) {
+        java.util.Map<String, int[]> goalsByPlayer = new java.util.LinkedHashMap<>(); // name -> [count]
+        java.util.Map<String, String> teamByPlayer  = new java.util.HashMap<>();
+        try {
+            Dto.Fixtures fx = fixtures(league);
+            List<Dto.MatchDto> finished = fx.results();
+            int scanned = 0;
+            for (Dto.MatchDto m : finished) {
+                if (scanned >= 15) break; // recent matches only, keep this cheap
+                scanned++;
+                try {
+                    Dto.MatchDetail detail = matchDetail(league, m.id());
+                    if (detail == null) continue;
+                    for (Dto.MatchEventDto ev : detail.events()) {
+                        if (!"goal".equals(ev.type()) || ev.player() == null) continue;
+                        String teamName = ev.teamId().equals(detail.homeTeam().id())
+                                ? detail.homeTeam().shortName() : detail.awayTeam().shortName();
+                        goalsByPlayer.computeIfAbsent(ev.player(), k -> new int[]{0})[0]++;
+                        teamByPlayer.putIfAbsent(ev.player(), teamName);
+                    }
+                } catch (Exception inner) {
+                    // skip matches that fail to parse, don't let one bad match kill the whole list
+                }
+            }
+        } catch (Exception e) {
+            return List.of();
         }
-        if (cat == null && cats.isArray() && cats.size() > 0) cat = cats.get(0);
-        if (cat == null) return List.of();
+
+        List<java.util.Map.Entry<String, int[]>> sorted = new ArrayList<>(goalsByPlayer.entrySet());
+        sorted.sort((a, b) -> b.getValue()[0] - a.getValue()[0]);
 
         List<Dto.Leader> out = new ArrayList<>();
-        String catName = first(txt(cat.path("displayName")), txt(cat.path("name")), "Leaders");
-        int i = 0;
-        for (JsonNode l : cat.path("leaders")) {
+        int rank = 1;
+        for (var entry : sorted) {
+            if (rank > 10) break;
+            int goals = entry.getValue()[0];
+            if (goals <= 0) continue;
             out.add(new Dto.Leader(
-                    i + 1, catName,
-                    first(txt(l.path("athlete").path("displayName")), "-"),
-                    first(txt(l.path("team").path("abbreviation")), txt(l.path("team").path("displayName")), ""),
-                    txt(l.path("team").path("logos").path(0).path("href")),
-                    txt(l.path("athlete").path("headshot").path("href")),
-                    l.path("value").asDouble(0),
-                    first(txt(l.path("displayValue")), txt(l.path("value")), "")));
-            i++;
+                    rank, "Goals", entry.getKey(), teamByPlayer.getOrDefault(entry.getKey(), ""),
+                    null, null, goals, String.valueOf(goals)));
+            rank++;
         }
         return out;
     }
 
+    private List<Dto.Leader> leadersFromSiteApi(String league) {
+        try {
+            JsonNode raw  = get(SITE + "/" + league + "/leaders");
+            JsonNode cats = raw.path("categories");
+            JsonNode cat  = null;
+            for (JsonNode c : cats) {
+                if (c.path("name").asText("").matches("(?i).*(goal|scor).*")) { cat = c; break; }
+            }
+            if (cat == null && cats.isArray() && cats.size() > 0) cat = cats.get(0);
+            if (cat == null) return List.of();
+
+            List<Dto.Leader> out = new ArrayList<>();
+            String catName = first(txt(cat.path("displayName")), txt(cat.path("name")), "Leaders");
+            int i = 0;
+            for (JsonNode l : cat.path("leaders")) {
+                out.add(new Dto.Leader(
+                        i + 1, catName,
+                        first(txt(l.path("athlete").path("displayName")), "-"),
+                        first(txt(l.path("team").path("abbreviation")), txt(l.path("team").path("displayName")), ""),
+                        txt(l.path("team").path("logos").path(0).path("href")),
+                        txt(l.path("athlete").path("headshot").path("href")),
+                        l.path("value").asDouble(0),
+                        first(txt(l.path("displayValue")), txt(l.path("value")), "")));
+                i++;
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Core API leaders endpoint requires a season segment — the no-season form
+     * (`/leagues/{league}/leaders`) returns a 400 "getLeadersAllTime not supported for
+     * soccer" error. We resolve the current season year dynamically (it changes every
+     * July/August) and call `/leagues/{league}/seasons/{year}/leaders` instead.
+     */
+    private List<Dto.Leader> leadersFromCoreApi(String league) {
+        List<Dto.Leader> out = new ArrayList<>();
+        try {
+            int season = currentSeasonYear(league);
+            JsonNode raw  = get(CORE + "/leagues/" + league + "/seasons/" + season + "/leaders");
+            JsonNode cats = raw.path("categories");
+            JsonNode cat  = null;
+            for (JsonNode c : cats) {
+                if (c.path("name").asText("").matches("(?i).*(goal|scor).*")) { cat = c; break; }
+            }
+            if (cat == null && cats.isArray() && cats.size() > 0) cat = cats.get(0);
+            if (cat == null) return out;
+
+            String catName = first(txt(cat.path("displayName")), txt(cat.path("name")), "Goals");
+            java.util.Map<String, JsonNode> athleteCache = new java.util.HashMap<>();
+            java.util.Map<String, JsonNode> teamCache    = new java.util.HashMap<>();
+
+            int i = 0;
+            for (JsonNode l : cat.path("leaders")) {
+                if (i >= 10) break; // top 10 is plenty for a sidebar widget
+                JsonNode athleteRef = l.path("athlete");
+                JsonNode athlete = resolveRef(athleteRef, athleteCache);
+                if (athlete == null) continue;
+
+                JsonNode teamRefNode = l.path("team");
+                JsonNode team = resolveRef(teamRefNode, teamCache);
+
+                out.add(new Dto.Leader(
+                        i + 1, catName,
+                        first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), "-"),
+                        team != null ? first(txt(team.path("abbreviation")), txt(team.path("displayName")), "") : "",
+                        team != null ? txt(team.path("logos").path(0).path("href")) : null,
+                        txt(athlete.path("headshot").path("href")),
+                        l.path("value").asDouble(0),
+                        first(txt(l.path("displayValue")), String.valueOf(l.path("value").asInt(0)))));
+                i++;
+            }
+        } catch (Exception e) {
+            // Common and expected early in a season: ESPN simply has no leader data yet
+            // (zero matches played means zero goals to rank). Not worth logging as an error.
+        }
+        return out;
+    }
+
+    /** Resolve a Core API hypermedia object: either inline data or a {"$ref": url} pointer. */
+    private JsonNode resolveRef(JsonNode node, java.util.Map<String, JsonNode> cache) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node.has("displayName") || node.has("fullName")) return node; // already inline
+        String ref = txt(node.path("$ref"));
+        if (ref == null) return null;
+        if (cache.containsKey(ref)) return cache.get(ref);
+        try {
+            JsonNode resolved = get(ref.replaceFirst("^http://", "https://"));
+            cache.put(ref, resolved);
+            return resolved;
+        } catch (Exception e) {
+            cache.put(ref, null);
+            return null;
+        }
+    }
+
     // ---------------- match detail ----------------
 
+    /**
+     * Slugs to try when the requested league fails to return a valid match.
+     * ESPN event IDs are globally unique, so the same event=N works under any
+     * league slug — but ESPN does reject requests where the slug is completely
+     * wrong (returns empty header). We try the most common slugs as fallbacks.
+     */
+    private static final java.util.List<String> SLUG_FALLBACKS = java.util.List.of(
+            "uefa.europa", "uefa.champions", "uefa.europa.conf",
+            "fifa.world", "fifa.friendly",
+            "eng.1", "eng.2", "esp.1", "ita.1", "ger.1", "fra.1",
+            "usa.1", "ned.1", "por.1", "mex.1", "arg.1", "jpn.1", "aus.1", "bra.1"
+    );
+
     public Dto.MatchDetail matchDetail(String league, String eventId) throws Exception {
+        // Try the requested league first, then fall back to other slugs.
+        // This handles the case where the frontend URL has the wrong league slug
+        // (e.g. a Europa League match linked with league=eng.1 because the
+        // slugFromCompetition reverse-map was incomplete).
+        Dto.MatchDetail result = tryMatchDetail(league, eventId);
+        if (result != null) return result;
+
+        for (String slug : SLUG_FALLBACKS) {
+            if (slug.equals(league)) continue; // already tried
+            result = tryMatchDetail(slug, eventId);
+            if (result != null) return result;
+        }
+        return null;
+    }
+
+    private static final String CORE = "https://sports.core.api.espn.com/v2/sports/soccer";
+
+    /** Regex: capture player name appearing as "Player Name (Team Name)" in a play's text. */
+    private static final Pattern PLAYER_FROM_TEXT = Pattern.compile(
+            "([A-ZÀ-Þ][\\p{L}'’\\.\\-]+(?:\\s+[A-ZÀ-Þ][\\p{L}'’\\.\\-]+){0,4})\\s*\\(",
+            Pattern.UNICODE_CHARACTER_CLASS);
+
+    private Dto.MatchDetail tryMatchDetail(String league, String eventId) throws Exception {
         JsonNode raw    = get(SITE + "/" + league + "/summary?event=" + eventId);
         JsonNode header = raw.path("header");
-        JsonNode comp   = header.path("competitions").path(0);
-        JsonNode st     = comp.path("status").path("type");
-        JsonNode home   = competitor(comp, "home", 0);
-        JsonNode away   = competitor(comp, "away", 1);
+
+        JsonNode headerComp = header.path("competitions").path(0);
+        JsonNode st         = headerComp.path("status").path("type");
+        JsonNode home       = competitor(headerComp, "home", 0);
+        JsonNode away       = competitor(headerComp, "away", 1);
         if (home == null || away == null) return null;
 
+        // Fetch player names from Core API plays endpoint (the site summary's details[]
+        // never includes athletesInvolved for soccer).
+        java.util.Map<String, String> playerByKey = fetchPlayersFromCoreApi(league, eventId);
+
+        JsonNode topComp      = raw.path("competitions").path(0);
+        JsonNode detailSource = !topComp.isMissingNode() ? topComp : headerComp;
+
         List<Dto.MatchEventDto> events = new ArrayList<>();
-        for (JsonNode d : comp.path("details")) {
-            Dto.MatchEventDto ev = parseSummaryEvent(d);
+        for (JsonNode d : detailSource.path("details")) {
+            Dto.MatchEventDto ev = parseSummaryEvent(d, playerByKey);
             if (ev != null && noDup(events, ev)) events.add(ev);
         }
         for (String key : new String[]{"keyEvents", "plays", "scoringPlays"}) {
             for (JsonNode d : raw.path(key)) {
-                Dto.MatchEventDto ev = parseSummaryEvent(d);
+                Dto.MatchEventDto ev = parseSummaryEvent(d, playerByKey);
                 if (ev != null && noDup(events, ev)) events.add(ev);
             }
         }
 
-        // Sort events by minute ascending
         events.sort(java.util.Comparator.comparingInt(Dto.MatchEventDto::minute));
-        // ^^^ ADDED: events were unsorted when pulled from multiple sources
+
+        List<Dto.TeamLineup> lineups = parseLineups(raw);
 
         JsonNode gi = raw.path("gameInfo");
         return new Dto.MatchDetail(
-                str(comp.has("id") ? comp.path("id") : null, eventId),
+                str(headerComp.has("id") ? headerComp.path("id") : null, eventId),
                 first(txt(st.path("shortDetail")), txt(st.path("detail")), ""),
                 txt(st.path("state")) != null ? txt(st.path("state")) : "post",
-                txt(comp.path("date")),
+                txt(headerComp.path("date")),
                 txt(header.path("league").path("name")),
                 txt(gi.path("venue").path("fullName")),
                 gi.path("attendance").isMissingNode() || gi.path("attendance").isNull()
                         ? null : gi.path("attendance").asInt(),
                 teamRef(home.path("team")), teamRef(away.path("team")),
                 num(home.path("score")), num(away.path("score")),
-                events);
+                events, lineups);
     }
 
-    private Dto.MatchEventDto parseSummaryEvent(JsonNode d) {
+    /**
+     * Parses ESPN's `rosters[]` array from the summary endpoint into starters + bench
+     * per team. Returns an empty list if ESPN hasn't published lineups yet (common for
+     * fixtures more than ~1 hour before kickoff).
+     */
+    private List<Dto.TeamLineup> parseLineups(JsonNode raw) {
+        List<Dto.TeamLineup> out = new ArrayList<>();
+        JsonNode rosters = raw.path("rosters");
+        if (!rosters.isArray() || rosters.size() == 0) return out;
+
+        for (JsonNode r : rosters) {
+            String teamId = str(r.path("team").path("id"));
+            if (teamId == null) continue;
+            String formation = txt(r.path("formation"));
+
+            List<Dto.LineupPlayer> starters = new ArrayList<>();
+            List<Dto.LineupPlayer> bench    = new ArrayList<>();
+
+            for (JsonNode entry : r.path("roster")) {
+                JsonNode athlete = entry.path("athlete");
+                String name = first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), null);
+                if (name == null) continue;
+                boolean starter = entry.path("starter").asBoolean(false);
+                Dto.LineupPlayer lp = new Dto.LineupPlayer(
+                        str(athlete.has("id") ? athlete.path("id") : null, name),
+                        name,
+                        txt(entry.path("jersey")),
+                        first(txt(entry.path("position").path("abbreviation")),
+                              txt(athlete.path("position").path("abbreviation")), null),
+                        starter, teamId);
+                (starter ? starters : bench).add(lp);
+            }
+            if (!starters.isEmpty() || !bench.isEmpty()) {
+                out.add(new Dto.TeamLineup(teamId, formation, starters, bench));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Build a "minute:teamId" → player name map from the Core API plays endpoint.
+     * Strategy per play: regex the player from the play's `text` field first (cheapest
+     * and most reliable — text looks like "Ollie Watkins (Aston Villa) right footed shot"),
+     * then fall back to resolving athlete $ref URLs.
+     */
+    private java.util.Map<String, String> fetchPlayersFromCoreApi(String league, String eventId) {
+        java.util.Map<String, String> map = new java.util.HashMap<>();
+        try {
+            String url = CORE + "/leagues/" + league + "/events/" + eventId
+                    + "/competitions/" + eventId + "/plays?limit=300";
+            JsonNode plays = get(url);
+            JsonNode items = plays.path("items");
+            if (!items.isArray() || items.size() == 0) {
+                System.err.println("[matchDetail] Core API plays empty for " + league + "/" + eventId);
+                return map;
+            }
+
+            java.util.Map<String, String> athleteCache = new java.util.HashMap<>();
+
+            for (JsonNode p : items) {
+                String typeText = p.path("type").path("text").asText("").toLowerCase();
+                boolean isGoal  = p.path("scoringPlay").asBoolean(false) || typeText.contains("goal");
+                boolean isCard  = p.path("yellowCard").asBoolean(false)
+                                  || p.path("redCard").asBoolean(false)
+                                  || typeText.contains("card");
+                if (!isGoal && !isCard) continue;
+
+                int    minute = parseMinute(p.path("clock").path("displayValue").asText(""));
+                String teamId = resolveTeamId(p.path("team"));
+                if (teamId == null) continue;
+
+                // 1. Try regex extraction from the play's text field.
+                String name = extractPlayerFromText(p.path("text").asText(""));
+
+                // 2. Try inline displayName / $ref resolution.
+                if (name == null) name = resolveAthleteName(p, athleteCache);
+
+                if (name != null) {
+                    String key = minute + ":" + teamId;
+                    map.putIfAbsent(key, name);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[matchDetail] Core API plays fetch failed: " + e.getMessage());
+        }
+        return map;
+    }
+
+    /** Pull a player name like "Ollie Watkins" from text like "Ollie Watkins (Aston Villa) ...". */
+    private String extractPlayerFromText(String text) {
+        if (text == null || text.isBlank()) return null;
+        // Skip the "Goal!" / "GOAL!" prefix some entries have
+        String t = text.replaceFirst("(?i)^\\s*goal!?\\s*[^.]*\\.\\s*", "");
+        java.util.regex.Matcher m = PLAYER_FROM_TEXT.matcher(t);
+        if (m.find()) {
+            String candidate = m.group(1).trim();
+            // Sanity: real player names are 4-60 chars and have at least one space (first + last)
+            if (candidate.length() >= 4 && candidate.length() <= 60 && candidate.contains(" ")) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /** Team in Core API is usually a $ref. Pull team id from the URL or inline. */
+    private String resolveTeamId(JsonNode teamNode) {
+        if (teamNode.isMissingNode() || teamNode.isNull()) return null;
+        String inline = txt(teamNode.path("id"));
+        if (inline != null) return inline;
+        String ref = txt(teamNode.path("$ref"));
+        if (ref == null) return null;
+        java.util.regex.Matcher m = Pattern.compile("/teams/(\\d+)").matcher(ref);
+        return m.find() ? m.group(1) : null;
+    }
+
+    /** Get athlete displayName from a play, resolving $ref if necessary. */
+    private String resolveAthleteName(JsonNode play, java.util.Map<String, String> cache) {
+        JsonNode parts = play.path("participants");
+        if (parts.isArray() && parts.size() > 0) {
+            for (JsonNode part : parts) {
+                String name = athleteName(part.path("athlete"), cache);
+                if (name != null) return name;
+            }
+        }
+        JsonNode inv = play.path("athletesInvolved");
+        if (inv.isArray() && inv.size() > 0) {
+            for (JsonNode a : inv) {
+                String name = athleteName(a, cache);
+                if (name != null) return name;
+            }
+        }
+        return null;
+    }
+
+    private String athleteName(JsonNode ath, java.util.Map<String, String> cache) {
+        if (ath.isMissingNode() || ath.isNull()) return null;
+        String inline = first(txt(ath.path("displayName")),
+                              txt(ath.path("fullName")),
+                              txt(ath.path("shortName")));
+        if (inline != null) return inline;
+        String ref = txt(ath.path("$ref"));
+        if (ref == null) return null;
+        if (cache.containsKey(ref)) return cache.get(ref);
+        try {
+            String url = ref.replaceFirst("^http://", "https://");
+            JsonNode athlete = get(url);
+            String name = first(txt(athlete.path("displayName")),
+                                txt(athlete.path("fullName")),
+                                txt(athlete.path("shortName")));
+            cache.put(ref, name);
+            return name;
+        } catch (Exception e) {
+            cache.put(ref, null);
+            return null;
+        }
+    }
+
+    private Dto.MatchEventDto parseSummaryEvent(JsonNode d, java.util.Map<String, String> playerByKey) {
         String typeText = d.path("type").path("text").asText("").toLowerCase();
         boolean isGoal  = d.path("scoringPlay").asBoolean(false) || typeText.contains("goal");
         boolean isCard  = d.path("redCard").asBoolean(false) || d.path("yellowCard").asBoolean(false)
                           || typeText.contains("card");
         if (!isGoal && !isCard) return null;
+
         String detail = isGoal ? d.path("type").path("text").asText("Goal")
                 : d.path("redCard").asBoolean(false)    ? "Red Card"
                 : d.path("yellowCard").asBoolean(false) ? "Yellow Card"
                 : d.path("type").path("text").asText("Card");
+
+        int    minute = parseMinute(d.path("clock").path("displayValue").asText(""));
+        String teamId = str(d.path("team").path("id"));
+
+        // Resolve player name with a chain of fallbacks:
+        //  1. inline athletesInvolved (populated in scoreboard details, not summary)
+        //  2. extract from this event's own `text` field
+        //  3. lookup in Core API plays map (keyed by minute:teamId)
+        //  4. lookup with ±1 minute tolerance (Core API and summary minutes can differ by 1)
         JsonNode ath = d.path("athletesInvolved");
-        return new Dto.MatchEventDto(
-                parseMinute(d.path("clock").path("displayValue").asText("")),
-                isGoal ? "goal" : "card", detail,
-                ath.isArray() && ath.size() > 0 ? txt(ath.path(0).path("displayName")) : null,
-                ath.isArray() && ath.size() > 1 ? txt(ath.path(1).path("displayName")) : null,
-                str(d.path("team").path("id")));
+        String player = null;
+        String assist = null;
+
+        if (ath.isArray() && ath.size() > 0) {
+            player = txt(ath.path(0).path("displayName"));
+            if (ath.size() > 1) assist = txt(ath.path(1).path("displayName"));
+        }
+        if (player == null) {
+            player = extractPlayerFromText(d.path("text").asText(""));
+        }
+        if (player == null && teamId != null && !teamId.isEmpty()) {
+            player = playerByKey.get(minute + ":" + teamId);
+            if (player == null) player = playerByKey.get((minute - 1) + ":" + teamId);
+            if (player == null) player = playerByKey.get((minute + 1) + ":" + teamId);
+        }
+
+        return new Dto.MatchEventDto(minute, isGoal ? "goal" : "card", detail, player, assist, teamId);
+    }
+
+    private Dto.MatchEventDto parseSummaryEvent(JsonNode d) {
+        return parseSummaryEvent(d, java.util.Map.of());
     }
 
     private boolean noDup(List<Dto.MatchEventDto> list, Dto.MatchEventDto ev) {

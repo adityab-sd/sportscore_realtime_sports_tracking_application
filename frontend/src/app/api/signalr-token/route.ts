@@ -21,9 +21,7 @@ export async function GET() {
     );
   }
 
-  // aud: https:// - JWT audience claim, must match exactly what Azure expects.
   const aud       = `${endpoint}/client/?hub=${hub}`;
-  // clientUrl: wss:// - skipNegotiation=true opens WebSocket directly here.
   const clientUrl = aud.replace(/^https:\/\//, "wss://");
   const exp       = Math.floor(Date.now() / 1000) + 3600;
 
@@ -40,9 +38,6 @@ export async function GET() {
   const header   = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload  = b64url(JSON.stringify({ aud, exp }));
   const unsigned = `${header}.${payload}`;
-
-  // Azure SignalR keys must be used as raw UTF-8 bytes for HMAC signing.
-  // This matches the browser's TextEncoder approach used in the working test client.
   const keyBuf = Buffer.from(key, "utf8");
 
   const signature = crypto

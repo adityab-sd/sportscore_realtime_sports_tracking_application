@@ -12,8 +12,9 @@ interface Props {
 export default function LeagueMatchFeed({ leagueName, slug }: Props) {
   const { matches, state, lastUpdate } = useSignalR();
 
-  // Filter by competition name (what CoreSportsAdapter sets from league.name)
+  // Filter by sport=football AND competition name (basketball can share competition names like "Premier League"; double-guard).
   const leagueMatches = matches.filter(m =>
+    (!m.sport || m.sport === "football") &&
     m.competition?.toLowerCase() === leagueName.toLowerCase()
   );
 
