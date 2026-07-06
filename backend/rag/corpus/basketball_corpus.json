@@ -1,0 +1,1692 @@
+[
+  {
+    "id": "basketball-competition-001",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA - Format and Structure",
+    "content": "The NBA (National Basketball Association) is the premier professional basketball league in the world, consisting of 30 teams divided into two conferences: the Eastern Conference and the Western Conference. Each conference has three divisions of five teams each. The regular season runs from October to April, with each team playing 82 games. The top 8 teams from each conference qualify for the playoffs. The NBA Finals is a best-of-seven series between the Eastern and Western Conference champions.",
+    "tags": [
+      "NBA",
+      "format",
+      "playoffs",
+      "conference",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 1,
+    "last_updated": "2024-season"
+  },
+  {
+    "id": "basketball-competition-002",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA Playoffs - Format",
+    "content": "The NBA Playoffs consist of 16 teams, 8 from each conference, competing in a single-elimination bracket format across four rounds. Each round is a best-of-seven series. The four rounds are the First Round, Conference Semifinals, Conference Finals, and the NBA Finals. The top 6 teams in each conference qualify directly, while teams ranked 7th through 10th compete in a play-in tournament for the final two playoff spots. Home court advantage goes to the team with the better regular season record.",
+    "tags": [
+      "NBA playoffs",
+      "format",
+      "play-in",
+      "bracket",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 2,
+    "last_updated": "2024-season"
+  },
+  {
+    "id": "basketball-competition-003",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "FIBA Basketball World Cup - Format",
+    "content": "The FIBA Basketball World Cup is the premier international basketball tournament held every four years. 32 national teams compete across a group stage and knockout rounds. In the first group stage, teams are divided into groups of 4, with the top 2 advancing. The second group stage further narrows the field before the knockout rounds. The tournament also serves as a qualifying event for the Olympic Games, with several berths awarded to top finishers from different regions.",
+    "tags": [
+      "FIBA",
+      "World Cup",
+      "international basketball",
+      "format"
+    ],
+    "source": "fiba.basketball",
+    "source_id": 3,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-competition-004",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "Olympic Basketball - Format",
+    "content": "Olympic basketball features 12 men's and 12 women's national teams competing at the Summer Olympics. Teams are divided into three groups of four, with the top two from each group and the two best third-place teams advancing to the quarterfinals. The tournament then follows a straight knockout format through semifinals, bronze medal game, and the gold medal final. The host nation qualifies automatically, while other spots are determined through FIBA World Cup results and qualifying tournaments.",
+    "tags": [
+      "Olympics",
+      "basketball",
+      "format",
+      "international",
+      "FIBA"
+    ],
+    "source": "fiba.basketball",
+    "source_id": 4,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-competition-005",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "EuroLeague - Format and Structure",
+    "content": "The EuroLeague is the top-tier European club basketball competition. It features 18 clubs competing in a regular season where each team plays 34 games (home and away against every other team). The top 8 teams at the end of the regular season advance to the playoffs, which are best-of-five series. The Final Four \u2014 consisting of the four playoff winners \u2014 is held at a neutral venue to determine the EuroLeague champion. Clubs participate through licenses or wildcard invitations.",
+    "tags": [
+      "EuroLeague",
+      "Europe",
+      "format",
+      "basketball",
+      "club"
+    ],
+    "source": "euroleague.net",
+    "source_id": 5,
+    "last_updated": "2024-season"
+  },
+  {
+    "id": "basketball-competition-006",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA Draft - Format and Rules",
+    "content": "The NBA Draft is held annually and allows teams to select eligible players, primarily from college basketball and international leagues. The draft consists of two rounds, with 30 picks in each round (60 total picks). The draft order for the lottery picks (top 14) is determined by the NBA Draft Lottery, weighted by regular season record \u2014 teams with worse records have better odds. Teams that miss the playoffs are eligible for the lottery. Players must be at least 19 years old and one year removed from high school to be eligible.",
+    "tags": [
+      "NBA Draft",
+      "lottery",
+      "picks",
+      "eligibility",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 6,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-competition-007",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA Salary Cap and Luxury Tax",
+    "content": "The NBA operates under a soft salary cap system, meaning teams can exceed the cap under certain conditions. The salary cap is set each year based on projected Basketball Related Income (BRI). Teams that exceed the cap pay a luxury tax to the league, which is redistributed to non-taxpaying teams. The luxury tax rate increases progressively the further a team exceeds the threshold. The hard cap applies in specific situations, such as when teams use certain mid-level exceptions, and cannot be exceeded under any circumstances.",
+    "tags": [
+      "salary cap",
+      "luxury tax",
+      "NBA",
+      "roster",
+      "finance"
+    ],
+    "source": "nba.com",
+    "source_id": 7,
+    "last_updated": "2024-season"
+  },
+  {
+    "id": "basketball-rules-001",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Basic Rules of Basketball",
+    "content": "Basketball is played between two teams of five players each on a rectangular court. The objective is to shoot the ball through the opponent's hoop, which is mounted 10 feet above the ground. A standard game consists of four quarters (12 minutes each in the NBA, 10 minutes in FIBA). The team with the most points at the end of regulation wins. If the score is tied, overtime periods of 5 minutes are played until a winner is determined.",
+    "tags": [
+      "basketball basics",
+      "rules",
+      "quarters",
+      "overtime",
+      "scoring"
+    ],
+    "source": "nba.com",
+    "source_id": 8,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-002",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Scoring in Basketball",
+    "content": "Points in basketball are scored by shooting the ball through the opponent's basket. A field goal scored from inside the three-point line is worth 2 points. A field goal scored from beyond the three-point arc is worth 3 points. Free throws, awarded after certain fouls, are worth 1 point each. The three-point line is 23 feet 9 inches from the basket in the NBA, and 22 feet in the corners. In FIBA, the three-point line is 22 feet 1.75 inches.",
+    "tags": [
+      "scoring",
+      "three-point",
+      "free throw",
+      "field goal",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 9,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-003",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Number of Players",
+    "content": "Each basketball team fields 5 players on the court at a time. NBA rosters consist of 15 players, with 13 active on game day. FIBA rules allow 12 players on the roster per game. Substitutions are unlimited and can be made during any dead ball situation. The five positions typically used are point guard, shooting guard, small forward, power forward, and center, though modern basketball uses more flexible positional concepts.",
+    "tags": [
+      "players",
+      "roster",
+      "positions",
+      "substitution",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 10,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-004",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Dribbling Rules",
+    "content": "A player must dribble (bounce the ball continuously) while moving with the ball. Once a player stops dribbling and holds the ball with both hands, they may not dribble again \u2014 this is called a double dribble and results in a turnover. A player may not carry the ball by placing their hand under it while dribbling \u2014 this is called a carry or palming violation. A player may only use one hand at a time to dribble. Dribbling allows a player to move anywhere on the court.",
+    "tags": [
+      "dribbling",
+      "double dribble",
+      "carry",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 11,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-005",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Travelling Violation",
+    "content": "Travelling occurs when a player moves one or both feet illegally while holding the ball. A player is allowed up to two steps after gathering the ball before they must shoot, pass, or stop. The gather step \u2014 the last step taken before picking up the dribble \u2014 does not count as one of the two steps. Taking more than two steps without dribbling is called travelling and results in a turnover awarded to the opposing team. Euro steps and jump stops are legal moves if executed within the two-step rule.",
+    "tags": [
+      "travelling",
+      "steps",
+      "violation",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 12,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-006",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Shot Clock Rule",
+    "content": "The shot clock requires the offensive team to attempt a shot that hits the rim within a set time period. In the NBA, the shot clock is 24 seconds. In FIBA competition, the shot clock is also 24 seconds. In NCAA college basketball, it is 30 seconds. The shot clock resets to 14 seconds (NBA) or 14 seconds (FIBA) after an offensive rebound. Failure to attempt a shot before the shot clock expires results in a shot clock violation, awarding possession to the defensive team.",
+    "tags": [
+      "shot clock",
+      "24 seconds",
+      "violation",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 13,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-007",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Personal Fouls",
+    "content": "A personal foul is illegal physical contact with an opponent. Common personal fouls include blocking, charging, holding, illegal screen, and pushing. In the NBA, a player is disqualified (fouled out) after committing 6 personal fouls. In FIBA, a player fouls out after 5 personal fouls. When a team accumulates a certain number of fouls in a period (team fouls), the opposing team is awarded free throws on subsequent non-shooting fouls \u2014 this is called being in the bonus or penalty.",
+    "tags": [
+      "personal foul",
+      "foul out",
+      "bonus",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 14,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-008",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Technical and Flagrant Fouls",
+    "content": "A technical foul is assessed for unsportsmanlike conduct, such as arguing with officials, taunting opponents, or delay of game. In the NBA, a player is ejected after receiving two technical fouls in a game. Each technical foul results in one free throw for the opposing team. A flagrant foul is excessive or unnecessary contact \u2014 Flagrant 1 results in two free throws and possession, while Flagrant 2 results in ejection plus two free throws and possession. Flagrant fouls are reviewed by officials.",
+    "tags": [
+      "technical foul",
+      "flagrant foul",
+      "ejection",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 15,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-009",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Free Throw Rules",
+    "content": "Free throws are uncontested shots awarded to a player after certain fouls. Each successful free throw scores 1 point. The shooter must stand behind the free throw line, which is 15 feet from the basket. Other players line up along the lane during free throws. The shooter has 10 seconds to attempt each free throw. Players may not cross the line until the ball leaves the shooter's hands. A player who is fouled while shooting a two-point shot gets 2 free throws; while shooting a three-point shot, they get 3 free throws.",
+    "tags": [
+      "free throw",
+      "foul shot",
+      "rules",
+      "shooting",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 16,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-010",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Out of Bounds Rules",
+    "content": "The ball is considered out of bounds when it touches the floor, a player, or any object on or outside the boundary lines. A player is out of bounds if they touch the floor or any object outside the boundary. If the ball goes out of bounds, possession is awarded to the opposing team, which inbounds the ball from the sideline or baseline nearest to where it went out. The last player to touch the ball before it goes out is credited with the turnover.",
+    "tags": [
+      "out of bounds",
+      "sideline",
+      "baseline",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 17,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-011",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Jump Ball and Tip-Off",
+    "content": "Every NBA game begins with a jump ball (tip-off) at center court. The referee tosses the ball up between one player from each team, who attempt to tip it to a teammate. After the opening tip, possession alternates between teams for jump ball situations during the game \u2014 this is called the alternating possession rule. In FIBA, jump balls can occur during the game when two players simultaneously gain control of the ball. The arrow indicating possession alternates after each jump ball situation.",
+    "tags": [
+      "jump ball",
+      "tip-off",
+      "possession",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 18,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-012",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Back Court Violation",
+    "content": "Once the offensive team has advanced the ball past the half-court line into the front court, they may not return the ball to the back court. If they do, it is a back court violation (also called over-and-back), resulting in a turnover. In the NBA, the offensive team has 8 seconds to advance the ball from the back court to the front court. In FIBA, the time limit is also 8 seconds. A defensive player touching the ball in the front court does not reset this rule.",
+    "tags": [
+      "back court",
+      "over-and-back",
+      "violation",
+      "8 seconds",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 19,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-013",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Goaltending and Basket Interference",
+    "content": "Goaltending occurs when a defensive player interferes with a shot that is on its downward arc toward the basket, or that is on or within the cylinder above the rim. If goaltending is called, the offensive team is awarded the points the shot would have scored. Basket interference occurs when any player touches the ball or the basket while the ball is on or within the rim. Offensive basket interference (by the attacking team) results in no points and a turnover.",
+    "tags": [
+      "goaltending",
+      "basket interference",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 20,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-014",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Three-Second Rule",
+    "content": "The three-second rule prohibits an offensive player from remaining in the lane (the painted area under the basket, also called the key or the paint) for more than three consecutive seconds while their team has possession. Violation results in a turnover. The NBA also has a defensive three-second rule, which prohibits a defensive player from remaining in the lane for more than three seconds unless they are actively guarding an opponent near them. Violation of the defensive rule results in a technical foul.",
+    "tags": [
+      "three seconds",
+      "lane",
+      "paint",
+      "key",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 21,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-015",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Five-Second Rule",
+    "content": "A player who is closely guarded must pass, shoot, or dribble within five seconds or a turnover is awarded to the opposing team. This rule applies when inbounding the ball from out of bounds \u2014 the player has 5 seconds to pass the ball in. In some leagues, a player holding the ball while being closely guarded (within 6 feet) must act within 5 seconds. The NBA does not enforce the closely guarded rule during live play but does enforce the 5-second inbound rule.",
+    "tags": [
+      "five seconds",
+      "inbound",
+      "closely guarded",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 22,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-016",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Charging and Blocking Fouls",
+    "content": "A charging foul occurs when an offensive player runs into a stationary defender who has established legal guarding position. This results in a turnover and a personal foul on the offensive player. A blocking foul occurs when a defender moves into the path of a moving offensive player and has not established legal position \u2014 the defender's feet must be set before the offensive player begins their upward motion. The restricted area arc (4 feet from the basket) prevents defenders from taking charges inside that zone.",
+    "tags": [
+      "charging",
+      "blocking",
+      "restricted area",
+      "foul",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 23,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-017",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Inbounding the Ball",
+    "content": "After a basket is scored, the opposing team inbounds the ball from behind the baseline. After a foul or violation, the ball is inbounded from the sideline nearest to where play stopped. The inbounder has 5 seconds to pass the ball in-bounds. The inbounder may not step on the court boundary line, but may move along the baseline after a scored basket (in the NBA). Defenders may not cross the line to deflect the inbound pass.",
+    "tags": [
+      "inbound",
+      "baseline",
+      "sideline",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 24,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-018",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Timeout Rules",
+    "content": "In the NBA, each team is granted 7 timeouts per game, each lasting 75 seconds. Teams may call timeouts during any dead ball or when their team has possession. At least two timeouts per team must be used in the fourth quarter. Mandatory timeouts are called by officials if no team timeout has been taken in the final two minutes of a period. Each team receives one timeout per overtime period. Unused timeouts do not carry over between quarters.",
+    "tags": [
+      "timeout",
+      "rules",
+      "NBA",
+      "quarter",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 25,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-019",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Offensive Foul - Illegal Screen",
+    "content": "An illegal screen (also called a moving screen) occurs when the player setting a screen moves before the defender makes contact, or sets a screen without giving the defender enough space to avoid it. It is a personal foul on the offensive player and results in loss of possession. A legal screen requires the screener to be stationary and to give the defender at least one normal step of space when approaching from behind. Screens set outside the defender's field of vision require an additional step of space.",
+    "tags": [
+      "illegal screen",
+      "moving screen",
+      "offensive foul",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 26,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-020",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Lane Violations on Free Throws",
+    "content": "During free throws, players line up along the lane in designated spots. Players may not enter the lane until the ball leaves the shooter's hands. If a defensive player enters the lane early and the free throw is missed, the shooter gets another attempt. If an offensive player enters early and the free throw is made, the basket counts but no additional attempt is given; if missed, the attempt is retaken. The shooter must release the ball within 10 seconds and may not cross the free throw line until the ball hits the rim.",
+    "tags": [
+      "lane violation",
+      "free throw",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 27,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-021",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Delay of Game",
+    "content": "Delay of game violations are assessed when a team intentionally slows play. Common delay of game situations include: touching the ball after it goes through the basket to slow the game, preventing the opposing team from inbounding quickly, or interfering with the ball after a dead ball. The first delay of game warning results in a team warning; subsequent violations result in a technical foul. Teams can also be penalized for not being ready to play after a timeout.",
+    "tags": [
+      "delay of game",
+      "technical foul",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 28,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-022",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Instant Replay and Challenges",
+    "content": "The NBA uses instant replay to review certain calls. Officials may review plays related to: whether a shot was a two or three pointer, whether a shot beat the shot clock or end-of-period buzzer, flagrant fouls, and out of bounds calls in the final two minutes. Each team is granted one coach's challenge per game, which allows the head coach to request replay review of a called foul, out of bounds, or goaltending call. If the challenge is successful, the team retains their challenge; if unsuccessful, they lose their timeout used to challenge.",
+    "tags": [
+      "instant replay",
+      "challenge",
+      "review",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 29,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-023",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Handchecking and Defensive Rules",
+    "content": "Handchecking \u2014 using hands or forearms to impede the progress of a ball handler \u2014 is illegal in the NBA. Defenders may not use extended forearms or hands to hold or impede offensive players. A defender may momentarily touch an opponent to maintain their position but must release immediately. The NBA introduced strict anti-handchecking rules in 2004 to open up the game for perimeter players. Defenders must give offensive players moving without the ball freedom of movement when not in the act of screening.",
+    "tags": [
+      "handchecking",
+      "defence",
+      "rules",
+      "NBA",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 30,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-024",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Clear Path Foul",
+    "content": "A clear path foul is called when a defender commits a foul on a player who has a clear path to the basket with no defenders between them and the basket. The penalty is two free throws plus possession of the ball for the offensive team. For a clear path foul to be called, the foul must occur before the offensive player reaches the front court, and the ball must not have entered the front court yet. This rule is designed to prevent deliberate fouls used to stop fast break opportunities.",
+    "tags": [
+      "clear path foul",
+      "fast break",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 31,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-025",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Continuation Rule",
+    "content": "The continuation rule allows a player who is fouled while in the act of shooting to complete their shot attempt. If the player releases the ball before the foul makes contact, the shot is considered part of the shooting motion and counts if it goes in. If fouled before releasing, the player is awarded free throws. In the NBA, a player driving to the basket who is fouled after releasing the ball may still receive free throws if the referee judges they were in a continuous shooting motion at the time of the foul.",
+    "tags": [
+      "continuation",
+      "act of shooting",
+      "foul",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 32,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-026",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Intentional Foul and Hack-a-Shaq Rule",
+    "content": "An intentional foul is a deliberate foul to stop the clock or send a poor free throw shooter to the line \u2014 a tactic known as 'Hack-a-Shaq'. In the NBA, if a team commits a foul away from the ball in the last two minutes of regulation or overtime, the offensive team receives two free throws and retains possession. This rule was introduced to discourage the tactic of deliberately fouling poor free throw shooters away from the ball. Teams still may use intentional fouls during normal game flow as a strategic tool.",
+    "tags": [
+      "intentional foul",
+      "hack-a-shaq",
+      "strategy",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 33,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-027",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Overtime Rules",
+    "content": "If a basketball game is tied at the end of regulation, overtime periods are played to determine a winner. In the NBA, each overtime period lasts 5 minutes. Teams receive two additional timeouts per overtime period. Each player's foul count continues from regulation \u2014 a player who has fouled out does not return. The shot clock resets normally. If the game remains tied after one overtime, additional overtime periods are played until a winner is determined. There is no sudden death in basketball overtime.",
+    "tags": [
+      "overtime",
+      "rules",
+      "extra time",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 34,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-028",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Ball Specifications",
+    "content": "An official NBA basketball is made of leather and has a circumference of 29.5 inches (size 7). Women's professional basketball (WNBA) uses a slightly smaller ball with a circumference of 28.5 inches (size 6). FIBA also uses a size 7 ball for men and size 6 for women. The ball must be inflated to between 7.5 and 8.5 PSI. Home teams in the NBA are responsible for providing game balls that meet official specifications. Each ball is checked by officials before the game.",
+    "tags": [
+      "ball",
+      "specifications",
+      "size",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 35,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-029",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Court Dimensions",
+    "content": "An NBA basketball court is 94 feet long and 50 feet wide. The basket is 10 feet high. The three-point line is 23 feet 9 inches from the basket (22 feet in the corners). The free throw line is 15 feet from the backboard. The lane (key/paint) is 16 feet wide. FIBA courts are slightly smaller at 28 meters (91.9 feet) long and 15 meters (49.2 feet) wide. The FIBA three-point line is 6.75 meters (22 feet 1.75 inches) from the basket.",
+    "tags": [
+      "court dimensions",
+      "size",
+      "three-point line",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 36,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-030",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Offensive Rebound Reset",
+    "content": "When the offensive team secures a rebound after a missed shot, the shot clock resets to 14 seconds in the NBA (previously 24 seconds). This rule, introduced in the 2018-19 season, was designed to speed up the game and reduce deliberate offensive rebounds just to reset the shot clock. In FIBA competition, the shot clock resets to 14 seconds after an offensive rebound as well. The 14-second reset begins as soon as the offensive player gains clear possession of the rebound.",
+    "tags": [
+      "offensive rebound",
+      "shot clock reset",
+      "14 seconds",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 37,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-001",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Traditional Five-Position Lineup",
+    "content": "The traditional basketball lineup consists of five distinct positions: point guard (1), shooting guard (2), small forward (3), power forward (4), and center (5). The point guard is responsible for ball handling and orchestrating the offence. The shooting guard focuses on perimeter scoring. The small forward is a versatile two-way player. The power forward operates in the mid-range and near the basket. The center is typically the tallest player and dominates near the basket on both ends.",
+    "tags": [
+      "positions",
+      "lineup",
+      "point guard",
+      "center",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 38,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-002",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Small Ball Lineup",
+    "content": "A small ball lineup replaces the traditional center with a smaller, more agile player \u2014 often a power forward playing at center. This formation prioritizes speed, floor spacing, and three-point shooting over interior size. Small ball lineups force the opposing team's big men to defend on the perimeter or switch onto smaller, quicker players. The Golden State Warriors popularized small ball during their championship runs, using players like Draymond Green as a small ball center. The key trade-off is vulnerability on the defensive glass.",
+    "tags": [
+      "small ball",
+      "lineup",
+      "spacing",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 39,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-003",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Twin Towers Lineup",
+    "content": "The twin towers formation deploys two tall, skilled big men together \u2014 typically two centers or a center alongside a power forward. This formation dominates the paint on both ends of the floor, providing interior scoring, shot-blocking, and rebounding. The trade-off is reduced perimeter spacing and difficulty defending against small ball and three-point heavy offences. Historical examples include Hakeem Olajuwon and Ralph Sampson with the Houston Rockets, and David Robinson and Tim Duncan with the San Antonio Spurs.",
+    "tags": [
+      "twin towers",
+      "big men",
+      "formation",
+      "interior",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 40,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-004",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Three-Guard Lineup",
+    "content": "A three-guard lineup uses three guards (point guard and two shooting guards or wings) alongside two big men. This formation maximises perimeter shooting and ball-handling depth. It creates mismatches by forcing opposing big men to defend quick guards on the perimeter. Three-guard lineups are effective in up-tempo offensive systems that require multiple playmakers and shooters spread across the perimeter. The weakness is interior defence and rebounding when playing against physical frontcourt players.",
+    "tags": [
+      "three guard",
+      "lineup",
+      "perimeter",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 41,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-005",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Zone Defence - 2-3 Zone",
+    "content": "The 2-3 zone defence places two defenders at the top of the key and three defenders across the baseline. It is designed to protect the paint and force opponents to beat the defence from the perimeter. The 2-3 zone is effective against teams that rely on driving to the basket but is vulnerable to good three-point shooting teams who can attack the gaps at the elbows and corners. The zone requires excellent communication and rotations to close out on perimeter shooters.",
+    "tags": [
+      "2-3 zone",
+      "zone defence",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 42,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-006",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Zone Defence - 3-2 Zone",
+    "content": "The 3-2 zone places three defenders across the top of the key and two defenders near the baseline. It is designed to prevent perimeter three-point shots and force the ball inside. The 3-2 zone is effective against perimeter-heavy offences but is vulnerable to teams with skilled post players or those who can attack the short corners. It requires the top three defenders to be quick enough to contest perimeter shots while the bottom two protect the paint.",
+    "tags": [
+      "3-2 zone",
+      "zone defence",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 43,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-007",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Man-to-Man Defence",
+    "content": "Man-to-man (man-to-man) defence assigns each defender to guard a specific offensive player regardless of where they move on the court. It is the most common defensive scheme in professional basketball. Man-to-man defence can be played with or without help \u2014 on-ball defenders either play tight or give space, while off-ball defenders either help protect the paint or stay attached to their man. Modern NBA defences often use a hybrid approach called 'drop coverage' against pick-and-roll to protect against drives while conceding mid-range shots.",
+    "tags": [
+      "man-to-man",
+      "defence",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 44,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-008",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Box-and-One Defence",
+    "content": "The box-and-one is a hybrid defence that assigns one defender to play man-to-man on the opposing team's best player while the other four defenders play a box zone. It is designed to limit the impact of a dominant offensive player while maintaining zone principles. The box-and-one is often used as a surprise tactic or in late-game situations. The weakness is that it can be vulnerable to teams with multiple strong offensive players, as the zone can be stretched by good ball movement.",
+    "tags": [
+      "box-and-one",
+      "hybrid defence",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 45,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-009",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Triangle Offence",
+    "content": "The triangle offence is a system developed by Tex Winter and famously used by Phil Jackson with the Chicago Bulls and Los Angeles Lakers. It positions three players along one side of the court forming a triangle, with the other two players on the weak side. The system relies on reading the defence and making decisions based on how defenders react, rather than set plays. The triangle creates multiple passing options and forces defenders to make difficult choices. It requires highly skilled, intelligent players who can read the game.",
+    "tags": [
+      "triangle offence",
+      "Phil Jackson",
+      "system",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 46,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-010",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Flex Offence",
+    "content": "The flex offence is a continuity offensive system built around a series of screens and cuts. It begins with a pass to the wing, followed by a baseline screen (the flex cut), then a back screen, creating a continuous loop of actions. The flex offence is popular at the high school and college levels because it creates equal opportunity for all five players and does not rely on isolation or one-on-one play. It requires precise timing and screening technique. The primary weakness is that it is predictable and can be scouted easily by prepared defences.",
+    "tags": [
+      "flex offence",
+      "continuity",
+      "screens",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 47,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-011",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Motion Offence",
+    "content": "The motion offence is a flexible offensive system where players move continuously without the ball, using screens and cuts based on principles rather than set plays. All five players are interchangeable and must be able to pass, dribble, and shoot from anywhere on the court. The motion offence stresses player spacing, with all five players spread across the court to create driving lanes and open passing windows. It is difficult for defences to prepare for because it is not predictable. Coaches set principles rather than rigid plays.",
+    "tags": [
+      "motion offence",
+      "spacing",
+      "cuts",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 48,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-012",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Horns Formation",
+    "content": "The horns formation is a set play alignment that places the center and power forward at each elbow (the junction of the free throw line and the lane), with the point guard at the top of the key and two wings on each side. This creates multiple options \u2014 the point guard can attack either elbow, triggering pick-and-roll or pick-and-pop actions. Horns is particularly effective for teams with skilled big men who can shoot from the mid-range or pass out of the high post. It has become one of the most widely used set play initiations in the NBA.",
+    "tags": [
+      "horns",
+      "set play",
+      "elbow",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 49,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-013",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Press Defence - Full Court Press",
+    "content": "A full court press applies defensive pressure across the entire length of the court immediately after a basket or inbound. The goal is to disrupt the opposing team's ball advancement, force turnovers, and create easy scoring opportunities. Common full court press formations include the 2-2-1 zone press and the man-to-man full court press. The full court press is physically demanding and is most effective when the defending team has superior athleticism and depth. It is commonly used by teams that are behind and need quick stops and scores.",
+    "tags": [
+      "full court press",
+      "press defence",
+      "trapping",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 50,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-014",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Half Court Press - 1-2-1-1 Diamond Press",
+    "content": "The 1-2-1-1 diamond press is a trapping zone defence that applies pressure in the half court or full court. One player guards the inbounder, two players trap the first pass receiver, one player plays the middle as a rover intercepting passes, and one player guards the basket. The press is designed to force rushed passes and turnovers through aggressive trapping in the corners and along the sidelines. It is highly effective against inexperienced ball handlers but requires excellent defensive communication and athleticism.",
+    "tags": [
+      "diamond press",
+      "trapping",
+      "half court press",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 51,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-015",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Switching Defence",
+    "content": "A switching defence requires all defenders to switch assignments whenever an offensive screen is set, rather than fighting through or going under the screen. This eliminates open shots created by screens but requires all five defenders to be capable of guarding any position. Switching defences are most effective when a team has versatile, switchable defenders. The weakness is that mismatches can be created when a smaller guard switches onto a bigger forward or center. Modern NBA teams frequently use switching schemes to combat the pick-and-roll.",
+    "tags": [
+      "switching",
+      "defence",
+      "screen",
+      "mismatch",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 52,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-001",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Pick-and-Roll",
+    "content": "The pick-and-roll (also called screen-and-roll) is the most common offensive action in basketball. A ball handler dribbles toward a teammate who sets a screen (pick) on the defender. The ball handler uses the screen to get open, while the screener rolls toward the basket looking for a pass. The pick-and-roll creates a two-on-one advantage against the defence and forces the defence to make a difficult decision: switch, hedge, drop, or blitz. Teams like the Utah Jazz (John Stockton and Karl Malone) built dynasties around this action.",
+    "tags": [
+      "pick-and-roll",
+      "screen",
+      "strategy",
+      "offence",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 53,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-002",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Pick-and-Pop",
+    "content": "The pick-and-pop is a variation of the pick-and-roll where instead of rolling to the basket, the screener steps back to the perimeter after setting the screen to receive a pass for an open three-point shot or mid-range jumper. It is most effective when the screener is a skilled perimeter shooter. The pick-and-pop forces the defence to choose between protecting the roll to the basket or closing out on the pop. Modern stretch bigs (large players with three-point range) make the pick-and-pop a dangerous weapon.",
+    "tags": [
+      "pick-and-pop",
+      "screen",
+      "stretch big",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 54,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-003",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Iso Play - Isolation Offence",
+    "content": "An isolation (iso) play clears out teammates to one side of the court, leaving one offensive player to face their defender one-on-one. It is designed to exploit a mismatch or allow a dominant scorer to create their own shot. Isolation plays are commonly used to attack a weaker defender, at the end of shot clocks when time is limited, or in clutch moments when a team's best player needs the ball. While effective for star players, over-reliance on isolation reduces team ball movement and can lower overall offensive efficiency.",
+    "tags": [
+      "isolation",
+      "iso",
+      "one-on-one",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 55,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-004",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Fast Break Offence",
+    "content": "The fast break is an offensive strategy where a team pushes the ball up the court quickly after a defensive rebound, steal, or made basket, before the opposing defence can set up. The goal is to create a numerical advantage \u2014 such as a 2-on-1 or 3-on-2 \u2014 and score an easy basket. Teams that emphasise the fast break (like the Showtime Lakers or modern Golden State Warriors) focus on outlet passing, rim running, and perimeter spacing in transition. The pace of the fast break can also wear down opposing defences over the course of a game.",
+    "tags": [
+      "fast break",
+      "transition",
+      "pace",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 56,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-005",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Half Court Offence",
+    "content": "Half court offence refers to organised offensive sets run after the ball is advanced past half court and the defence is set. Unlike fast break situations, half court offence requires patience, ball movement, and execution of designed plays. Effective half court offences combine pick-and-roll actions, off-ball screening, and player movement to create open shots. Teams like the San Antonio Spurs are renowned for their efficient, ball-movement-based half court offence. Analytics show that shots near the rim and three-pointers are the most efficient in half court settings.",
+    "tags": [
+      "half court offence",
+      "set plays",
+      "ball movement",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 57,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-006",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Post Play Strategy",
+    "content": "Post play involves an offensive player (typically a center or power forward) positioning themselves near the basket with their back to the defender to receive passes and score or create for teammates. A skilled post player can score with a variety of moves including the drop step, jump hook, up-and-under, and turnaround jumper. Post play also draws double teams, creating kick-out opportunities for open three-point shooters. In modern basketball, post play has declined as analytics show three-pointers and drives to the rim are more efficient than mid-post shots.",
+    "tags": [
+      "post play",
+      "low post",
+      "strategy",
+      "big men",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 58,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-007",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Three-Point Strategy and Analytics",
+    "content": "Modern basketball heavily emphasises three-point shooting following the analytics revolution. Research shows that a 33% three-point shooting percentage generates the same points per shot as a 50% two-point shooting percentage. Teams like the Golden State Warriors and Houston Rockets pioneered the strategy of maximising three-point attempts while minimising mid-range two-point shots. The corner three (from the corners of the court) is the most efficient three-point shot because the shooter is closer to the basket (22 feet) than from the top of the arc (23 feet 9 inches).",
+    "tags": [
+      "three-point",
+      "analytics",
+      "strategy",
+      "shooting",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 59,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-008",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Defensive Rotations and Help Defence",
+    "content": "Help defence refers to defenders leaving their assigned player to assist a teammate who has been beaten by the ball handler. Effective help defence requires all five players to rotate and cover for each other. The weak side defender (on the opposite side of the ball) is typically the primary helper. Rotations must be communicated clearly to avoid leaving shooters open. Teams that play great help defence \u2014 like the San Antonio Spurs under Gregg Popovich \u2014 typically rank among the best defences in the league year after year.",
+    "tags": [
+      "help defence",
+      "rotation",
+      "strategy",
+      "team defence",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 60,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-009",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Fouling Strategy Late in Games",
+    "content": "Intentional fouling in the final minutes of a game is a common strategy for the trailing team. By fouling, the losing team stops the clock and sends the opponent to the free throw line, hoping they miss and allowing the trailing team to quickly score. This strategy is most effective when the opposing team has poor free throw shooters. The leading team counters by keeping the ball in the hands of their best free throw shooters. In the final seconds, teams sometimes foul immediately after inbounding to maximise possessions.",
+    "tags": [
+      "fouling strategy",
+      "late game",
+      "free throws",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 61,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-010",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Load Management",
+    "content": "Load management is the practice of resting star players during regular season games to preserve their health for the playoffs. The strategy became controversial as fans paid to see star players who were listed as healthy scratches. The NBA introduced rules in 2023-24 requiring teams to notify the league in advance when healthy players would be rested, limiting rest games on nationally televised games, and mandating that rested players appear at the arena. Teams like the San Antonio Spurs and Los Angeles Clippers were among the early adopters of load management strategies.",
+    "tags": [
+      "load management",
+      "rest",
+      "strategy",
+      "player health",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 62,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-011",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Press Break Strategy",
+    "content": "A press break is an offensive strategy used to defeat a full court press. Key principles include using a primary ball handler to advance the ball, positioning teammates in specific spots to create easy outlet passes, and attacking the middle of the press rather than the sidelines (where traps form). A common press break alignment places one player near the inbounder as a safety valve, two players spread wide as outlets, and one player at half court as a deep threat. Quick, decisive passes and calm execution are essential to breaking a press.",
+    "tags": [
+      "press break",
+      "full court press",
+      "strategy",
+      "ball movement",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 63,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-012",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Box Out and Rebounding Strategy",
+    "content": "Boxing out (or blocking out) is the technique of positioning between an opponent and the basket to secure a rebound. After a shot is taken, every defender should make contact with their assigned offensive player and position themselves between that player and the basket. Good rebounding teams prioritise effort, positioning, and anticipation over pure athleticism. Offensive rebounds extend possessions and are among the most valuable plays in basketball \u2014 a missed shot that results in an offensive rebound essentially gives the team a free extra possession.",
+    "tags": [
+      "boxing out",
+      "rebounding",
+      "strategy",
+      "fundamentals",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 64,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-013",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Pace and Space Offence",
+    "content": "Pace and space offence emphasises playing at a fast pace while spacing the floor with perimeter shooters to create driving lanes for ball handlers. By surrounding a playmaker with shooters, defenders cannot help off their men without giving up open three-pointers. This offensive philosophy has become dominant in modern basketball following the analytics revolution. Teams like the Golden State Warriors and Phoenix Suns have used pace and space systems to great success. The strategy requires at least three reliable three-point shooters and a skilled ball handler who can create off the dribble.",
+    "tags": [
+      "pace and space",
+      "spacing",
+      "three-point",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 65,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-014",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Defensive Anchoring and Rim Protection",
+    "content": "Rim protection refers to a defender's ability to contest or block shots near the basket. A strong rim protector (typically a center) deters opponents from driving to the basket and forces the offence to settle for perimeter shots. Elite shot blockers like Rudy Gobert, Anthony Davis, and Victor Wembanyama anchor team defences and dramatically raise the cost of attacking the paint. Analytics show that teams with strong rim protection consistently rank among the top defences in the NBA. Rim protectors must also be able to guard in space to avoid being exploited by pick-and-roll actions.",
+    "tags": [
+      "rim protection",
+      "shot blocking",
+      "defence",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 66,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-015",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Transition Defence",
+    "content": "Transition defence refers to how a team defends after losing possession \u2014 particularly after a missed shot, turnover, or made basket. Good transition defence requires all five players to sprint back immediately and identify the most dangerous threats (typically the ball and the player closest to the basket). Teams should prioritise stopping the ball and protecting the paint over individual matchups in transition. A common principle is 'Get back, get ball, get man' \u2014 establishing position before worrying about matchups. Poor transition defence leads to easy fast break points for the opponent.",
+    "tags": [
+      "transition defence",
+      "fast break",
+      "strategy",
+      "defence",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 67,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-016",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Hack Strategy Against Poor Free Throw Shooters",
+    "content": "The hack strategy deliberately fouls a player who is a poor free throw shooter, sending them to the line rather than allowing the team to run normal offence. The gamble is that the poor shooter will miss enough free throws to offset the points the team would have scored on a possession. This tactic is controversial but legal. The NBA introduced a rule in 2016 to reduce its effectiveness by awarding two free throws plus possession when fouling away from the ball in the last two minutes. Teams still occasionally use this strategy during the rest of the game.",
+    "tags": [
+      "hack strategy",
+      "free throw",
+      "intentional foul",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 68,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-017",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Defensive Switching vs Hedging on Pick-and-Roll",
+    "content": "Teams have multiple ways to defend the pick-and-roll. Switching assigns a new defender to each player involved in the screen. Hedging (or showing) has the big man step out aggressively to slow the ball handler before recovering to their man. Dropping has the big man stay near the basket in drop coverage, conceding mid-range shots. Blitzing sends two defenders to trap the ball handler. Each approach has strengths and weaknesses depending on the offensive players involved. Modern teams use a mix of coverages to keep offences off balance.",
+    "tags": [
+      "pick-and-roll defence",
+      "switching",
+      "hedging",
+      "drop coverage",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 69,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-018",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Off-Ball Movement and Cutting",
+    "content": "Off-ball movement refers to what players do without the ball to create scoring opportunities. Effective off-ball players use backdoor cuts, V-cuts, and L-cuts to get open. A backdoor cut occurs when a defender overplays the passing lane and the offensive player cuts behind them toward the basket. The give-and-go is a simple action where a player passes and immediately cuts to the basket for a return pass. Teams with intelligent off-ball movers \u2014 like the San Antonio Spurs \u2014 create open shots through player movement rather than dribble penetration.",
+    "tags": [
+      "off-ball movement",
+      "cutting",
+      "backdoor",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 70,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-019",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Zone Offence Principles",
+    "content": "Attacking a zone defence requires different principles than attacking man-to-man. Key principles include: moving the ball quickly to make the zone shift and create gaps, placing players in the gaps of the zone rather than in front of defenders, using skip passes to swing the ball to the weak side before the zone can rotate, attacking the short corners and elbows which are vulnerable spots in most zones, and using a post player in the high or low post to split the zone. Patience and ball movement are essential \u2014 teams should avoid rushing shots against a set zone.",
+    "tags": [
+      "zone offence",
+      "attack zone",
+      "strategy",
+      "ball movement",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 71,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-020",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Two-for-One Strategy",
+    "content": "The two-for-one strategy is used at the end of a quarter when a team tries to get two offensive possessions before the quarter ends while the opponent gets only one. If there are approximately 35 seconds left in a quarter, the team with the ball can take a quick shot, giving them time to regain possession after the opponent scores and get off another shot before the buzzer. This strategy can swing the momentum of a game and is a sign of high basketball IQ from a coaching staff. Effective execution requires quick shot selection and fast transition play.",
+    "tags": [
+      "two-for-one",
+      "end of quarter",
+      "strategy",
+      "clock management",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 72,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-021",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Dribble Handoff Action",
+    "content": "A dribble handoff (DHO) is an offensive action where a ball handler dribbles directly toward a teammate and hands them the ball while moving, rather than passing. The player receiving the handoff can immediately attack off the dribble with a head of steam, making it difficult for defenders to recover. The dribble handoff is particularly effective when the screener is a threat to pop for a three-pointer, as the defender must decide whether to switch, fight over, or go under the action. It is a staple action in many modern NBA offences.",
+    "tags": [
+      "dribble handoff",
+      "DHO",
+      "offence",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 73,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-022",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Second Unit Strategy",
+    "content": "The second unit (bench unit) strategy involves deploying substitute players in a way that maximises team depth and maintains performance when starters rest. Coaches often stagger the rotation so one or two starters remain on the court when bench players come in, providing leadership and continuity. A strong bench unit can outscore opponents' reserves and turn close games in a team's favour. Some teams deliberately build their roster around a deep bench, knowing that fatigue in the playoffs can be a key factor in long series.",
+    "tags": [
+      "bench",
+      "second unit",
+      "rotation",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 74,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-023",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Mismatch Exploitation",
+    "content": "A mismatch occurs when a defensive switch or rotation results in a smaller or less skilled defender guarding a player who has an advantage over them. Offences immediately identify and attack mismatches by posting up smaller defenders, isolating quicker players against bigger defenders, or driving past slower defenders. Good offences deliberately create mismatches through screening and ball movement. Defences counter mismatches by providing help, doubling the advantaged player, or using zone principles to hide the weaker defender.",
+    "tags": [
+      "mismatch",
+      "exploitation",
+      "offence",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 75,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-024",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Clutch Time Strategy",
+    "content": "Clutch time in the NBA is defined as the final five minutes of a game when the score is within five points. Teams often simplify their offence in clutch situations, relying on their best players in isolation or pick-and-roll actions. Defences tend to become more conservative, favouring switching and help rotations to avoid easy baskets. Analytics show that some players perform significantly better or worse in clutch situations than their overall stats suggest. Coaches design specific late-game plays and discuss scenarios in advance to reduce decision-making pressure in the moment.",
+    "tags": [
+      "clutch",
+      "late game",
+      "strategy",
+      "fourth quarter",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 76,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-025",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Tanking Strategy",
+    "content": "Tanking refers to a team deliberately losing games or fielding a weakened roster to improve their chances in the NBA Draft Lottery, hoping to select a franchise-changing top pick. The strategy became prominent in the 2010s, with teams like the Philadelphia 76ers famously 'trusting the process' through years of deliberate losing to acquire top draft picks. The NBA modified the draft lottery in 2019 to reduce the incentive to tank by flattening the odds for the three worst teams. Tanking remains controversial as it undermines competitive integrity but can be a valid long-term rebuilding strategy.",
+    "tags": [
+      "tanking",
+      "draft lottery",
+      "rebuilding",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 77,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-026",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Defensive Principles - Taking Charges",
+    "content": "Taking a charge (also called drawing a charge) is a defensive technique where a player establishes legal position and absorbs contact from an offensive player driving to the basket. A successful charge results in an offensive foul on the ball handler, a turnover, and a personal foul on the offensive player. Elite charge-takers study opponents' tendencies and position themselves in anticipation of drives. Taking charges is most effective when the offensive player is attacking the basket at speed. The restricted area arc prevents charges from being taken directly under the basket.",
+    "tags": [
+      "charge",
+      "offensive foul",
+      "defence",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 78,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-027",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Screening Principles",
+    "content": "Setting effective screens is one of the most important off-ball skills in basketball. A legal screen requires the screener to be stationary with feet set before contact. Screeners should make themselves as wide as possible to create maximum space for the cutter. Off-ball screens include down screens (set below the defender to free up a player coming from the baseline), back screens (set on a player's back to free a cutter to the basket), and flex screens (baseline screens used in the flex offence). The angle and timing of a screen are as important as its legality.",
+    "tags": [
+      "screening",
+      "off-ball",
+      "down screen",
+      "back screen",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 79,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-028",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Advanced Analytics in Basketball",
+    "content": "Advanced analytics have transformed basketball strategy over the past two decades. Key metrics include Player Efficiency Rating (PER), True Shooting Percentage (TS%), Win Shares, Box Plus/Minus (BPM), and RAPTOR. Spatial tracking data from cameras installed in arenas provides information about player movement, shot quality, and defensive positioning. Teams use analytics to evaluate player value, identify matchup advantages, design optimal lineups, and determine which shots are most efficient. The 'three-point revolution' is largely a product of analytics revealing the value of corner threes over mid-range jumpers.",
+    "tags": [
+      "analytics",
+      "advanced stats",
+      "PER",
+      "true shooting",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 80,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-competition-008",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "WNBA - Format and Structure",
+    "content": "The WNBA (Women's National Basketball Association) is the premier professional women's basketball league in the United States, founded in 1996. It consists of 12 teams playing a 40-game regular season from May to September. The top 8 teams qualify for the playoffs, which follow a bracket format culminating in the WNBA Finals, a best-of-five series. The WNBA Draft is held annually, with players eligible after completing college eligibility or turning 22. The league has grown significantly in popularity, particularly following the 2024 season.",
+    "tags": [
+      "WNBA",
+      "women's basketball",
+      "format",
+      "playoffs",
+      "basketball"
+    ],
+    "source": "wnba.com",
+    "source_id": 81,
+    "last_updated": "2024-season"
+  },
+  {
+    "id": "basketball-competition-009",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NCAA March Madness - Format",
+    "content": "NCAA March Madness is the annual college basketball tournament held every March and April. The tournament features 68 teams selected by a committee based on regular season performance, conference tournament results, and strength of schedule. Four play-in games reduce the field to 64 teams, which then compete in a single-elimination bracket across six rounds: Round of 64, Round of 32, Sweet Sixteen, Elite Eight, Final Four, and the National Championship. The tournament is famous for upsets, with lower-seeded teams frequently defeating higher-seeded favourites.",
+    "tags": [
+      "March Madness",
+      "NCAA",
+      "college basketball",
+      "tournament",
+      "format"
+    ],
+    "source": "ncaa.com",
+    "source_id": 82,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-competition-010",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA All-Star Weekend",
+    "content": "NBA All-Star Weekend is an annual mid-season event celebrating the league's best players. It includes the All-Star Game, where players voted in by fans, players, and media represent the Eastern and Western Conferences (or in recent years, team captains draft from a pool of all-stars). The weekend also features the Slam Dunk Contest, Three-Point Contest, Skills Challenge, and Rising Stars game for first and second year players. The All-Star break provides players with rest and serves as a major marketing event for the NBA globally.",
+    "tags": [
+      "All-Star",
+      "NBA",
+      "slam dunk",
+      "three-point contest",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 83,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-competition-011",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA G League - Development League",
+    "content": "The NBA G League is the official minor league of the NBA, serving as a development pathway for players aspiring to reach the NBA. Each NBA team has an affiliated G League team. Players can be assigned to the G League to develop their skills, and NBA teams can call up G League players on two-way contracts. The G League also introduced the Ignite team \u2014 a professional pathway for elite prospects who want to develop professionally rather than play college basketball. G League games follow standard NBA rules.",
+    "tags": [
+      "G League",
+      "development",
+      "minor league",
+      "NBA",
+      "basketball"
+    ],
+    "source": "gleague.nba.com",
+    "source_id": 84,
+    "last_updated": "2024-season"
+  },
+  {
+    "id": "basketball-competition-012",
+    "sport": "basketball",
+    "category": "competition",
+    "title": "NBA Awards - MVP, DPOY, and Rookie of the Year",
+    "content": "The NBA presents several major awards at the end of each season. The Most Valuable Player (MVP) award goes to the player deemed most valuable to their team during the regular season, voted on by a panel of sportswriters. The Defensive Player of the Year (DPOY) recognises the league's best defender. The Rookie of the Year award goes to the best first-year player. Other awards include Sixth Man of the Year, Most Improved Player, and Coach of the Year. Since 2023, players can also win the NBA Cup trophy through the In-Season Tournament.",
+    "tags": [
+      "MVP",
+      "DPOY",
+      "Rookie of the Year",
+      "awards",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 85,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-031",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Blood Rule in Basketball",
+    "content": "If a player is bleeding, referees must stop play and remove the player from the game until the bleeding is controlled. The player may return once the wound is properly treated and covered. This is known as the blood rule and exists in both NBA and FIBA competitions to protect player safety. A team is not required to use a timeout when a player is removed due to bleeding. If a team has no eligible substitutes, the bleeding player may return after being treated by medical staff on the sideline.",
+    "tags": [
+      "blood rule",
+      "injury",
+      "rules",
+      "player safety",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 86,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-032",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Kicking Violation",
+    "content": "A kicking violation occurs when a player intentionally kicks the ball with their foot or leg. If a defensive player kicks the ball, the offensive team retains possession with a reset of the shot clock. If an offensive player kicks the ball, the defensive team is awarded possession. Accidental contact between the ball and a player's foot is not a kicking violation \u2014 the intent must be deliberate. The kicking rule applies throughout the entire game and in all areas of the court.",
+    "tags": [
+      "kicking violation",
+      "rules",
+      "turnover",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 87,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-033",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Loose Ball Foul",
+    "content": "A loose ball foul is a personal foul committed by either team when neither team has clear possession of the ball \u2014 such as during a rebound situation. It is called when a player makes illegal contact with an opponent while both are competing for a loose ball. The penalty is the same as a personal foul \u2014 if the fouled team is in the bonus, they receive free throws. Loose ball fouls count toward a player's personal foul total and toward team foul totals. They are among the most physically contested plays in basketball.",
+    "tags": [
+      "loose ball foul",
+      "rebound",
+      "foul",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 88,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-034",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Pivoting Rules",
+    "content": "A pivot is the movement of one foot in any direction while the other foot (the pivot foot) remains in contact with the floor. A player who has stopped dribbling may pivot to face different directions without committing a travelling violation. The pivot foot must remain stationary \u2014 lifting or sliding it while pivoting is a travelling violation. When a player catches the ball while moving, they may use a jump stop (landing on both feet simultaneously) and then pivot on either foot. Pivoting is a fundamental skill for creating passing angles and avoiding defenders.",
+    "tags": [
+      "pivot",
+      "pivot foot",
+      "travelling",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 89,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-rules-035",
+    "sport": "basketball",
+    "category": "rules",
+    "title": "Simultaneous Violation and Held Ball",
+    "content": "When two players simultaneously commit violations, the ball is awarded to the team that was not in possession, or a jump ball is called if neither team had possession. A held ball occurs when two opposing players have simultaneous possession of the ball and neither can gain control. In the NBA, held balls are resolved using the alternating possession rule \u2014 the arrow determines which team gets the ball. In FIBA, held balls result in a jump ball between the two players involved at the nearest circle.",
+    "tags": [
+      "held ball",
+      "simultaneous violation",
+      "jump ball",
+      "rules",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 90,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-016",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "1-3-1 Zone Defence",
+    "content": "The 1-3-1 zone defence positions one player at the top, three players across the middle, and one player at the baseline. It is designed to trap ball handlers in the corners and along the sidelines, where the zone converges aggressively. The 1-3-1 is particularly effective at disrupting teams that rely on corner three-point shooting and can generate turnovers through its trapping principles. The weakness is the high post and the area above the three-point line, which can be attacked by teams with patient ball movement and skilled mid-range shooters.",
+    "tags": [
+      "1-3-1 zone",
+      "trapping",
+      "zone defence",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 91,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-017",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Princeton Offence",
+    "content": "The Princeton offence is a patient, passing-based offensive system developed by Pete Carril at Princeton University. It emphasises backdoor cuts, ball movement, and high basketball IQ over athleticism and individual talent. The system uses a high post player as a hub, with cutters reading the defence and making back-door cuts when defenders overplay passing lanes. The Princeton offence is effective at neutralising athletic advantages and creating high-percentage shots near the basket. Several NBA teams have incorporated Princeton principles into their offensive systems.",
+    "tags": [
+      "Princeton offence",
+      "backdoor",
+      "cutting",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 92,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-018",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Amoeba Defence",
+    "content": "The amoeba defence is an unconventional defensive system that changes its structure continuously, shifting between man-to-man, zone, and press principles based on where the ball is. It was developed to confuse offences and disrupt their normal sets. The amoeba defence requires all five defenders to have high basketball IQ and the ability to play multiple defensive roles. It is rarely used at the professional level but has been employed successfully at the college level. Its unpredictability is its greatest strength.",
+    "tags": [
+      "amoeba defence",
+      "hybrid",
+      "unconventional",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 93,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-019",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Five-Out Offence",
+    "content": "The five-out offence (also called open post) places all five players on the perimeter beyond the three-point arc, leaving the paint completely open for drives and cuts. This spacing maximises driving lanes for all five players and creates a system where any player can drive, pass, or shoot. It requires all five players to be credible three-point threats to prevent defenders from sagging into the paint. The five-out offence has become popular in modern basketball alongside the three-point revolution and is effective against teams that play aggressive interior defence.",
+    "tags": [
+      "five-out",
+      "open post",
+      "spacing",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 94,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-formation-020",
+    "sport": "basketball",
+    "category": "formation",
+    "title": "Stack Formation - Inbound Plays",
+    "content": "The stack formation is used for inbound plays, particularly under the opponent's basket. Players line up in a vertical stack along the lane, then execute timed cuts in different directions to get open for the inbound pass. The stack creates confusion for defenders who must decide which cutter to follow. Common stack variations include the baseline stack (players cut along the baseline) and the side stack (players cut toward the ball or away from it). Stack plays are often used in the final seconds of a game when a team needs a quick score.",
+    "tags": [
+      "stack formation",
+      "inbound play",
+      "set play",
+      "formation",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 95,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-029",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Positional Versatility and Positionless Basketball",
+    "content": "Modern basketball increasingly values positional versatility \u2014 the ability of players to play and guard multiple positions. Positionless basketball refers to systems where traditional position labels are abandoned in favour of skill-based roles. Teams seek players who can handle the ball, shoot from the perimeter, and defend multiple positions regardless of their size. This evolution was driven by the need to create and defend mismatches in an era of widespread switching defences. Players like LeBron James, Giannis Antetokounmpo, and Nikola Jokic exemplify positionless basketball.",
+    "tags": [
+      "positionless basketball",
+      "versatility",
+      "modern basketball",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 96,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-030",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Defensive Communication and Calling Screens",
+    "content": "Effective team defence requires constant verbal and non-verbal communication between all five defenders. Calling out screens ('screen left', 'screen right') alerts the on-ball defender before they are picked, giving them time to fight over or under the screen. Help defenders must communicate when they are providing help and when they are recovering. Switching must be called loudly and clearly to avoid defensive breakdowns. Teams that communicate well on defence consistently allow fewer points and create more turnovers. Communication is considered one of the most important non-physical defensive skills.",
+    "tags": [
+      "defensive communication",
+      "screens",
+      "calling",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 97,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-031",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Attacking the Bonus Situation",
+    "content": "When the opposing team is in the bonus (or penalty), every non-shooting foul results in free throws. Offences should actively attack the basket and draw contact in bonus situations to get to the free throw line. Teams with high free throw rates \u2014 measured by free throw attempt rate (FTA/FGA) \u2014 are typically more efficient offensively. Coaches instruct players to drive aggressively, attack closeouts with shot fakes, and look for contact when the opponent is in the bonus. Getting to the free throw line is particularly valuable in the fourth quarter when games are close.",
+    "tags": [
+      "bonus",
+      "free throws",
+      "strategy",
+      "foul drawing",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 98,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-032",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Superteam Strategy and Star Player Recruitment",
+    "content": "The superteam strategy involves assembling multiple star players on one team to maximise championship probability. This trend accelerated when LeBron James joined Dwyane Wade and Chris Bosh in Miami in 2010. The strategy relies on star players accepting reduced salaries or using player options to facilitate roster construction. Critics argue superteams reduce competitive balance, while proponents say it is the natural result of players exercising their rights. The NBA has attempted to limit superteam formation through the luxury tax and sign-and-trade restrictions, with limited success.",
+    "tags": [
+      "superteam",
+      "star players",
+      "roster construction",
+      "strategy",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 99,
+    "last_updated": "2024"
+  },
+  {
+    "id": "basketball-strategy-033",
+    "sport": "basketball",
+    "category": "strategy",
+    "title": "Trap Defence Strategy",
+    "content": "A trap defence sends two defenders to double-team the ball handler, typically in the corners or along the sidelines where the court boundaries limit escape options. The goal is to force a rushed or errant pass that can be intercepted by the remaining three defenders, who position themselves to anticipate rotations. Trapping is most effective against teams with a dominant ball handler and weaker supporting players. The risk of trapping is that it creates open players if the ball handler makes quick, accurate passes. Effective trapping requires excellent anticipation and athleticism from all five defenders.",
+    "tags": [
+      "trap defence",
+      "double team",
+      "strategy",
+      "defence",
+      "basketball"
+    ],
+    "source": "nba.com",
+    "source_id": 100,
+    "last_updated": "2024"
+  }
+]
