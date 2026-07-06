@@ -1,7 +1,7 @@
 """
 search.py — RAG retrieval logic for SportScore Knowledge Assistant
 
-Implements the two-round search strategy:
+Implements the two-round search strategy across football and basketball indices.
   Round 1 — exact search using the user's full question
   Round 2 — broader search using extracted key words (fallback)
 
@@ -18,41 +18,71 @@ load_dotenv()
 
 SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
-INDEX_NAME      = "football-index"
+
+INDICES = ["football-index", "basketball-index"]
+
+BASKETBALL_KEYWORDS = {
+    "basketball", "nba", "dribble", "three point", "three-point", "free throw", "rebound", "slam dunk", "pick and roll", "layup",
+    "jump shot", "shot clock", "foul out", "wnba", "fiba", "hoop", "backboard", "rim", "paint", "point guard", "shooting guard"
+}
+
+FOOTBALL_KEYWORDS = {
+    "football", "soccer", "offside", "premier league", "uefa", "fifa", "formation", "penalty", "yellow card", "red card", "free kick",
+    "corner kick", "throw in", "goalkeeper", "striker", "midfielder", "bundesliga", "la liga", "serie a", "champions league", "world cup"
+}
 
 # Filler words stripped out when building the Round 2 broad query
 STOPWORDS = {
-    "what", "is", "the", "a", "an", "how", "does", "do", "in", "of",
-    "to", "for", "and", "are", "was", "were", "explain", "tell", "me",
+    "what", "is", "the", "a", "an", "how", "does", "do", "in", "of", "to", "for", "and", "are", "was", "were", "explain", "tell", "me",
     "about", "can", "you", "please", "i", "want", "know", "on", "with"
 }
 
 
-def _get_client():
+def _get_client(index_name):
     return SearchClient(
         endpoint=SEARCH_ENDPOINT,
-        index_name=INDEX_NAME,
+        index_name=index_name,
         credential=AzureKeyCredential(SEARCH_API_KEY)
     )
 
 
 def _extract_keywords(question):
-    """
-    Strips filler words, returns just the meaningful terms.
-    Used for Round 2 broad search.
-
-    Example:
-      "What is gegenpressing?" -> "gegenpressing"
-      "How does the offside rule work?" -> "offside rule work"
-    """
     words = re.findall(r"[a-zA-Z0-9\-]+", question.lower())
     keywords = [w for w in words if w not in STOPWORDS]
     return " ".join(keywords) if keywords else question
 
 
+def _detect_sport(question):
+    q_lower = question.lower()
+    if any(kw in q_lower for kw in BASKETBALL_KEYWORDS):
+        return "basketball"
+    if any(kw in q_lower for kw in FOOTBALL_KEYWORDS):
+        return "football"
+    return None
+
+
+def _search_index(index_name, search_text, top=3):
+    client = _get_client(index_name)
+    return list(client.search(search_text=search_text, top=top))
+
+
+def _search_all_indices(search_text, sport=None, top=3):
+    """Search across relevant indices and return results."""
+    all_results = []
+    for index_name in INDICES:
+        # If sport detected, only search the relevant index
+        if sport == "basketball" and index_name != "basketball-index":
+            continue
+        if sport == "football" and index_name != "football-index":
+            continue
+        results = _search_index(index_name, search_text, top=top)
+        all_results.extend(results)
+    return all_results
+
+
 def search_corpus(question, top=3):
     """
-    Runs the two-round search strategy against the football-index.
+    Runs the two-round search strategy across football and basketball indices.
 
     Returns:
       {
@@ -61,25 +91,25 @@ def search_corpus(question, top=3):
         "results": [ {id, title, category, content, source}, ... ]
       }
     """
-    client = _get_client()
+    sport = _detect_sport(question)
 
     # ── ROUND 1: exact search with the full question ──
-    round1_results = list(client.search(search_text=question, top=top))
+    round1_results = _search_all_indices(question, sport=sport, top=top)
     if round1_results:
         return {
             "found": True,
             "round_used": 1,
-            "results": [_format_result(r) for r in round1_results]
+            "results": [_format_result(r) for r in round1_results[:top]]
         }
 
     # ── ROUND 2: broader search using extracted key words ──
     keywords = _extract_keywords(question)
-    round2_results = list(client.search(search_text=keywords, top=top))
+    round2_results = _search_all_indices(keywords, sport=sport, top=top)
     if round2_results:
         return {
             "found": True,
             "round_used": 2,
-            "results": [_format_result(r) for r in round2_results]
+            "results": [_format_result(r) for r in round2_results[:top]]
         }
 
     # ── Nothing found in either round ──
@@ -104,10 +134,10 @@ def _format_result(r):
 if __name__ == "__main__":
     test_questions = [
         "What is gegenpressing?",
-        "Tell me about the 4-3-3 formation",
-        "What is the score today?",           # should be caught by app.py routing
-        "yellow card rules",
-        "asdkjqwoieuqwoiueqwoiue",           # gibberish — should return not found
+        "What is a three point shot in basketball?",
+        "How does the offside rule work?",
+        "What is the pick and roll?",
+        "asdkjqwoieuqwoiueqwoiue",
     ]
 
     for q in test_questions:
