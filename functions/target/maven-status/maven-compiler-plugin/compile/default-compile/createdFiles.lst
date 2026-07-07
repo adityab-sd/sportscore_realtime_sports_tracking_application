@@ -1,7 +1,0 @@
-org/sportscore/functions/EventHubToSignalRFunction$1.class
-org/sportscore/functions/EventHubToSignalRFunction.class
-org/sportscore/functions/EventHubToSignalRFunction$SignalRMessage.class
-org/sportscore/validator/MatchValidator.class
-org/sportscore/model/Match.class
-org/sportscore/model/Team.class
-org/sportscore/model/MatchEvent.class

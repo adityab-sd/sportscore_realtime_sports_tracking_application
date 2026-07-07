@@ -1,0 +1,8 @@
+
+# secrets — never commit
+backend/src/main/resources/application.properties
+frontend/.env.local
+
+# build output
+target/
+.DS_Store

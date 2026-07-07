@@ -5,20 +5,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * Unified, multi-sport match model. One schema for football, basketball and
- * cricket so the live pipeline (Event Hub -> SignalR) and consumers handle a
- * single shape.
- *
- * Football remains source-compatible: a secondary constructor preserves the
- * original 10-arg signature, so existing football adapters compile unchanged.
- *
- * Sport-specific representation:
- *   football   -> elapsed (minute), homeScore/awayScore (goals)
- *   basketball -> period (quarter), clock (game clock), homeScore/awayScore (points)
- *   cricket    -> period (innings), homeScoreDisplay "245/6", clock "48.2 ov",
- *                 homeScore/awayScore = runs (numeric, for quick compare)
- */
+// One Match shape for every sport, so the Event Hub -> SignalR pipeline and
+// consumers only deal with a single type. Sport decides which fields matter:
+// football uses elapsed; basketball uses period+clock; baseball uses period (inning).
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Match(
         @JsonProperty("id") int id,
@@ -38,10 +27,7 @@ public record Match(
         @JsonProperty("awayScoreDisplay") String awayScoreDisplay,
         @JsonProperty("events") List<MatchEvent> events) {
 
-    /**
-     * Backward-compatible football constructor (original 10-arg signature).
-     * Defaults sport to "football" and leaves the multi-sport fields null.
-     */
+    // Original 10-arg football constructor, kept so football adapters compile unchanged.
     public Match(int id, String status, Integer elapsed, String kickoff, String competition,
                  Team homeTeam, Team awayTeam, Integer homeScore, Integer awayScore,
                  List<MatchEvent> events) {
