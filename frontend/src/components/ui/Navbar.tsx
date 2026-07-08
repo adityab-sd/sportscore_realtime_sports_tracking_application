@@ -14,6 +14,7 @@ const sports = [
   { key: "cricket",  label: "Cricket",  href: "/cricket",  hasDropdown: false },
   { key: "rugby",    label: "Rugby",    href: "/rugby",    hasDropdown: false },
   { key: "f1",       label: "F1",       href: "/f1",       hasDropdown: false },
+  { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: false },
 ];
 
 const DROPDOWN_LEAGUES = LEAGUES.filter(l => l.slug !== "fifa.friendly");

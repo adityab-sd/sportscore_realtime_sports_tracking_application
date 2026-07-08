@@ -41,12 +41,23 @@ function F1Icon() {
     </svg>
   );
 }
+function BasketballIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2c3 3 3 17 0 20" />
+      <path d="M12 2c-3 3-3 17 0 20" />
+    </svg>
+  );
+}
 
 const sports = [
   { key: "football", label: "Football", href: "/football", Icon: FootballIcon, desc: "Live scores, standings & match stats", live: true },
   { key: "cricket",  label: "Cricket",  href: "/cricket",  Icon: CricketIcon,  desc: "Scorecards, NRR & player profiles",   soon: true },
   { key: "rugby",    label: "Rugby",    href: "/rugby",    Icon: RugbyIcon,    desc: "Fixtures, tables & match reports",    soon: true },
   { key: "f1",       label: "Formula 1",href: "/f1",       Icon: F1Icon,       desc: "Lap times, standings & race results", soon: true },
+  { key: "basketball", label: "Basketball", href: "/basketball", Icon: BasketballIcon, desc: "NBA & WNBA scores, standings & rosters", live: true },
 ];
 
 export default function SportCards() {
