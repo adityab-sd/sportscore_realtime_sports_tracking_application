@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import org.sportscore.model.Match;
+import org.sportscore.config.KeyVaultSecretProvider;
 import org.sportscore.validator.MatchValidator;
 
 import javax.crypto.Mac;
@@ -59,8 +60,8 @@ public class EventHubToSignalRFunction {
     }
 
     private void broadcastToSignalR(List<Match> matches, ExecutionContext context) throws Exception {
-        String signalREndpoint = System.getenv("SIGNALR_REST_ENDPOINT");
-        String signalRKey = System.getenv("SIGNALR_ACCESS_KEY");
+        String signalREndpoint = KeyVaultSecretProvider.getSecret("signalr-rest-endpoint");
+        String signalRKey = KeyVaultSecretProvider.getSecret("signalr-access-key");
         String url = signalREndpoint + "/api/v1/hubs/sportscoreHub";
 
         String body = mapper.writeValueAsString(new SignalRMessage("matchUpdate", matches));
