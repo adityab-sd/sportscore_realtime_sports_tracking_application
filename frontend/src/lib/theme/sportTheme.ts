@@ -1,4 +1,4 @@
-export type SportKey = "football" | "cricket" | "rugby" | "f1";
+export type SportKey = "football" | "basketball" | "cricket" | "rugby" | "f1";
 
 export interface SportTheme {
   accentColor: string;
@@ -46,6 +46,15 @@ export const sportThemes: Record<SportKey, SportTheme> = {
     emoji: "🏎",
     assistantPlaceholder: "Ask about lap times, tyre strategy, drivers...",
     radioLabel: "F1 Race Radio",
+  },
+  basketball: {
+    accentColor: "#EA580C",
+    accentLight: "#FEF3C7",
+    accentText: "#B45309",
+    label: "Basketball",
+    emoji: "🏀",
+    assistantPlaceholder: "Ask about rules, players, stats...",
+    radioLabel: "Basketball Radio",
   },
 };
 
