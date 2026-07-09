@@ -2,21 +2,42 @@
 
 import { useState, useRef } from "react";
 import { useSignalR } from "@/hooks/useSignalR";
-import { classifyStatus, LEAGUES } from "@/types/football";
+import { classifyStatus, LEAGUES as FOOTBALL_LEAGUES } from "@/types/football";
+import { LEAGUES as BASKETBALL_LEAGUES } from "@/types/basketball";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Radio, Bot, Menu, X, ChevronDown, Newspaper } from "lucide-react";
 import AssistantSidebar from "@/components/assistant/AssistantSidebar";
 import RadioBar from "@/components/radio/RadioBar";
 
-const sports = [
-  { key: "football", label: "Football", href: "/football", hasDropdown: true  },
-  { key: "cricket",  label: "Cricket",  href: "/cricket",  hasDropdown: false },
-  { key: "rugby",    label: "Rugby",    href: "/rugby",    hasDropdown: false },
-  { key: "f1",       label: "F1",       href: "/f1",       hasDropdown: false },
-];
+interface DropdownConfig {
+  newsHref: string;
+  newsLabel: string;
+  sportPath: string;
+  leagues: { slug: string; name: string; logo: string }[];
+}
 
-const DROPDOWN_LEAGUES = LEAGUES.filter(l => l.slug !== "fifa.friendly");
+const DROPDOWN_CONFIGS: Record<string, DropdownConfig> = {
+  football: {
+    newsHref: "/football/news",
+    newsLabel: "Latest Football News",
+    sportPath: "/football",
+    leagues: FOOTBALL_LEAGUES.filter(l => l.slug !== "fifa.friendly"),
+  },
+  basketball: {
+    newsHref: "/basketball/news",
+    newsLabel: "Latest Basketball News",
+    sportPath: "/basketball",
+    leagues: BASKETBALL_LEAGUES,
+  },
+};
+
+const sports = [
+  { key: "football",   label: "Football",   href: "/football",   hasDropdown: true  },
+  { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: true  },
+  { key: "cricket",    label: "Cricket",    href: "/cricket",    hasDropdown: false },
+  { key: "f1",         label: "F1",         href: "/f1",         hasDropdown: false },
+];
 
 function LeagueLogo({ src, name }: { src: string; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -48,9 +69,8 @@ export default function Navbar() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [radioOpen,     setRadioOpen]     = useState(false);
   const [menuOpen,      setMenuOpen]      = useState(false);
-  const [dropdownOpen,  setDropdownOpen]  = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const closeTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [openDropdown,  setOpenDropdown]  = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { matches } = useSignalR();
   const liveCount   = matches.filter(m => classifyStatus(m.status) === "live").length;
@@ -58,12 +78,12 @@ export default function Navbar() {
 
   const activeSport = sports.find(s => pathname.startsWith(s.href))?.key ?? null;
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = (key: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    setDropdownOpen(true);
+    setOpenDropdown(key);
   };
   const handleMouseLeave = () => {
-    closeTimer.current = setTimeout(() => setDropdownOpen(false), 120);
+    closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
   };
 
   return (
@@ -80,8 +100,10 @@ export default function Navbar() {
           <nav style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }} className="desktop-only">
             {sports.map(({ key, label, href, hasDropdown }) => {
               const active = activeSport === key;
+              const isOpen = openDropdown === key;
+              const config = DROPDOWN_CONFIGS[key];
 
-              if (!hasDropdown) {
+              if (!hasDropdown || !config) {
                 return (
                   <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 8, fontWeight: 500, fontSize: 14, textDecoration: "none", color: active ? "#fff" : "rgba(255,255,255,0.65)", background: active ? "rgba(255,255,255,0.14)" : "transparent", transition: "background 120ms, color 120ms" }}>
                     {label}
@@ -92,23 +114,22 @@ export default function Navbar() {
               return (
                 <div
                   key={key}
-                  ref={dropdownRef}
                   style={{ position: "relative" }}
-                  onMouseEnter={handleMouseEnter}
+                  onMouseEnter={() => handleMouseEnter(key)}
                   onMouseLeave={handleMouseLeave}
                 >
                   <Link
                     href={href}
-                    style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 8, fontWeight: 500, fontSize: 14, textDecoration: "none", color: active ? "#fff" : "rgba(255,255,255,0.65)", background: (active || dropdownOpen) ? "rgba(255,255,255,0.14)" : "transparent", transition: "background 120ms, color 120ms" }}
+                    style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 8, fontWeight: 500, fontSize: 14, textDecoration: "none", color: active ? "#fff" : "rgba(255,255,255,0.65)", background: (active || isOpen) ? "rgba(255,255,255,0.14)" : "transparent", transition: "background 120ms, color 120ms" }}
                   >
                     {label}
-                    {liveCount > 0 && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />}
-                    <ChevronDown size={12} style={{ opacity: 0.7, transition: "transform 150ms", transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                    {key === "football" && liveCount > 0 && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />}
+                    <ChevronDown size={12} style={{ opacity: 0.7, transition: "transform 150ms", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
                   </Link>
 
-                  {dropdownOpen && (
+                  {isOpen && (
                     <div
-                      onMouseEnter={handleMouseEnter}
+                      onMouseEnter={() => handleMouseEnter(key)}
                       onMouseLeave={handleMouseLeave}
                       style={{
                         position: "absolute", top: "calc(100% + 6px)", left: 0,
@@ -120,14 +141,14 @@ export default function Navbar() {
                     >
                       {/* News link */}
                       <Link
-                        href="/football/news"
-                        onClick={() => setDropdownOpen(false)}
+                        href={config.newsHref}
+                        onClick={() => setOpenDropdown(null)}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", textDecoration: "none", color: "var(--obsidian)", fontWeight: 600, fontSize: 13, borderBottom: "1px solid var(--border)", background: "var(--cloud)", transition: "background 100ms" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "var(--cloud-hover)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "var(--cloud)")}
                       >
                         <Newspaper size={14} style={{ color: "var(--navy)", flexShrink: 0 }} />
-                        Latest Football News
+                        {config.newsLabel}
                       </Link>
 
                       {/* League list */}
@@ -135,13 +156,14 @@ export default function Navbar() {
                         <div style={{ padding: "4px 16px 6px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px" }}>
                           Leagues
                         </div>
-                        {DROPDOWN_LEAGUES.map(l => {
-                          const isActive = pathname === `/football/league/${l.slug}`;
+                        {config.leagues.map(l => {
+                          const leaguePath = `${config.sportPath}/league/${l.slug}`;
+                          const isActive = pathname === leaguePath;
                           return (
                             <Link
                               key={l.slug}
-                              href={`/football/league/${l.slug}`}
-                              onClick={() => setDropdownOpen(false)}
+                              href={leaguePath}
+                              onClick={() => setOpenDropdown(null)}
                               style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", textDecoration: "none", color: isActive ? "var(--navy)" : "var(--obsidian)", fontWeight: isActive ? 700 : 500, fontSize: 13, background: isActive ? "var(--navy-light)" : "transparent", transition: "background 100ms" }}
                               onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--cloud)"; }}
                               onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
@@ -197,11 +219,12 @@ export default function Navbar() {
                 </Link>
               );
             })}
-            {activeSport === "football" && (
+            {/* Mobile league submenu for whichever sport is active */}
+            {activeSport && DROPDOWN_CONFIGS[activeSport] && (
               <div style={{ marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 8 }}>
                 <div style={{ padding: "4px 12px 6px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.8px" }}>Leagues</div>
-                {DROPDOWN_LEAGUES.map(l => (
-                  <Link key={l.slug} href={`/football/league/${l.slug}`} onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 6, fontSize: 13, fontWeight: 500, textDecoration: "none", color: "rgba(255,255,255,0.7)" }}>
+                {DROPDOWN_CONFIGS[activeSport].leagues.map(l => (
+                  <Link key={l.slug} href={`${DROPDOWN_CONFIGS[activeSport].sportPath}/league/${l.slug}`} onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 6, fontSize: 13, fontWeight: 500, textDecoration: "none", color: "rgba(255,255,255,0.7)" }}>
                     <LeagueLogo src={l.logo} name={l.name} />
                     {l.name}
                   </Link>

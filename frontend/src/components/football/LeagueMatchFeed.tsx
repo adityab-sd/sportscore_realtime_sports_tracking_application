@@ -44,8 +44,8 @@ export default function LeagueMatchFeed({ leagueName, slug }: Props) {
           <p style={{ fontSize: 14, margin: "0 0 6px", fontWeight: 600, color: "var(--text-secondary)" }}>No matches in the feed</p>
           <p style={{ fontSize: 13, margin: 0 }}>
             {state === "connected"
-              ? "No matches for this league are currently being pushed via SignalR."
-              : "SignalR is offline - check the backend is running."}
+              ? "No matches for this league are currently being played."
+              : "network offline."}
           </p>
         </div>
       )}
