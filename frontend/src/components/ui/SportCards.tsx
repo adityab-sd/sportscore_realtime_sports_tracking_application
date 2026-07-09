@@ -41,6 +41,16 @@ function F1Icon() {
     </svg>
   );
 }
+function BasketballIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2c3 3 3 17 0 20" />
+      <path d="M12 2c-3 3-3 17 0 20" />
+    </svg>
+  );
+}
 
 const sports = [
   { key: "football",   label: "Football",   href: "/football",   Icon: FootballIcon,   desc: "Live scores, standings & match stats",     live: true },

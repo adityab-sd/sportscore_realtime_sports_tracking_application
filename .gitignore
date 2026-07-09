@@ -9,3 +9,6 @@ target/
 application.properties
 
 local.settings.json
+
+functions/local.settings.json
+functions/test-client.html
