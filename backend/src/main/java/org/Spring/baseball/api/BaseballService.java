@@ -1,7 +1,5 @@
 package org.Spring.baseball.api;
 
-import org.Spring.api.Dto;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,14 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.Spring.api.Dto;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Owns all ESPN baseball (MLB) reference-data parsing. Mirrors FootballService
- * in structure and quality:
+ * Owns all ESPN baseball (MLB) reference-data parsing. 
  *   - multi-group standings via children iteration (division grouping)
  *   - football-grade news categorisation (league/team priority, generic filter,
  *     trade/signing detection)
