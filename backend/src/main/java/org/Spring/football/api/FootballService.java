@@ -1,12 +1,8 @@
 package org.Spring.football.api;
 
 import org.Spring.api.Dto;
+import org.Spring.api.EspnApiHelper;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -16,21 +12,12 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * Owns all ESPN reference-data parsing. This is the single place that knows
- * ESPN's raw shapes; everything downstream sees only clean DTOs.
- * Parsing logic ported from the frontend's espn.ts so output is identical.
- */
 @Service
-public class FootballService {
+public class FootballService extends EspnApiHelper {
 
     private static final String SITE      = "https://site.api.espn.com/apis/site/v2/sports/soccer";
     private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/soccer";
-
-    private final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-    private final ObjectMapper mapper = new ObjectMapper();
 
     // scoreboard / fixtures
 
@@ -85,23 +72,6 @@ public class FootballService {
                 str(e.path("id")), status, state, txt(e.path("date")), competition,
                 teamRef(home.path("team")), teamRef(away.path("team")),
                 num(home.path("score")), num(away.path("score")), round);
-    }
-
-    private JsonNode competitor(JsonNode comp, String side, int fallbackIdx) {
-        JsonNode comps = comp.path("competitors");
-        for (JsonNode c : comps) {
-            if (side.equals(c.path("homeAway").asText())) return c;
-        }
-        return comps.has(fallbackIdx) ? comps.get(fallbackIdx) : null;
-    }
-
-    private Dto.TeamRef teamRef(JsonNode t) {
-        String logo = first(txt(t.path("logo")), txt(t.path("logos").path(0).path("href")), null);
-        return new Dto.TeamRef(
-                str(t.path("id")),
-                first(txt(t.path("displayName")), txt(t.path("name")), "-"),
-                first(txt(t.path("abbreviation")), txt(t.path("shortDisplayName")), ""),
-                logo);
     }
 
     // standings
@@ -221,16 +191,6 @@ public class FootballService {
         if (team   != null) return team;
         if (other  != null) return other;
         return "Football";
-    }
-
-    private String bestImage(JsonNode images) {
-        String best = null; int bestW = -1;
-        for (JsonNode img : images) {
-            int    w   = img.path("width").asInt(0);
-            String src = first(txt(img.path("href")), txt(img.path("url")), txt(img.path("src")), null);
-            if (src != null && src.startsWith("http") && w > bestW) { best = src; bestW = w; }
-        }
-        return best;
     }
 
     // team / roster
@@ -644,59 +604,6 @@ public class FootballService {
         return null;
     }
 
-    /** Team in Core API is usually a $ref. Pull team id from the URL or inline. */
-    private String resolveTeamId(JsonNode teamNode) {
-        if (teamNode.isMissingNode() || teamNode.isNull()) return null;
-        String inline = txt(teamNode.path("id"));
-        if (inline != null) return inline;
-        String ref = txt(teamNode.path("$ref"));
-        if (ref == null) return null;
-        java.util.regex.Matcher m = Pattern.compile("/teams/(\\d+)").matcher(ref);
-        return m.find() ? m.group(1) : null;
-    }
-
-    /** Get athlete displayName from a play, resolving $ref if necessary. */
-    private String resolveAthleteName(JsonNode play, java.util.Map<String, String> cache) {
-        JsonNode parts = play.path("participants");
-        if (parts.isArray() && parts.size() > 0) {
-            for (JsonNode part : parts) {
-                String name = athleteName(part.path("athlete"), cache);
-                if (name != null) return name;
-            }
-        }
-        JsonNode inv = play.path("athletesInvolved");
-        if (inv.isArray() && inv.size() > 0) {
-            for (JsonNode a : inv) {
-                String name = athleteName(a, cache);
-                if (name != null) return name;
-            }
-        }
-        return null;
-    }
-
-    private String athleteName(JsonNode ath, java.util.Map<String, String> cache) {
-        if (ath.isMissingNode() || ath.isNull()) return null;
-        String inline = first(txt(ath.path("displayName")),
-                              txt(ath.path("fullName")),
-                              txt(ath.path("shortName")));
-        if (inline != null) return inline;
-        String ref = txt(ath.path("$ref"));
-        if (ref == null) return null;
-        if (cache.containsKey(ref)) return cache.get(ref);
-        try {
-            String url = ref.replaceFirst("^http://", "https://");
-            JsonNode athlete = get(url);
-            String name = first(txt(athlete.path("displayName")),
-                                txt(athlete.path("fullName")),
-                                txt(athlete.path("shortName")));
-            cache.put(ref, name);
-            return name;
-        } catch (Exception e) {
-            cache.put(ref, null);
-            return null;
-        }
-    }
-
     private Dto.MatchEventDto parseSummaryEvent(JsonNode d, java.util.Map<String, String> playerByKey) {
         String typeText = d.path("type").path("text").asText("").toLowerCase();
         boolean isGoal  = d.path("scoringPlay").asBoolean(false) || typeText.contains("goal");
@@ -751,37 +658,10 @@ public class FootballService {
 
     // low-level helpers
 
-    private JsonNode get(String url) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SportScore/1.0").GET().build();
-        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-        if (res.statusCode() != 200) return mapper.createObjectNode();
-        return mapper.readTree(res.body());
-    }
-
     private int parseMinute(String display) {
         if (display == null) return 0;
         java.util.regex.Matcher m = Pattern.compile("\\d+").matcher(display);
         return m.find() ? Integer.parseInt(m.group()) : 0;
     }
 
-    private String txt(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull()) ? null : n.asText();
-    }
-
-    private Integer num(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull() || n.asText().isBlank())
-                ? null : (int) n.asDouble();
-    }
-
-    private String str(JsonNode n)               { return str(n, ""); }
-    private String str(JsonNode n, String fallback) {
-        String s = txt(n); return s != null ? s : fallback;
-    }
-
-    private String first(String... vals) {
-        for (String v : vals) if (v != null) return v;
-        return null;
-    }
 }

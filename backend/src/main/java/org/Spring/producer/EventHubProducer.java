@@ -9,27 +9,23 @@ import com.azure.messaging.eventhubs.EventHubProducerClient;
 @org.springframework.stereotype.Component
 public class EventHubProducer {
 
-    private final String connectionString;
-    private final String eventHubName;
+    private final EventHubProducerClient client;
 
     public EventHubProducer(
             @org.springframework.beans.factory.annotation.Value("${eventhub.connection-string}") String connectionString,
             @org.springframework.beans.factory.annotation.Value("${eventhub.name}") String eventHubName) {
-        this.connectionString = connectionString;
-        this.eventHubName     = eventHubName;
+        this.client = (connectionString == null || connectionString.isBlank()) ? null
+                : new EventHubClientBuilder()
+                        .connectionString(connectionString, eventHubName)
+                        .buildProducerClient();
     }
 
     public void send(String json) {
-        // Guard: skip when running main() outside Spring (no connection string)
-        if (connectionString == null || connectionString.isBlank()) {
+        if (client == null) {
             System.out.println("[EventHubProducer] No connection string - skipping send. Payload preview: "
                     + json.substring(0, Math.min(json.length(), 120)) + "...");
             return;
         }
-        try (EventHubProducerClient client = new EventHubClientBuilder()
-                .connectionString(connectionString, eventHubName)
-                .buildProducerClient()) {
-            client.send(List.of(new EventData(json)));
-        }
+        client.send(List.of(new EventData(json)));
     }
 }
