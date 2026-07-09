@@ -10,8 +10,7 @@ import org.Spring.model.Team;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-// Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[])
-// into our unified Match model.
+// Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[]) into the unified Match model.
 public class CoreFootballAdapter {
 
     private final ObjectMapper mapper = new ObjectMapper();

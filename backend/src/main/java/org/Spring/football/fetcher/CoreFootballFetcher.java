@@ -103,7 +103,7 @@ public class CoreFootballFetcher {
         return response.body();
     }
 
-    // Manual test which is for me only, not part of the production service.
+    // Manual test which is for only me, not part of the production service.
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()

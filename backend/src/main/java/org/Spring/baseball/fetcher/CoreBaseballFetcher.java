@@ -91,7 +91,7 @@ public class CoreBaseballFetcher {
         return response.body();
     }
 
-    // Manual test  ->  mvn exec or run this main() to print MLB data
+    // Manual test for only me, not part of the production service.
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
@@ -144,7 +144,7 @@ public class CoreBaseballFetcher {
                 + "   Other: "     + other.size());
     }
 
-    // Helpers
+    // Helpers for the manual test above.
 
     private static String category(String status) {
         if (status == null) return "OTHER";
