@@ -20,6 +20,15 @@ export const sportThemes: Record<SportKey, SportTheme> = {
     assistantPlaceholder: "Ask about rules, players, stats...",
     radioLabel: "Football Radio",
   },
+  basketball: {
+    accentColor: "#EA580C",
+    accentLight: "#FEF3C7",
+    accentText: "#B45309",
+    label: "Basketball",
+    emoji: "🏀",
+    assistantPlaceholder: "Ask about rules, players, stats...",
+    radioLabel: "Basketball Radio",
+  },
   cricket: {
     accentColor: "#0D7377",
     accentLight: "#E6F4F4",
@@ -46,15 +55,6 @@ export const sportThemes: Record<SportKey, SportTheme> = {
     emoji: "🏎",
     assistantPlaceholder: "Ask about lap times, tyre strategy, drivers...",
     radioLabel: "F1 Race Radio",
-  },
-  basketball: {
-    accentColor: "#EA580C",
-    accentLight: "#FEF3C7",
-    accentText: "#B45309",
-    label: "Basketball",
-    emoji: "🏀",
-    assistantPlaceholder: "Ask about rules, players, stats...",
-    radioLabel: "Basketball Radio",
   },
 };
 

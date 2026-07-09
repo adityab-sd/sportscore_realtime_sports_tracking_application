@@ -6,3 +6,6 @@ frontend/.env.local
 # build output
 target/
 .DS_Store
+application.properties
+
+local.settings.json
