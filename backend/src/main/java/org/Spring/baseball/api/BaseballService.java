@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.Spring.api.Dto;
@@ -35,6 +36,28 @@ public class BaseballService {
 
     private final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
+
+    // ESPN's standings response only groups to League level (American/National
+    // League) - it never labels a team's actual division (East/Central/West) in
+    // the entries themselves, even though it DOES send division-relative stats
+    // (divisionGamesBehind etc.) for each team. So real division grouping has to
+    // come from a static map of ESPN's own team IDs, verified against live API
+    // responses fetched directly. MLB's 6 divisions are fixed and don't change
+    // season-to-season, so this is safe to hardcode.
+    private static final Map<String, String> MLB_TEAM_DIVISION = Map.ofEntries(
+            Map.entry("1",  "AL East"), Map.entry("2",  "AL East"), Map.entry("10", "AL East"),
+            Map.entry("30", "AL East"), Map.entry("14", "AL East"),
+            Map.entry("4",  "AL Central"), Map.entry("5",  "AL Central"), Map.entry("6",  "AL Central"),
+            Map.entry("7",  "AL Central"), Map.entry("9",  "AL Central"),
+            Map.entry("18", "AL West"), Map.entry("3",  "AL West"), Map.entry("11", "AL West"),
+            Map.entry("12", "AL West"), Map.entry("13", "AL West"),
+            Map.entry("15", "NL East"), Map.entry("28", "NL East"), Map.entry("21", "NL East"),
+            Map.entry("22", "NL East"), Map.entry("20", "NL East"),
+            Map.entry("16", "NL Central"), Map.entry("17", "NL Central"), Map.entry("8",  "NL Central"),
+            Map.entry("23", "NL Central"), Map.entry("24", "NL Central"),
+            Map.entry("29", "NL West"), Map.entry("27", "NL West"), Map.entry("19", "NL West"),
+            Map.entry("25", "NL West"), Map.entry("26", "NL West")
+    );
 
     // scoreboard / fixtures
 
@@ -101,14 +124,14 @@ public class BaseballService {
         JsonNode children = raw.path("children");
         if (children.isArray() && children.size() > 0) {
             for (JsonNode child : children) {
-                String division = first(txt(child.path("name")), txt(child.path("displayName")),
+                String groupName = first(txt(child.path("name")), txt(child.path("displayName")),
                                         txt(child.path("abbreviation")), null);
-                String divForRow = children.size() > 1 ? division : null;
-                appendEntries(child.path("standings").path("entries"), divForRow, out);
+                String groupForRow = children.size() > 1 ? groupName : null;
+                appendEntries(child.path("standings").path("entries"), groupForRow, out, league);
             }
         }
-        if (out.isEmpty()) appendEntries(raw.path("standings").path("entries"), null, out);
-        if (out.isEmpty()) appendEntries(raw.path("entries"), null, out);
+        if (out.isEmpty()) appendEntries(raw.path("standings").path("entries"), null, out, league);
+        if (out.isEmpty()) appendEntries(raw.path("entries"), null, out, league);
 
         for (int i = 0; i < out.size(); i++) {
             if (out.get(i).rank() == 0) {
@@ -122,19 +145,34 @@ public class BaseballService {
         return out;
     }
 
-    private void appendEntries(JsonNode entries, String division, List<BaseballDto.StandingRow> out) {
+    private void appendEntries(JsonNode entries, String fallbackGroup, List<BaseballDto.StandingRow> out, String league) {
         if (entries.isMissingNode() || !entries.isArray()) return;
         for (JsonNode e : entries) {
             JsonNode stats = e.path("stats");
             JsonNode t     = e.path("team");
+            String   teamId = str(t.path("id"));
+
+            // Real division label from the verified team-ID map. Falls back to
+            // whatever group ESPN gave us (usually just "American League" /
+            // "National League") for any league/team not in the map - e.g. any
+            // other baseball league besides MLB, which isn't divided this way.
+            String division = "mlb".equalsIgnoreCase(league) && MLB_TEAM_DIVISION.containsKey(teamId)
+                    ? MLB_TEAM_DIVISION.get(teamId)
+                    : fallbackGroup;
+
             out.add(new BaseballDto.StandingRow(
                     statInt(stats, "rank", "playoffSeed"),
-                    str(t.path("id")),
+                    teamId,
                     first(txt(t.path("displayName")), txt(t.path("name")), "-"),
                     first(txt(t.path("abbreviation")), txt(t.path("shortDisplayName")), ""),
                     first(txt(t.path("logos").path(0).path("href")), txt(t.path("logo")), null),
                     statInt(stats, "wins"), statInt(stats, "losses"),
                     statDouble(stats, "winPercent", "winpercent"),
+                    // NOTE: this is still the LEAGUE-wide games-behind, not division-
+                    // specific. ESPN does send a separate "divisionGamesBehind" stat
+                    // per team, but wiring it through needs a new field on
+                    // StandingRow (BaseballDto.java) - flagging rather than silently
+                    // showing a number that looks division-specific but isn't.
                     statDouble(stats, "gamesBehind", "gamesbehind"),
                     statStr(stats, "streak"),
                     statStr(stats, "home"), statStr(stats, "road", "away"),

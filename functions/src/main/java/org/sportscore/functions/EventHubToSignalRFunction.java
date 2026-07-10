@@ -1,15 +1,5 @@
 package org.sportscore.functions;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.functions.*;
-import com.microsoft.azure.functions.annotation.*;
-import org.sportscore.model.Match;
-import org.sportscore.config.KeyVaultSecretProvider;
-import org.sportscore.validator.MatchValidator;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,6 +8,20 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.sportscore.config.KeyVaultSecretProvider;
+import org.sportscore.model.Match;
+import org.sportscore.validator.MatchValidator;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.functions.ExecutionContext;
+import com.microsoft.azure.functions.annotation.Cardinality;
+import com.microsoft.azure.functions.annotation.EventHubTrigger;
+import com.microsoft.azure.functions.annotation.FunctionName;
 
 public class EventHubToSignalRFunction {
 
@@ -60,8 +64,14 @@ public class EventHubToSignalRFunction {
     }
 
     private void broadcastToSignalR(List<Match> matches, ExecutionContext context) throws Exception {
-        String signalREndpoint = KeyVaultSecretProvider.getSecret("signalr-rest-endpoint");
-        String signalRKey = KeyVaultSecretProvider.getSecret("signalr-access-key");
+        String signalREndpoint = System.getenv("SIGNALR_REST_ENDPOINT");
+        if (signalREndpoint == null || signalREndpoint.isBlank()) {
+            signalREndpoint = KeyVaultSecretProvider.getSecret("signalr-rest-endpoint");
+        }
+        String signalRKey = System.getenv("SIGNALR_ACCESS_KEY");
+        if (signalRKey == null || signalRKey.isBlank()) {
+            signalRKey = KeyVaultSecretProvider.getSecret("signalr-access-key");
+        }
         String url = signalREndpoint + "/api/v1/hubs/sportscoreHub";
 
         String body = mapper.writeValueAsString(new SignalRMessage("matchUpdate", matches));

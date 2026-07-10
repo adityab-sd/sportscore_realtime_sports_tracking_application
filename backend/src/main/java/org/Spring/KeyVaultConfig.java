@@ -1,17 +1,11 @@
 package org.Spring;
 
-import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.security.keyvault.secrets.SecretClient;
-import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
-
-import java.util.Map;
 
 @Configuration
+@ConditionalOnProperty(name = "azure.keyvault.uri")
 public class KeyVaultConfig {
 
     @Value("${azure.keyvault.uri}")
@@ -38,4 +32,5 @@ public class KeyVaultConfig {
     //     environment.getPropertySources().addFirst(propertySource);
     //     return propertySource;
     // }
+}
 }
