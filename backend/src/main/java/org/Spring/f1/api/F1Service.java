@@ -431,6 +431,55 @@ public class F1Service {
         return "Formula 1";
     }
 
+    // reference-data passthrough (raw ESPN JSON - no bespoke DTO yet; these are
+    // long-tail resources whose exact shape hasn't been verified against a live
+    // sample, unlike scoreboard/standings/news above)
+
+    public JsonNode teams(int page, int limit) throws Exception {
+        return getRawPaged(CORE + "/teams", page, limit);
+    }
+
+    /** Every driver in the Core API (large - paginated). */
+    public JsonNode drivers(int page, int limit, boolean activeOnly) throws Exception {
+        return getRawPaged(CORE + "/athletes?active=" + activeOnly, page, limit);
+    }
+
+    public JsonNode driverProfile(String driverId) throws Exception {
+        int year = java.time.LocalDate.now().getYear();
+        return get(CORE + "/seasons/" + year + "/athletes/" + driverId);
+    }
+
+    public JsonNode circuits(int page, int limit) throws Exception {
+        return getRawPaged(CORE + "/circuits", page, limit);
+    }
+
+    public JsonNode venues(int page, int limit) throws Exception {
+        return getRawPaged(CORE + "/venues", page, limit);
+    }
+
+    public JsonNode providers() throws Exception {
+        return get(CORE + "/providers");
+    }
+
+    public JsonNode calendar(String dates) throws Exception {
+        String url = CORE + "/calendar";
+        if (dates != null && !dates.isBlank()) url += "?dates=" + dates;
+        return get(url);
+    }
+
+    public JsonNode seasons(int page, int limit) throws Exception {
+        return getRawPaged(CORE + "/seasons", page, limit);
+    }
+
+    public JsonNode athleteNews(String athleteId, int limit) throws Exception {
+        return get(SITE + "/athletes/" + athleteId + "/news?limit=" + limit);
+    }
+
+    private JsonNode getRawPaged(String baseUrl, int page, int limit) throws Exception {
+        String sep = baseUrl.contains("?") ? "&" : "?";
+        return get(baseUrl + sep + "page=" + page + "&limit=" + limit);
+    }
+
     // shared helpers
 
     private JsonNode stat(JsonNode stats, String... names) {

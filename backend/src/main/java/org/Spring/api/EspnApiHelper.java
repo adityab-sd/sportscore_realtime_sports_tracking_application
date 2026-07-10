@@ -65,6 +65,12 @@ public abstract class EspnApiHelper {
         return mapper.createObjectNode();
     }
 
+    /** Same as get(), but for list endpoints that support page/limit query params. */
+    protected JsonNode getPaged(String baseUrl, int page, int limit) throws Exception {
+        String sep = baseUrl.contains("?") ? "&" : "?";
+        return get(baseUrl + sep + "page=" + page + "&limit=" + limit);
+    }
+
     // ── Node helpers ─────────────────────────────────────────────────────────
 
     protected String txt(JsonNode n) {
@@ -157,6 +163,28 @@ public abstract class EspnApiHelper {
             String name = first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), txt(athlete.path("shortName")));
             cache.put(ref, name);
             return name;
+        } catch (Exception e) {
+            cache.put(ref, null);
+            return null;
+        }
+    }
+
+    /**
+     * Resolve a Core API hypermedia object: either inline data or a {"$ref": url}
+     * pointer. Shared by any sport's leaders-from-core-API fallback (baseball,
+     * basketball) - mirrors the pattern FootballService already used privately
+     * for soccer, promoted here so it isn't duplicated per sport.
+     */
+    protected JsonNode resolveRef(JsonNode node, Map<String, JsonNode> cache) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node.has("displayName") || node.has("fullName")) return node; // already inline
+        String ref = txt(node.path("$ref"));
+        if (ref == null) return null;
+        if (cache.containsKey(ref)) return cache.get(ref);
+        try {
+            JsonNode resolved = get(ref.replaceFirst("^http://", "https://"));
+            cache.put(ref, resolved);
+            return resolved;
         } catch (Exception e) {
             cache.put(ref, null);
             return null;
