@@ -30,6 +30,11 @@ public class F1Service {
     // manufacturerId -> team name. Names don't change mid-season, so cache one lookup each.
     private final java.util.Map<String, String> manufacturerNameCache = new java.util.concurrent.ConcurrentHashMap<>();
 
+    // driverId -> team name, resolved from each driver's individual profile (vehicles[0].team).
+    // Not available on the scoreboard's competitor nodes, so this is a separate lookup, cached
+    // the same way as manufacturerNameCache.
+    private final java.util.Map<String, String> driverTeamCache = new java.util.concurrent.ConcurrentHashMap<>();
+
     // scoreboard (weekends + sessions + grids)
 
     public List<F1Dto.RaceWeekend> scoreboard() throws Exception {
@@ -312,6 +317,26 @@ public class F1Service {
         }
     }
 
+    // Resolves a driver's current team via their individual core-API profile
+    // (vehicles[0].team). Not present on the scoreboard's competitor nodes, so
+    // this is a separate, cached lookup — one HTTP call per driver, ever.
+    private String resolveDriverTeam(String driverId) {
+        if (driverId == null) return null;
+        String cached = driverTeamCache.get(driverId);
+        if (cached != null) return cached;
+        String team = null;
+        try {
+            int year = java.time.LocalDate.now().getYear();
+            JsonNode a = get(CORE + "/seasons/" + year + "/athletes/" + driverId);
+            JsonNode vehicle = a.path("vehicles").path(0);
+            team = first(txt(vehicle.path("team")), txt(vehicle.path("manufacturer")), null);
+        } catch (Exception ex) {
+            System.err.println("[f1 standings] driver team lookup failed for " + driverId + ": " + ex.getMessage());
+        }
+        if (team != null) driverTeamCache.put(driverId, team);
+        return team;
+    }
+
     private static final int[] POINTS = {25, 18, 15, 12, 10, 8, 6, 4, 2, 1};
 
     // Sum championship points across every completed Race/Sprint session this season.
@@ -332,8 +357,9 @@ public class F1Service {
                     grid.sort((a, b) -> Integer.compare(a.path("order").asInt(999), b.path("order").asInt(999)));
 
                     for (int i = 0; i < grid.size() && i < POINTS.length; i++) {
-                        JsonNode ath = grid.get(i).path("athlete");
-                        String id = first(str(ath.path("id")), str(grid.get(i).path("id")), null);
+                        JsonNode c   = grid.get(i);
+                        JsonNode ath = c.path("athlete");
+                        String id = first(txt(ath.path("id")), txt(c.path("id")), null);
                         if (id == null) continue;
                         double award = isSprint ? Math.max(0, 8 - i) : POINTS[i];
                         double[] cur = pts.computeIfAbsent(id, k -> new double[2]);
@@ -355,7 +381,7 @@ public class F1Service {
            .forEach(en -> {
                String[] m = meta.getOrDefault(en.getKey(), new String[]{"-", null});
                out.add(new F1Dto.DriverStanding(
-                       out.size() + 1, en.getKey(), m[0], m[1], null,
+                       out.size() + 1, en.getKey(), m[0], m[1], resolveDriverTeam(en.getKey()),
                        en.getValue()[0], (int) en.getValue()[1]));
            });
         return out;
