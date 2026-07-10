@@ -1,16 +1,18 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ESPNNews } from "@/lib/api/espn";
+import { NewsArticle } from "./NewsCard";
 
-function timeAgo(iso: string): string {
-  if (!iso) return "";
-  const diff = Date.now() - new Date(iso).getTime();
-  if (isNaN(diff)) return "";
-  const h = Math.floor(diff / 3_600_000);
-  if (h < 1) return "Just now";
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+// ─────────────────────────────────────────────────────────────────────────────
+// FeaturedStory — hero article + optional side articles.
+// Used on both /football/news and /basketball/news pages.
+// The `sport` prop controls which internal route the links point to.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FeaturedStoryProps {
+  article: NewsArticle;
+  side?: NewsArticle[];
+  sport?: "football" | "basketball";
 }
 
 const fallbackGradient = "linear-gradient(135deg, var(--navy) 0%, #0066ff 100%)";
@@ -39,19 +41,23 @@ function SideImage({ src }: { src: string | null }) {
   );
 }
 
-function Wrap({ id, children }: { id: string; children: React.ReactNode }) {
-  return (
-    <Link href={`/football/news/${id}`} style={{ textDecoration: "none" }}>
-      {children}
-    </Link>
-  );
+function timeAgo(iso: string): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  if (isNaN(diff)) return "";
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return "Just now";
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
-export default function FeaturedStory({ article, side }: { article: ESPNNews; side?: ESPNNews[] }) {
+export default function FeaturedStory({ article, side, sport = "football" }: FeaturedStoryProps) {
+  const newsBase = `/${sport}/news`;
+
   return (
     <div className="hero-split">
       {/* Main hero */}
-      <Wrap id={article.id}>
+      <Link href={`${newsBase}/${article.id}`} style={{ textDecoration: "none" }}>
         <article className="news-card card-hover" style={{
           position: "relative", borderRadius: 14, overflow: "hidden",
           aspectRatio: "16/8", width: "100%", display: "flex",
@@ -76,13 +82,13 @@ export default function FeaturedStory({ article, side }: { article: ESPNNews; si
             </span>
           </div>
         </article>
-      </Wrap>
+      </Link>
 
       {/* Side stories */}
       {side && side.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {side.slice(0, 3).map(a => (
-            <Wrap key={a.id} id={a.id}>
+            <Link key={a.id} href={`${newsBase}/${a.id}`} style={{ textDecoration: "none" }}>
               <article className="card-hover" style={{ display: "flex", gap: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: 10, flex: 1, alignItems: "center" }}>
                 <SideImage src={a.image} />
                 <div style={{ minWidth: 0 }}>
@@ -90,7 +96,7 @@ export default function FeaturedStory({ article, side }: { article: ESPNNews; si
                   <h3 style={{ fontSize: 13.5, fontWeight: 700, color: "var(--obsidian)", lineHeight: 1.35, margin: "3px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.headline}</h3>
                 </div>
               </article>
-            </Wrap>
+            </Link>
           ))}
         </div>
       )}
