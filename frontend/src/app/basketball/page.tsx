@@ -1,103 +1,88 @@
 import Link from "next/link";
-import { getScoreboard, getFixtures, BBGame, BBFixture } from "@/lib/api/basketball";
-import { LEAGUES } from "@/types/basketball";
-import TodaysGames from "@/components/basketball/TodaysGames";
-import FixtureCard from "@/components/basketball/FixtureCard";
+import { getNews } from "@/lib/api/basketball";
+import { LEAGUES, leagueName } from "@/types/basketball";
+import FeaturedStory from "@/components/news/FeaturedStory";
+import NewsCard from "@/components/news/NewsCard";
+import type { Metadata } from "next";
+import type { BBNews } from "@/lib/api/basketball";
+
+export const metadata: Metadata = {
+  title: "Basketball News — SportScore",
+  description: "Latest NBA, WNBA and basketball news.",
+};
 
 export const dynamic = "force-dynamic";
 
-async function getAllData() {
-  const slugs = LEAGUES.map(l => l.slug);
-  const [scoreboards, fixtures] = await Promise.all([
-    Promise.allSettled(slugs.map(s => getScoreboard(s))),
-    Promise.allSettled(slugs.map(s => getFixtures(s))),
-  ]);
-
-  const seenScore = new Set<string>();
-  const allToday: (BBGame & { _slug: string })[] = [];
-  scoreboards.forEach((r, i) => {
-    if (r.status !== "fulfilled") return;
-    r.value.forEach(g => {
-      if (!seenScore.has(g.id)) { seenScore.add(g.id); allToday.push({ ...g, _slug: slugs[i] }); }
-    });
-  });
-
-  const seenFix = new Set<string>(seenScore); // exclude today from fixtures
-  const allResults: (BBFixture & { _slug: string })[] = [];
-  const allUpcoming: (BBFixture & { _slug: string })[] = [];
-  fixtures.forEach((r, i) => {
-    if (r.status !== "fulfilled") return;
-    r.value.results.forEach(f => {
-      if (!seenFix.has(f.id)) { seenFix.add(f.id); allResults.push({ ...f, _slug: slugs[i] }); }
-    });
-    r.value.upcoming.forEach(f => {
-      if (!seenFix.has(f.id)) { seenFix.add(f.id); allUpcoming.push({ ...f, _slug: slugs[i] }); }
-    });
-  });
-
-  allResults.sort((a,b) => new Date(b.tipoff ?? 0).getTime() - new Date(a.tipoff ?? 0).getTime());
-  allUpcoming.sort((a,b) => new Date(a.tipoff ?? 0).getTime() - new Date(b.tipoff ?? 0).getTime());
-
-  return {
-    allToday,
-    allResults: allResults.slice(0, 20),
-    allUpcoming: allUpcoming.slice(0, 20),
-  };
+async function getAllBasketballNews(): Promise<BBNews[]> {
+  const results = await Promise.allSettled(LEAGUES.map(l => getNews(l.slug, 12)));
+  const seen = new Set<string>();
+  return results
+    .filter(r => r.status === "fulfilled")
+    .flatMap(r => (r as PromiseFulfilledResult<BBNews[]>).value)
+    .filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; })
+    .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
 }
 
-export default async function BasketballPage() {
-  const { allToday, allResults, allUpcoming } = await getAllData();
+interface PageProps { searchParams: Promise<{ league?: string }> }
+
+export default async function BasketballNewsPage({ searchParams }: PageProps) {
+  const { league } = await searchParams;
+  const selected = league && LEAGUES.some(l => l.slug === league) ? league : null;
+
+  const news: BBNews[] = selected
+    ? await getNews(selected, 24)
+    : await getAllBasketballNews();
+
+  const featured = news[0];
+  const rest     = news.slice(1);
+
+  const heading    = selected ? `${leagueName(selected)} News` : "Basketball News";
+  const subheading = selected ? `Latest stories from ${leagueName(selected)}` : "Latest stories across all leagues";
 
   return (
     <div className="container" style={{ paddingTop: 28, paddingBottom: 40 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>Basketball</h1>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Live scores, results &amp; upcoming games</p>
+          <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>
+            {heading}
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>{subheading}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link href="/basketball/news" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>News</Link>
-          <Link href="/basketball/standings" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>Standings</Link>
-        </div>
+        <Link href="/basketball" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>
+          ← Scores
+        </Link>
       </div>
 
-      {/* Today's games — server-fetched from scoreboard */}
-      <section style={{ marginBottom: 40 }}>
-        <TodaysGames games={allToday} defaultLeague="nba" />
-      </section>
-
-      {/* Recent + Upcoming */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }} className="page-split">
-
-        <section>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Recent Results</h2>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{allResults.length}</span>
-          </div>
-          {allResults.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No recent results available.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {allResults.map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={f._slug} />)}
-            </div>
-          )}
-        </section>
-
-        <section>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Upcoming Games</h2>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{allUpcoming.length}</span>
-          </div>
-          {allUpcoming.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No upcoming games available.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {allUpcoming.map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={f._slug} />)}
-            </div>
-          )}
-        </section>
-
+      {/* League pills */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
+        <Link href="/basketball/news" className={`pill${!selected ? " active" : ""}`} style={{ textDecoration: "none" }}>All</Link>
+        {LEAGUES.map(l => (
+          <Link key={l.slug} href={`/basketball/news?league=${l.slug}`}
+            className={`pill${selected === l.slug ? " active" : ""}`} style={{ textDecoration: "none" }}>
+            {l.short}
+          </Link>
+        ))}
       </div>
+
+      {news.length === 0 ? (
+        <p style={{ fontSize: 14, color: "var(--text-muted)", textAlign: "center", padding: "48px 0" }}>
+          No news available right now.
+        </p>
+      ) : (
+        <>
+          {featured && (
+            <div style={{ marginBottom: 36 }}>
+              <FeaturedStory article={featured} sport="basketball" />
+            </div>
+          )}
+          <div className="section-label" style={{ marginBottom: 16 }}>All Stories</div>
+          <div className="news-grid">
+            {rest.map(a => <NewsCard key={a.id} article={a} sport="basketball" />)}
+          </div>
+        </>
+      )}
     </div>
   );
 }
