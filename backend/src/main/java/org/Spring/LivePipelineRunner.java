@@ -1,9 +1,9 @@
 package org.Spring;
 
-import org.Spring.football.fetcher.CoreFootballFetcher;
 import org.Spring.baseball.fetcher.CoreBaseballFetcher;
 import org.Spring.basketball.fetcher.CoreBasketballFetcher;
 import org.Spring.f1.fetcher.CoreF1Fetcher;
+import org.Spring.football.fetcher.CoreFootballFetcher;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;

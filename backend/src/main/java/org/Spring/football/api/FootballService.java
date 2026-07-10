@@ -1,14 +1,13 @@
 package org.Spring.football.api;
 
-import org.Spring.api.Dto;
-import org.Spring.api.EspnApiHelper;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.Spring.api.Dto;
+import org.Spring.api.EspnApiHelper;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -397,22 +396,12 @@ public class FootballService extends EspnApiHelper {
         return out;
     }
 
-    /** Resolve a Core API hypermedia object: either inline data or a {"$ref": url} pointer. */
-    private JsonNode resolveRef(JsonNode node, java.util.Map<String, JsonNode> cache) {
-        if (node == null || node.isMissingNode() || node.isNull()) return null;
-        if (node.has("displayName") || node.has("fullName")) return node; // already inline
-        String ref = txt(node.path("$ref"));
-        if (ref == null) return null;
-        if (cache.containsKey(ref)) return cache.get(ref);
-        try {
-            JsonNode resolved = get(ref.replaceFirst("^http://", "https://"));
-            cache.put(ref, resolved);
-            return resolved;
-        } catch (Exception e) {
-            cache.put(ref, null);
-            return null;
-        }
-    }
+    // NOTE: resolveRef() removed from here - it now lives on the shared
+    // EspnApiHelper base class (protected, used by baseball/basketball too).
+    // The private copy that used to be here caused a real compile error:
+    // Java forbids a subclass from re-declaring an inherited protected method
+    // as private, since that narrows visibility. Deleting it and inheriting
+    // the shared version is the fix - identical logic, no behavior change.
 
     // match detail
 
@@ -485,6 +474,34 @@ public class FootballService extends EspnApiHelper {
 
         List<Dto.TeamLineup> lineups = parseLineups(raw);
 
+        // officials - real array already present in this same summary response.
+        List<Dto.Official> officials = new ArrayList<>();
+        int order = 1;
+        for (JsonNode o : raw.path("gameInfo").path("officials")) {
+            String name = first(txt(o.path("fullName")), txt(o.path("displayName")), null);
+            if (name == null) continue;
+            officials.add(new Dto.Official(
+                    name,
+                    first(txt(o.path("position").path("displayName")), txt(o.path("position").path("name")), "Official"),
+                    o.path("order").canConvertToInt() ? o.path("order").asInt() : order));
+            order++;
+        }
+
+        // odds - real "pickcenter" array already present in this same response,
+        // one entry per betting provider (consensus, specific books).
+        List<Dto.OddsPick> odds = new ArrayList<>();
+        for (JsonNode p : raw.path("pickcenter")) {
+            String provider = first(txt(p.path("provider").path("name")), "consensus");
+            Double spread   = p.path("spread").isMissingNode() || p.path("spread").isNull() ? null : p.path("spread").asDouble();
+            Double ou       = p.path("overUnder").isMissingNode() || p.path("overUnder").isNull() ? null : p.path("overUnder").asDouble();
+            String favTeam  = p.path("homeTeamOdds").path("favorite").asBoolean(false)
+                    ? str(home.path("team").path("id"))
+                    : p.path("awayTeamOdds").path("favorite").asBoolean(false)
+                    ? str(away.path("team").path("id"))
+                    : null;
+            odds.add(new Dto.OddsPick(provider, txt(p.path("details")), spread, ou, favTeam));
+        }
+
         JsonNode gi = raw.path("gameInfo");
         return new Dto.MatchDetail(
                 str(headerComp.has("id") ? headerComp.path("id") : null, eventId),
@@ -497,7 +514,7 @@ public class FootballService extends EspnApiHelper {
                         ? null : gi.path("attendance").asInt(),
                 teamRef(home.path("team")), teamRef(away.path("team")),
                 num(home.path("score")), num(away.path("score")),
-                events, lineups);
+                events, lineups, officials, odds);
     }
 
     /**
@@ -644,9 +661,10 @@ public class FootballService extends EspnApiHelper {
         return new Dto.MatchEventDto(minute, isGoal ? "goal" : "card", detail, player, assist, teamId);
     }
 
-    private Dto.MatchEventDto parseSummaryEvent(JsonNode d) {
-        return parseSummaryEvent(d, java.util.Map.of());
-    }
+    // NOTE: the unused single-arg parseSummaryEvent(JsonNode) overload that
+    // used to live here was removed - flagged by the compiler as dead code
+    // (never called locally). The two-arg version above is the only one
+    // actually used, by tryMatchDetail().
 
     private boolean noDup(List<Dto.MatchEventDto> list, Dto.MatchEventDto ev) {
         for (Dto.MatchEventDto x : list) {
@@ -662,6 +680,230 @@ public class FootballService extends EspnApiHelper {
         if (display == null) return 0;
         java.util.regex.Matcher m = Pattern.compile("\\d+").matcher(display);
         return m.find() ? Integer.parseInt(m.group()) : 0;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  injuries / transactions / athlete overview — typed, mirroring the same
+    //  ESPN endpoints already verified for baseball/basketball. Team-level
+    //  injuries can come back empty for a team that has real entries (same
+    //  quirk confirmed there), so fall back to filtering the league-wide feed.
+    // ══════════════════════════════════════════════════════════════════════
+
+    public List<Dto.Injury> injuries(String league, String teamId) throws Exception {
+        JsonNode raw = get(SITE + "/" + league + "/teams/" + teamId + "/injuries");
+        List<Dto.Injury> direct = parseInjuries(raw, null);
+        if (!direct.isEmpty()) return direct;
+
+        Dto.TeamDetail teamInfo = team(league, teamId);
+        if (teamInfo == null) return List.of();
+        return leagueInjuries(league).stream()
+                .filter(i -> teamInfo.name().equalsIgnoreCase(i.team()))
+                .toList();
+    }
+
+    public List<Dto.Injury> leagueInjuries(String league) throws Exception {
+        JsonNode raw = get(SITE + "/" + league + "/injuries");
+        List<Dto.Injury> out = new ArrayList<>();
+        for (JsonNode teamBlock : raw.path("injuries")) {
+            String teamName = first(txt(teamBlock.path("team").path("displayName")),
+                                    txt(teamBlock.path("displayName")), null);
+            out.addAll(parseInjuries(teamBlock, teamName));
+        }
+        if (out.isEmpty()) out.addAll(parseInjuries(raw, null));
+        return out;
+    }
+
+    private List<Dto.Injury> parseInjuries(JsonNode raw, String teamNameOverride) {
+        List<Dto.Injury> out = new ArrayList<>();
+        JsonNode list = raw.path("injuries");
+        if (!list.isArray() || list.size() == 0) list = raw.path("items");
+        for (JsonNode item : list) {
+            JsonNode athlete = item.path("athlete");
+            String athleteId   = str(athlete.path("id"), null);
+            String athleteName = first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), null);
+            if (athleteName == null) continue;
+            out.add(new Dto.Injury(
+                    athleteId, athleteName,
+                    first(teamNameOverride, txt(item.path("team").path("displayName")), null),
+                    first(txt(item.path("status")), txt(item.path("type").path("description")), "Unknown"),
+                    txt(item.path("longComment")) != null ? txt(item.path("longComment")) : txt(item.path("shortComment")),
+                    txt(item.path("date"))));
+        }
+        return out;
+    }
+
+    public List<Dto.Transaction> transactions(String league, int limit) throws Exception {
+        JsonNode raw = get(SITE + "/" + league + "/transactions?limit=" + limit);
+        List<Dto.Transaction> out = new ArrayList<>();
+        for (JsonNode t : raw.path("transactions")) {
+            out.add(new Dto.Transaction(
+                    str(t.has("id") ? t.path("id") : null, ""),
+                    txt(t.path("date")),
+                    first(txt(t.path("team").path("displayName")), txt(t.path("team").path("name")), null),
+                    first(txt(t.path("description")), txt(t.path("text")), "")));
+        }
+        return out;
+    }
+
+    private static final String WEB = "https://site.web.api.espn.com/apis/common/v3/sports/soccer";
+
+    public Dto.AthleteOverview athleteOverview(String league, String athleteId) throws Exception {
+        JsonNode raw = get(WEB + "/" + league + "/athletes/" + athleteId + "/overview");
+        JsonNode athlete = raw.path("athlete");
+        if (athlete.isMissingNode() || athlete.isNull()) return null;
+
+        List<Dto.StatLine> stats = new ArrayList<>();
+        for (JsonNode cat : raw.path("statistics").path("splits").path("categories")) {
+            for (JsonNode s : cat.path("stats")) {
+                String label = first(txt(s.path("displayName")), txt(s.path("name")), null);
+                String val   = first(txt(s.path("displayValue")), txt(s.path("value")), null);
+                if (label != null && val != null) stats.add(new Dto.StatLine(label, val));
+            }
+        }
+
+        return new Dto.AthleteOverview(
+                str(athlete.path("id")),
+                first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), "-"),
+                first(txt(athlete.path("position").path("displayName")), txt(athlete.path("position").path("abbreviation")), null),
+                first(txt(athlete.path("team").path("displayName")), null),
+                txt(athlete.path("headshot").path("href")),
+                txt(athlete.path("jersey")),
+                athlete.path("age").isMissingNode() || athlete.path("age").isNull() ? null : athlete.path("age").asInt(),
+                first(txt(athlete.path("citizenship")), txt(athlete.path("birthPlace").path("country")), null),
+                stats);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  Reference-data passthrough — the remaining documented ESPN endpoints
+    //  nothing in this service called yet. Raw JsonNode (see BaseballService's
+    //  matching section for the full rationale) rather than a hand-typed
+    //  record, since these are long-tail resources whose exact shape hasn't
+    //  been verified against a live sample the way the above was.
+    // ══════════════════════════════════════════════════════════════════════
+
+    private static final String CDN = "https://cdn.espn.com/core";
+
+    public JsonNode teams(String league, int page, int limit) throws Exception {
+        return getPaged(SITE + "/" + league + "/teams", page, limit);
+    }
+
+    public JsonNode teamSchedule(String league, String teamId) throws Exception {
+        return get(SITE + "/" + league + "/teams/" + teamId + "/schedule");
+    }
+
+    public JsonNode teamRecord(String league, String teamId) throws Exception {
+        return get(SITE + "/" + league + "/teams/" + teamId + "/record");
+    }
+
+    public JsonNode teamDepthChart(String league, String teamId) throws Exception {
+        return get(SITE + "/" + league + "/teams/" + teamId + "/depth-charts");
+    }
+
+    public JsonNode statistics(String league) throws Exception {
+        return get(SITE + "/" + league + "/statistics");
+    }
+
+    public JsonNode groups(String league) throws Exception {
+        return get(SITE + "/" + league + "/groups");
+    }
+
+    /** Poll rankings - rarely populated for club football, but documented for every sport slug. */
+    public JsonNode rankings(String league) throws Exception {
+        return get(SITE + "/" + league + "/rankings");
+    }
+
+    public JsonNode athleteNews(String league, String athleteId, int limit) throws Exception {
+        return get(SITE + "/" + league + "/athletes/" + athleteId + "/news?limit=" + limit);
+    }
+
+    public JsonNode athletes(String league, int page, int limit, boolean activeOnly) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/athletes?active=" + activeOnly, page, limit);
+    }
+
+    public JsonNode athleteStats(String league, String athleteId) throws Exception {
+        return get(WEB + "/" + league + "/athletes/" + athleteId + "/stats");
+    }
+
+    public JsonNode athleteGamelog(String league, String athleteId) throws Exception {
+        return get(WEB + "/" + league + "/athletes/" + athleteId + "/gamelog");
+    }
+
+    public JsonNode athleteSplits(String league, String athleteId) throws Exception {
+        return get(WEB + "/" + league + "/athletes/" + athleteId + "/splits");
+    }
+
+    public JsonNode statsByAthlete(String league, String category, String season, String seasontype, String sort) throws Exception {
+        StringBuilder url = new StringBuilder(WEB + "/" + league + "/statistics/byathlete?");
+        if (category   != null) url.append("category=").append(category).append("&");
+        if (sort       != null) url.append("sort=").append(sort).append("&");
+        if (season     != null) url.append("season=").append(season).append("&");
+        if (seasontype != null) url.append("seasontype=").append(seasontype);
+        return get(url.toString());
+    }
+
+    /** Transfer window / squad registration - documented as "draft" in ESPN's generic core API shape. */
+    public JsonNode draft(String league, String season, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/seasons/" + season + "/draft", page, limit);
+    }
+
+    public JsonNode freeAgents(String league, String season, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/seasons/" + season + "/freeagents", page, limit);
+    }
+
+    public JsonNode venues(String league, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/venues", page, limit);
+    }
+
+    public JsonNode franchises(String league, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/franchises", page, limit);
+    }
+
+    public JsonNode positions(String league, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/positions", page, limit);
+    }
+
+    public JsonNode providers(String league) throws Exception {
+        return get(CORE + "/leagues/" + league + "/providers");
+    }
+
+    public JsonNode countries(String league, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/countries", page, limit);
+    }
+
+    public JsonNode recruiting(String league, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/recruiting", page, limit);
+    }
+
+    public JsonNode tournaments(String league, boolean majorsOnly) throws Exception {
+        return get(CORE + "/leagues/" + league + "/tournaments?majorsOnly=" + majorsOnly);
+    }
+
+    public JsonNode calendar(String league, String dates) throws Exception {
+        String url = CORE + "/leagues/" + league + "/calendar";
+        if (dates != null && !dates.isBlank()) url += "?dates=" + dates;
+        return get(url);
+    }
+
+    public JsonNode seasons(String league, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/seasons", page, limit);
+    }
+
+    public JsonNode currentSeason(String league) throws Exception {
+        return get(CORE + "/leagues/" + league + "/season");
+    }
+
+    // CDN rich game packages (raw passthrough - needs ESPN's "site slug", e.g. "eng.1")
+
+    public JsonNode cdnGame(String siteSlug, String eventId) throws Exception {
+        return get(CDN + "/" + siteSlug + "/game?xhr=1&gameId=" + eventId);
+    }
+
+    public JsonNode cdnBoxscore(String siteSlug, String eventId) throws Exception {
+        return get(CDN + "/" + siteSlug + "/boxscore?xhr=1&gameId=" + eventId);
+    }
+
+    public JsonNode cdnScoreboard(String siteSlug) throws Exception {
+        return get(CDN + "/" + siteSlug + "/scoreboard?xhr=1");
     }
 
 }

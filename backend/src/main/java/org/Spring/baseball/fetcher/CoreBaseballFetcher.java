@@ -22,10 +22,24 @@ public class CoreBaseballFetcher {
 
     private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/baseball";
 
+    // Every baseball/softball competition ESPN documents for this sport slug.
+    // Previously only mlb + college-baseball were polled here, silently dropping
+    // live-score push for the other 10 leagues even though BaseballController
+    // could already be pointed at them via the {league} path variable.
     private static final Map<String, String> LEAGUES = new LinkedHashMap<>();
     static {
-        LEAGUES.put("mlb",              "MLB");
-        LEAGUES.put("college-baseball", "NCAA Baseball");
+        LEAGUES.put("mlb",                       "MLB");
+        LEAGUES.put("college-baseball",          "NCAA Baseball");
+        LEAGUES.put("college-softball",          "NCAA Softball");
+        LEAGUES.put("world-baseball-classic",    "World Baseball Classic");
+        LEAGUES.put("caribbean-series",          "Caribbean Series");
+        LEAGUES.put("mexican-winter-league",     "Mexican League");
+        LEAGUES.put("dominican-winter-league",   "Dominican Winter League");
+        LEAGUES.put("puerto-rican-winter-league","Puerto Rican Winter League");
+        LEAGUES.put("venezuelan-winter-league",  "Venezuelan Winter League");
+        LEAGUES.put("olympics-baseball",         "Olympics Men's Baseball");
+        LEAGUES.put("llb",                       "Little League Baseball World Series");
+        LEAGUES.put("lls",                       "Little League Softball World Series");
     }
 
     private final HttpClient          client  = HttpClient.newBuilder()
@@ -112,12 +126,12 @@ public class CoreBaseballFetcher {
             try {
                 matches = fetcher.fetchMatches(slug);
                 if (!matches.isEmpty()) {
-                    System.out.println("  \u2713 " + name + " (" + matches.size() + " games)");
+                    System.out.println("  ✓ " + name + " (" + matches.size() + " games)");
                 } else {
                     System.out.println("  - " + name + " (0 games today)");
                 }
             } catch (Exception e) {
-                System.out.println("  \u2717 " + name + " [" + slug + "]: " + e.getMessage());
+                System.out.println("  ✗ " + name + " [" + slug + "]: " + e.getMessage());
                 continue;
             }
             for (Match m : matches) {
