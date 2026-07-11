@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import org.sportscore.model.Match;
-import org.sportscore.config.KeyVaultSecretProvider;
 import org.sportscore.validator.MatchValidator;
 
 import javax.crypto.Mac;
@@ -21,18 +20,18 @@ import java.util.List;
 
 public class EventHubToSignalRFunction {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper   mapper    = new ObjectMapper();
     private static final MatchValidator validator = new MatchValidator();
-    private static final HttpClient http = HttpClient.newHttpClient();
+    private static final HttpClient     http      = HttpClient.newHttpClient();
 
     @FunctionName("SportScoreEventProcessor")
     public void run(
             @EventHubTrigger(
-                    name = "events",
-                    eventHubName = "%EVENTHUB_NAME%",
-                    connection = "EVENTHUB_CONNECTION_STRING",
+                    name          = "events",
+                    eventHubName  = "%EVENTHUB_NAME%",
+                    connection    = "EVENTHUB_CONNECTION_STRING",
                     consumerGroup = "$Default",
-                    cardinality = Cardinality.ONE)
+                    cardinality   = Cardinality.ONE)
             String eventData,
             final ExecutionContext context) {
 
@@ -60,12 +59,12 @@ public class EventHubToSignalRFunction {
     }
 
     private void broadcastToSignalR(List<Match> matches, ExecutionContext context) throws Exception {
-        String signalREndpoint = KeyVaultSecretProvider.getSecret("signalr-rest-endpoint");
-        String signalRKey = KeyVaultSecretProvider.getSecret("signalr-access-key");
-        String url = signalREndpoint + "/api/v1/hubs/sportscoreHub";
+        String endpoint = System.getenv("SIGNALR_REST_ENDPOINT");
+        String key      = System.getenv("SIGNALR_ACCESS_KEY");
+        String url      = endpoint + "/api/v1/hubs/sportscoreHub";
 
-        String body = mapper.writeValueAsString(new SignalRMessage("matchUpdate", matches));
-        String token = generateJwt(url, signalRKey);
+        String body  = mapper.writeValueAsString(new SignalRMessage("matchUpdate", matches));
+        String token = generateJwt(url, key);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -80,24 +79,25 @@ public class EventHubToSignalRFunction {
 
     private String generateJwt(String audience, String key) throws Exception {
         long exp = Instant.now().getEpochSecond() + 300;
-        String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
-        String payload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(("{\"aud\":\"" + audience + "\",\"exp\":" + exp + "}").getBytes(StandardCharsets.UTF_8));
-        String signingInput = header + "." + payload;
+        String header  = b64("{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+        String payload = b64("{\"aud\":\"" + audience + "\",\"exp\":" + exp + "}");
+        String input   = header + "." + payload;
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-        String signature = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(mac.doFinal(signingInput.getBytes(StandardCharsets.UTF_8)));
-        return signingInput + "." + signature;
+        String sig = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(mac.doFinal(input.getBytes(StandardCharsets.UTF_8)));
+        return input + "." + sig;
+    }
+
+    private String b64(String s) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
     }
 
     public static class SignalRMessage {
         public String target;
         public Object arguments;
-
         public SignalRMessage(String target, Object arguments) {
-            this.target = target;
+            this.target    = target;
             this.arguments = List.of(arguments);
         }
     }

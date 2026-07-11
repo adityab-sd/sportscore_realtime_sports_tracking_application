@@ -63,6 +63,11 @@ public class CoreFootballFetcher {
         producer.send(mapper.writeValueAsString(all));
     }
 
+    /** Publish a pre-fetched list — avoids a second HTTP round-trip. */
+    public void publishMatches(List<Match> matches) throws Exception {
+        producer.send(mapper.writeValueAsString(matches));
+    }
+
     /** Raw JSON for one competition's scoreboard. */
     public String fetchScoreboardRaw(String league) throws Exception {
         return get("/" + league + "/scoreboard");

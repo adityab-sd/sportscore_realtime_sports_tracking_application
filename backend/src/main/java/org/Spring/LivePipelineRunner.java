@@ -4,6 +4,7 @@ import org.Spring.football.fetcher.CoreFootballFetcher;
 import org.Spring.baseball.fetcher.CoreBaseballFetcher;
 import org.Spring.basketball.fetcher.CoreBasketballFetcher;
 import org.Spring.f1.fetcher.CoreF1Fetcher;
+import org.Spring.radio.pipeline.RadioEventBridge;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -23,20 +24,28 @@ public class LivePipelineRunner implements ApplicationRunner {
     private final CoreBasketballFetcher basketball;
     private final CoreBaseballFetcher   baseball;
     private final CoreF1Fetcher         f1;
+    private final RadioEventBridge      radioBridge;
 
     public LivePipelineRunner(CoreFootballFetcher football,
                                   CoreBasketballFetcher basketball,
                                   CoreBaseballFetcher baseball,
-                                  CoreF1Fetcher f1) {
-        this.football   = football;
-        this.basketball = basketball;
-        this.baseball   = baseball;
-        this.f1         = f1;
+                                  CoreF1Fetcher f1,
+                                  RadioEventBridge radioBridge) {
+        this.football    = football;
+        this.basketball  = basketball;
+        this.baseball    = baseball;
+        this.f1          = f1;
+        this.radioBridge = radioBridge;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        startLoop("football",   football::fetchAndPublishLive);
+        startLoop("football",   () -> {
+            List<org.Spring.model.Match> liveMatches = football.fetchAllMatches();
+            radioBridge.process(liveMatches);
+            // Re-use already-fetched list for the score hub publish
+            football.publishMatches(liveMatches);
+        });
         startLoop("basketball", basketball::fetchAndPublishLive);
         startLoop("baseball",   baseball::fetchAndPublishLive);
         startLoop("f1",         f1::fetchAndPublishLive);
