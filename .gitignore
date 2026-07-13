@@ -1,0 +1,21 @@
+# IDE Settings
+.idea/
+.vscode/
+
+# Build folders
+**/target/
+**/bin/
+/backend/maven-bin/
+
+# Environment
+.env
+.env.local
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Compiled files
+*.class
+*.log
