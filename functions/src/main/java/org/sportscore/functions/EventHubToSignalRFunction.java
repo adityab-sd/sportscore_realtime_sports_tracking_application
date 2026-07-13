@@ -12,7 +12,6 @@ import java.util.List;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.sportscore.config.KeyVaultSecretProvider;
 import org.sportscore.model.Match;
 import org.sportscore.validator.MatchValidator;
 
@@ -65,13 +64,7 @@ public class EventHubToSignalRFunction {
 
     private void broadcastToSignalR(List<Match> matches, ExecutionContext context) throws Exception {
         String signalREndpoint = System.getenv("SIGNALR_REST_ENDPOINT");
-        if (signalREndpoint == null || signalREndpoint.isBlank()) {
-            signalREndpoint = KeyVaultSecretProvider.getSecret("signalr-rest-endpoint");
-        }
-        String signalRKey = System.getenv("SIGNALR_ACCESS_KEY");
-        if (signalRKey == null || signalRKey.isBlank()) {
-            signalRKey = KeyVaultSecretProvider.getSecret("signalr-access-key");
-        }
+        String signalRKey      = System.getenv("SIGNALR_ACCESS_KEY");
         String url = signalREndpoint + "/api/v1/hubs/sportscoreHub";
 
         String body = mapper.writeValueAsString(new SignalRMessage("matchUpdate", matches));
