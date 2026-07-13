@@ -266,4 +266,9 @@ public class FootballController {
     public JsonNode cdnScoreboard(@PathVariable String siteSlug) throws Exception {
         return service.cdnScoreboard(siteSlug);
     }
+
+    @GetMapping("/worldcup/bracket")
+    public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
+        return service.worldCupBracket();
+    }
 }
