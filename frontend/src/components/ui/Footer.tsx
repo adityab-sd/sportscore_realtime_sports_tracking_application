@@ -34,7 +34,7 @@ const legal = ["Terms of Use", "Privacy Policy", "Cookie Policy", "Accessibility
 
 export default function Footer() {
   return (
-    <footer style={{ background: "var(--navy)", color: "#fff", marginTop: 48 }}>
+    <footer style={{ background: "var(--navy)", color: "#fff" }}>
       <div className="container" style={{ paddingTop: 48, paddingBottom: 32 }}>
         <div className="footer-cols">
           {/* Brand column */}
@@ -93,7 +93,7 @@ export default function Footer() {
             ))}
           </div>
           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-            © 2026 SportScore · Built for COMP47250
+            ©️ 2026 SportScore · Built for COMP47250
           </span>
         </div>
       </div> */}

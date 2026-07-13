@@ -1,4 +1,6 @@
 
+import type { BracketMatch } from "@/types/worldcup";
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081/api/football";
 
@@ -162,3 +164,16 @@ export const getLeaders = (league: string) =>
 
 export const getMatchDetail = (league: string, eventId: string) =>
   apiGet<ESPNMatchDetail | null>(`/${league}/match/${eventId}`, null, 30);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// World Cup bracket — same apiGet pattern as everything above: this calls
+// OUR backend (${API_BASE}/worldcup/bracket), not ESPN directly. The backend
+// is where ESPN's fifa.world calendar + scoreboard endpoints actually get
+// queried and normalized — see the contract in types/worldcup.ts for the
+// exact shape this expects back. Falls back to [] on any failure, same as
+// every other fetcher here; WorldCupBracket.tsx falls back further to its
+// own mock data when it receives an empty array (e.g. before this backend
+// endpoint exists yet).
+// ─────────────────────────────────────────────────────────────────────────────
+export const getWorldCupBracket = () =>
+  apiGet<BracketMatch[]>("/worldcup/bracket", [], 300);
