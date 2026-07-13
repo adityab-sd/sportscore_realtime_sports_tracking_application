@@ -12,6 +12,28 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+// ============================================================================
+// PLEASE review — Facade (GoF) that outgrew itself
+// ----------------------------------------------------------------------------
+// A Facade is meant to be a THIN front over subsystems. This class is ~45 KB / ~40
+// endpoints doing HTTP, JSON parsing, DTO assembly AND business rules — the facade
+// swallowed its subsystems (a God class). Split the work it delegates to and keep
+// the service a slim coordinator.
+//
+// EXAMPLE:
+//   class MatchDetailAssembler { Dto.MatchDetail assemble(JsonNode raw) { ... } }
+//   class StandingsAssembler   { List<Dto.StandingRow> assemble(JsonNode raw) { ... } }
+//
+//   @Service class FootballService extends EspnApiHelper {
+//       Dto.MatchDetail matchDetail(String lg, String id) throws Exception {
+//           return matchDetails.assemble(get(SITE + "/" + lg + "/summary?event=" + id));
+//       }
+//   }
+//
+// WHY: 45 KB in one class means merge conflicts, no unit seams, and no single
+// responsibility. (The frontend's espnGet() in config.ts is a correct, minimal
+// Facade — use its size as the target.)
+// ============================================================================
 @Service
 public class FootballService extends EspnApiHelper {
 
