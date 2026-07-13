@@ -772,7 +772,86 @@ public class FootballService extends EspnApiHelper {
                 first(txt(athlete.path("citizenship")), txt(athlete.path("birthPlace").path("country")), null),
                 stats);
     }
+    public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
+        Dto.Fixtures fx = fixtures("fifa.world");
+        List<Dto.MatchDto> all = new ArrayList<>();
+        all.addAll(fx.results());
+        all.addAll(fx.upcoming());
 
+        List<Dto.BracketMatchDto> out = new ArrayList<>();
+        for (Dto.MatchDto m : all) {
+            String round = roundFromMatch(m);
+            if (round == null) continue; // group stage, or outside known knockout windows
+
+            out.add(new Dto.BracketMatchDto(
+                    m.id(), round,
+                    bracketSlot(m.homeTeam()), bracketSlot(m.awayTeam()),
+                    m.homeScore(), m.awayScore(),
+                    null,
+                    "post".equals(m.statusState()) ? "completed" : "upcoming",
+                    formatKickoff(m.kickoff()),
+                    null
+            ));
+        }
+        return out;
+    }
+
+    private String roundFromMatch(Dto.MatchDto m) {
+        String h = m.homeTeam() != null ? m.homeTeam().name() : "";
+        String a = m.awayTeam() != null ? m.awayTeam().name() : "";
+        if (h.contains("Semifinal") || a.contains("Semifinal")) {
+            return (h.contains("Winner") || a.contains("Winner")) ? "F" : "3RD";
+        }
+
+        java.time.Instant kickoff = parseKickoff(m.kickoff());
+        if (kickoff == null) return null;
+
+        if (isBetween(kickoff, "2026-06-28T07:00:00Z", "2026-07-04T07:00:00Z")) return "R32";
+        if (isBetween(kickoff, "2026-07-04T07:00:00Z", "2026-07-09T07:00:00Z")) return "R16";
+        if (isBetween(kickoff, "2026-07-09T07:00:00Z", "2026-07-14T07:00:00Z")) return "QF";
+        if (isBetween(kickoff, "2026-07-14T07:00:00Z", "2026-07-18T07:00:00Z")) return "SF";
+        return null;
+    }
+
+    private boolean isBetween(java.time.Instant t, String startIso, String endIsoExclusive) {
+        java.time.Instant start = java.time.Instant.parse(startIso);
+        java.time.Instant end   = java.time.Instant.parse(endIsoExclusive);
+        return !t.isBefore(start) && t.isBefore(end);
+    }
+
+    private Dto.BracketSlotDto bracketSlot(Dto.TeamRef t) {
+        if (t == null || t.name() == null || t.name().isBlank()) {
+            return new Dto.BracketSlotDto("tbd", null, "TBD");
+        }
+        if (t.name().contains("Semifinal")) {
+            boolean isFirst  = t.name().contains("1");
+            boolean isWinner = t.name().contains("Winner");
+            String label = (isWinner ? "Winner SF" : "Loser SF") + (isFirst ? "1" : "2");
+            return new Dto.BracketSlotDto("tbd", null, label);
+        }
+        return new Dto.BracketSlotDto("team", new Dto.BracketTeamDto(t.name(), t.shortName(), t.logo()), null);
+    }
+
+    private String formatKickoff(String isoKickoff) {
+        java.time.Instant instant = parseKickoff(isoKickoff);
+        if (instant == null) return isoKickoff;
+        java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.of("Europe/Dublin"));
+        return zdt.format(DateTimeFormatter.ofPattern("MMM d · h:mm a"));
+    }
+    private java.time.Instant parseKickoff(String iso) {
+        if (iso == null) return null;
+        try {
+            return java.time.Instant.parse(iso);
+        } catch (Exception e) {
+            // ESPN sometimes omits seconds ("...T01:00Z" instead of
+            // "...T01:00:00Z"), which Instant.parse() rejects outright.
+            try {
+                return java.time.Instant.parse(iso.replace("Z", ":00Z"));
+            } catch (Exception e2) {
+                return null;
+            }
+        }
+    }
     // ══════════════════════════════════════════════════════════════════════
     //  Reference-data passthrough — the remaining documented ESPN endpoints
     //  nothing in this service called yet. Raw JsonNode (see BaseballService's
@@ -905,5 +984,6 @@ public class FootballService extends EspnApiHelper {
     public JsonNode cdnScoreboard(String siteSlug) throws Exception {
         return get(CDN + "/" + siteSlug + "/scoreboard?xhr=1");
     }
+    
 
 }

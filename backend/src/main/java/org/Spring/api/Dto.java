@@ -105,4 +105,19 @@ public final class Dto {
                  homeTeam, awayTeam, homeScore, awayScore, events, List.of(), List.of(), List.of());
         }
     }
+    // ── World Cup bracket ────────────────────────────────────────────────
+    // Contract lives on the frontend at src/types/worldcup.ts — field names
+    // and nesting must match exactly, Jackson serializes these records as-is.
+
+    public record BracketTeamDto(String name, String code, String flag) {}
+
+    /** A slot is either a decided team (kind="team", team set) or a
+     *  not-yet-determined placeholder (kind="tbd", label set, team null). */
+    public record BracketSlotDto(String kind, BracketTeamDto team, String label) {}
+
+    public record BracketPenalties(int home, int away) {}
+
+    public record BracketMatchDto(String id, String round, BracketSlotDto home, BracketSlotDto away,
+                                  Integer homeScore, Integer awayScore, BracketPenalties penalties,
+                                  String status, String date, String venue) {}
 }
