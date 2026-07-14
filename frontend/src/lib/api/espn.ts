@@ -1,10 +1,31 @@
 
 import type { BracketMatch } from "@/types/worldcup";
 
+// ============================================================================
+// PLEASE review — API base URL is duplicated and environment-specific
+// ----------------------------------------------------------------------------
+// The data layer hard-codes a localhost fallback and repeats URL assembly in
+// multiple sports modules, which can drift between environments. Centralize the
+// base URL and fail closed when it is not configured.
+//
+// EXAMPLE:
+//   const API_BASE = getRequiredPublicEndpoint("NEXT_PUBLIC_SPORTS_API_BASE");
+// ============================================================================
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081/api/football";
 
 /** Fetch from our backend. Returns fallback on any failure — never throws. */
+// ============================================================================
+// PLEASE review — Fetch responses are cast without runtime validation
+// ----------------------------------------------------------------------------
+// res.ok is checked, but fetch has no timeout and res.json() is trusted as T.
+// A backend or ESPN shape change can silently poison UI props with invalid data.
+// Validate the payload before returning it and abort slow requests.
+//
+// EXAMPLE:
+//   const parsed = ScoreboardSchema.safeParse(await res.json());
+//   return parsed.success ? parsed.data : fallback;
+// ============================================================================
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });

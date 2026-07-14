@@ -16,6 +16,16 @@ export default async function LeaguePage({ params }: Props) {
   const league = LEAGUES.find(l => l.slug === slug);
   if (!league) return notFound();
 
+
+  // ============================================================================
+  // PLEASE review — Keep dependent navigation scoped to this league
+  // ----------------------------------------------------------------------------
+  // The header "Full Standings" link drops the current slug and lands on the default
+  // standings league, which is surprising from a league detail page.
+  //
+  // EXAMPLE:
+  //   <Link href={`/football/standings?league=${slug}`}>Full Standings →</Link>
+  // ============================================================================
   const [rows, news, fixtures, leaders] = await Promise.all([
     getStandings(slug),
     getNews(slug, 6),
@@ -23,6 +33,17 @@ export default async function LeaguePage({ params }: Props) {
     getLeaders(slug),
   ]);
 
+
+  // ============================================================================
+  // PLEASE review — Do not hide total league data failures
+  // ----------------------------------------------------------------------------
+  // The four league fetches all fall back to empty arrays, and the page simply hides
+  // sections. If every dataset is empty, users see a mostly blank league page instead
+  // of a recoverable error/empty state.
+  //
+  // EXAMPLE:
+  //   if (!rows.length && !news.length && !fixtures.results.length && !fixtures.upcoming.length && !leaders.length) throw new Error("League data unavailable");
+  // ============================================================================
   return (
     <div className="container" style={{ paddingTop: 28, paddingBottom: 48 }}>
 
@@ -88,6 +109,7 @@ export default async function LeaguePage({ params }: Props) {
               View full fixtures →
             </Link>
           </div>
+          {/* PLEASE review — Add per-column empty states: when only results or upcoming exists, the other column renders a blank section. EXAMPLE: {fixtures.results.length === 0 ? <p>No recent results.</p> : fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}. */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginBottom: 40, marginTop: 20 }} className="page-split">
             <section>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>

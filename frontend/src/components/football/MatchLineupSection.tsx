@@ -18,6 +18,16 @@ function toFormationLineup(
   lineup: ESPNTeamLineup,
   events: ESPNMatchDetail["events"],
 ): TeamLineup {
+  // ============================================================================
+  // PLEASE review — lineup event matching
+  // ----------------------------------------------------------------------------
+  // Player events are attached by comparing display names. ESPN names can include
+  // accents, initials, or substitutions with alternate labels, so goals/cards can
+  // disappear from the FormationPitch badges. Match by player id when available.
+  //
+  // EXAMPLE:
+  //   if (ev.playerId !== p.id) continue;
+  // ============================================================================
   const teamEvents = events.filter(e => e.teamId === lineup.teamId);
 
   const players: LineupPlayer[] = lineup.starters.map(p => {
@@ -37,6 +47,7 @@ function toFormationLineup(
   });
 
   return {
+    // PLEASE review — formation fallback: silently inventing 4-4-2 can misrepresent teams when ESPN omits formation. EXAMPLE: formation: lineup.formation ?? "unknown",
     formation: lineup.formation ?? "4-4-2",
     players,
   };

@@ -25,6 +25,16 @@ function groupRows(rows: ESPNStandingRow[]): { group: string | null; rows: ESPNS
 
 export default async function StandingsPage({ searchParams }: Props) {
   const { league = "eng.1" } = await searchParams;
+
+  // ============================================================================
+  // PLEASE review — Validate standings league
+  // ----------------------------------------------------------------------------
+  // Unlike the fixtures page, this accepts any league query and sends it to the API.
+  // Unknown public URLs should not masquerade as an empty standings table.
+  //
+  // EXAMPLE:
+  //   if (!TABLE_LEAGUES.some(l => l.slug === league)) return notFound();
+  // ============================================================================
   const rows = await getStandings(league);
   const groups = groupRows(rows);
   const isMultiGroup = groups.length > 1;

@@ -794,6 +794,16 @@ public class FootballService extends EspnApiHelper {
                 first(txt(athlete.path("citizenship")), txt(athlete.path("birthPlace").path("country")), null),
                 stats);
     }
+    // ============================================================================
+    // PLEASE review — hard-coded, single-tournament logic (missing cases + brittle parsing):
+    // Rounds are derived from (a) fixed 2026 World Cup date windows below and (b) substring
+    // matches on team NAMES ("Semifinal", "Winner", "1"). This silently breaks for any other
+    // year/tournament and for any name-format change from ESPN. Prefer ESPN's own round / notes
+    // metadata over kickoff-date guessing and string sniffing.
+    // EXAMPLE:
+    //   String round = mapEspnRound(m.roundName());   // e.g. "Round of 16" -> "R16"
+    //   // keep any tournament-specific windows in config, not compiled-in literals.
+    // ============================================================================
     public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
         Dto.Fixtures fx = fixtures("fifa.world");
         List<Dto.MatchDto> all = new ArrayList<>();
@@ -846,6 +856,9 @@ public class FootballService extends EspnApiHelper {
             return new Dto.BracketSlotDto("tbd", null, "TBD");
         }
         if (t.name().contains("Semifinal")) {
+            // PLEASE review — brittle: contains("1")/contains("Winner") sniff placeholder names,
+            // so any wording change ("SF A", "Semi-final one") misclassifies the slot.
+            // EXAMPLE: parse a structured field (ESPN competitor "order"/"type"), not the label text.
             boolean isFirst  = t.name().contains("1");
             boolean isWinner = t.name().contains("Winner");
             String label = (isWinner ? "Winner SF" : "Loser SF") + (isFirst ? "1" : "2");
@@ -857,6 +870,9 @@ public class FootballService extends EspnApiHelper {
     private String formatKickoff(String isoKickoff) {
         java.time.Instant instant = parseKickoff(isoKickoff);
         if (instant == null) return isoKickoff;
+        // PLEASE review — hard-coded timezone: every user sees kickoff in Europe/Dublin regardless
+        // of their locale. Send an ISO/epoch timestamp and format in the browser with the user's tz.
+        // EXAMPLE: return isoKickoff;  // let the client do new Date(iso).toLocaleString()
         java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.of("Europe/Dublin"));
         return zdt.format(DateTimeFormatter.ofPattern("MMM d · h:mm a"));
     }

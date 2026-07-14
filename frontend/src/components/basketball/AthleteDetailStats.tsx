@@ -12,6 +12,7 @@ export function AthleteStatTable({ data }: { data: RawJSON }) {
 
   if (!Array.isArray(categories) || categories.length === 0) return null;
 
+  // PLEASE review — stable list keys: category/stat rows use array indexes, so React can attach stale cells if ESPN reorders categories. EXAMPLE: <div key={cat.id ?? cat.name ?? `category-${ci}`}>.
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {categories.map((cat: RawJSON, ci: number) => {
@@ -64,6 +65,7 @@ export function AthleteGamelog({ data }: { data: RawJSON }) {
 
   if (gameLogs.length === 0) return null;
 
+  // PLEASE review — missing multiple gamelog categories: only gameLogs[0] renders, so postseason/preseason splits can silently disappear. EXAMPLE: const rows = gameLogs.flatMap((g) => Array.isArray(g.events) ? g.events : []);
   const cat = gameLogs[0];
   const labels: string[] = cat?.labels ?? cat?.names ?? [];
   const rows: RawJSON[] = cat?.events ?? [];
@@ -97,6 +99,7 @@ export function AthleteGamelog({ data }: { data: RawJSON }) {
               const stats: string[] = row?.stats ?? [];
               const opponent = eventInfo?.opponent?.abbreviation ?? eventInfo?.atVs ?? "";
               const result = eventInfo?.gameResult ?? "";
+              // PLEASE review — Date parsing/timezone assumption: toLocaleDateString on an unvalidated ESPN string can render Invalid Date or shift dates by client timezone. EXAMPLE: const t = Date.parse(String(eventInfo?.gameDate ?? "")); const dateStr = Number.isFinite(t) ? new Date(t).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : "";
               const dateStr = eventInfo?.gameDate
                 ? new Date(eventInfo.gameDate as string).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                 : "";

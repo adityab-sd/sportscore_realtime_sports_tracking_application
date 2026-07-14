@@ -59,6 +59,17 @@ const CAT_GRADIENTS: Record<string, string> = {
 };
 
 function timeAgo(iso: string): string {
+  // ============================================================================
+  // PLEASE review — avoid Date.now() in card render
+  // ----------------------------------------------------------------------------
+  // Relative time is computed during render and then suppressed for hydration,
+  // which can hide timezone/clock mismatches and leaves labels stale until some
+  // unrelated state change re-renders the card.
+  //
+  // EXAMPLE:
+  //   const publishedLabel = formatDistanceToNowStrict(new Date(article.published), { addSuffix: true });
+  //   <NewsCard article={{ ...article, publishedLabel }} />
+  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";

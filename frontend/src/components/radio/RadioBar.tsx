@@ -9,6 +9,17 @@ interface Props { open: boolean; onClose: () => void }
 export default function RadioBar({ open, onClose }: Props) {
   const [playing, setPlaying] = useState(true);
   const [eventIdx, setEventIdx] = useState(0);
+  // ============================================================================
+  // PLEASE review — guard empty mock event feeds
+  // ----------------------------------------------------------------------------
+  // eventIdx % mockRadioEvents.length becomes NaN when the mock feed is empty,
+  // making current undefined and crashing on current.match/current.minute.
+  // Render an empty/offline bar state before indexing the array.
+  //
+  // EXAMPLE:
+  //   if (mockRadioEvents.length === 0) return null;
+  //   const current = mockRadioEvents[eventIdx % mockRadioEvents.length];
+  // ============================================================================
   const current = mockRadioEvents[eventIdx % mockRadioEvents.length];
 
   if (!open) return null;
@@ -84,6 +95,7 @@ export default function RadioBar({ open, onClose }: Props) {
 
         {/* Controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          {/* PLEASE review — icon-only controls need accessible names: previous/play/next/close currently rely on glyphs only. EXAMPLE: <button type="button" aria-label="Next radio event" onClick={goNext}>›</button>. */}
           <button
             onClick={() => setEventIdx(i => (i - 1 + mockRadioEvents.length) % mockRadioEvents.length)}
             style={{
@@ -129,6 +141,7 @@ export default function RadioBar({ open, onClose }: Props) {
           </button>
 
           <button style={{ display: "flex", padding: 6 }} className="desktop-only">
+            {/* PLEASE review — icon-only button needs a name and behavior: this Volume button is focusable but has no aria-label or onClick. EXAMPLE: <button type="button" aria-label="Mute radio mode" onClick={toggleMuted}>...</button>. */}
             <Volume2 size={16} color="var(--text-muted)" />
           </button>
 

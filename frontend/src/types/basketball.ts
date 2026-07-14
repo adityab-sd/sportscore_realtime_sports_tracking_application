@@ -30,6 +30,16 @@ export const leagueLogo = (slug: string): string =>
 
 export type GameState = "live" | "scheduled" | "finished";
 
+// ============================================================================
+// PLEASE review — ESPN statusState should be a closed union
+// ----------------------------------------------------------------------------
+// classifyStatus accepts any string, so typos or new ESPN values silently become
+// scheduled games. Type the raw status values and handle unknown values explicitly.
+//
+// EXAMPLE:
+//   type ESPNStatusState = "pre" | "in" | "post";
+//   function classifyStatus(statusState: ESPNStatusState): GameState { /* ... */ }
+// ============================================================================
 export function classifyStatus(statusState: string | null | undefined): GameState {
   if (statusState === "in")   return "live";
   if (statusState === "post") return "finished";

@@ -71,6 +71,19 @@ export interface UpcomingFixture {
   href: string;
 }
 
+// ============================================================================
+// PLEASE review — make date formatting timezone-explicit
+// ----------------------------------------------------------------------------
+// Client-side toLocaleDateString/toLocaleTimeString uses the viewer's timezone
+// and can show a different kickoff day/time from server-prepared labels or API
+// expectations. suppressHydrationWarning hides the mismatch instead of fixing it.
+//
+// EXAMPLE:
+//   const time = new Intl.DateTimeFormat("en-GB", {
+//     timeZone: "UTC", weekday: "short", month: "short", day: "numeric",
+//     hour: "2-digit", minute: "2-digit",
+//   }).format(new Date(iso));
+// ============================================================================
 function formatUpcoming(iso: string | null): string {
   if (!iso) return "Date TBD";
   const d = new Date(iso);

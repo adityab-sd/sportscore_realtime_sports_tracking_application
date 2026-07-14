@@ -27,6 +27,13 @@ load_dotenv()
 app = Flask(__name__)
 
 # ── Azure OpenAI client ───────────────────────────────────
+# PLEASE review — missing case: none of these env vars are validated. If AZURE_OPENAI_KEY /
+# ENDPOINT / DEPLOYMENT are unset the client builds with None and fails deep inside the first
+# /ask request with an opaque error instead of failing fast at startup.
+# EXAMPLE:
+#   required = ["AZURE_OPENAI_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"]
+#   missing = [v for v in required if not os.getenv(v)]
+#   if missing: raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_KEY"),
     api_version="2024-02-01",
@@ -42,6 +49,18 @@ LIVE_DATA_KEYWORDS = {
     "match today", "game today", "kick off", "kickoff", "qualify", "qualified"
 }
 
+# ============================================================================
+# PLEASE review — substring matching causes false positives (missing case):
+# `keyword in q` matches inside other words, so "now" matches "k-now-n" (known) and
+# "knowledge", "table" matches "comfortable", "score" matches "scoreless". Innocent
+# knowledge questions get misrouted to the live-data layer and never answered.
+# EXAMPLE — match whole words / phrases:
+#   import re
+#   tokens = set(re.findall(r"[a-z']+", question.lower()))
+#   single = {"score","live","now","today",...}          # single-word triggers
+#   phrases = {"who won","did they win","match today",...} # multi-word triggers
+#   return bool(tokens & single) or any(p in question.lower() for p in phrases)
+# ============================================================================
 def is_live_data_question(question):
     q = question.lower()
     return any(keyword in q for keyword in LIVE_DATA_KEYWORDS)
@@ -80,6 +99,20 @@ def ask():
     context = "\n\n".join(r["content"] for r in result["results"])
     prompt = build_prompt(context, question)
 
+    # ============================================================================
+    # PLEASE review — missing error handling: this network call is unguarded, so any
+    # rate-limit / quota / timeout / auth failure bubbles up as a 500 + stack trace to
+    # the caller. Wrap it and degrade gracefully.
+    # Also verify the token param: Azure OpenAI chat.completions expects `max_tokens`;
+    # `max_completion_tokens` is only for newer o-series models and errors on gpt-4o.
+    # EXAMPLE:
+    #   try:
+    #       response = client.chat.completions.create(model=DEPLOYMENT,
+    #           messages=[{"role": "user", "content": prompt}], max_tokens=500)
+    #   except Exception:
+    #       app.logger.exception("OpenAI call failed")
+    #       return jsonify({"error": "assistant temporarily unavailable"}), 502
+    # ============================================================================
     response = client.chat.completions.create(
         model=DEPLOYMENT,
         messages=[{"role": "user", "content": prompt}],
@@ -106,4 +139,10 @@ def health():
 
 
 if __name__ == "__main__":
+    # PLEASE review — SECURITY: debug=True enables the Werkzeug interactive debugger, which
+    # allows arbitrary code execution if the port is reachable. Never enable in production;
+    # drive it from an env var (default False) and bind the host explicitly.
+    # EXAMPLE:
+    #   app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")),
+    #           debug=os.getenv("FLASK_DEBUG", "false").lower() == "true")
     app.run(debug=True, port=5000)

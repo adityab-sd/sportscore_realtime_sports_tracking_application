@@ -1,6 +1,16 @@
 import Link from "next/link";
 
 export default function ComingSoonPage() {
+  // ============================================================================
+  // PLEASE review — Placeholder route shipped as production page
+  // ----------------------------------------------------------------------------
+  // /f1 is a public route but only shows a generic coming-soon shell. If the sport
+  // is not launched, hide or redirect it; otherwise load real F1 coverage data.
+  //
+  // EXAMPLE:
+  //   redirect("/football");
+  //   // or: const races = await getF1Schedule(); return <F1Home races={races} />;
+  // ============================================================================
   return (
     <div style={{ maxWidth: 520, margin: "80px auto", padding: "0 var(--gap)", textAlign: "center" }}>
       <div style={{

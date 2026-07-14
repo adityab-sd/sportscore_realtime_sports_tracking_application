@@ -10,6 +10,21 @@ import org.Spring.model.Team;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// ============================================================================
+// PLEASE review — Singleton (Spring-managed) ObjectMapper
+// ----------------------------------------------------------------------------
+// This adapter creates its own ObjectMapper. ObjectMapper is thread-safe after
+// configuration and already called out in EspnApiHelper as a shared-bean concern;
+// per-adapter mappers duplicate expensive configuration and can drift by sport.
+//
+// EXAMPLE:
+//   @Component
+//   class CoreBasketballAdapter {
+//       CoreBasketballAdapter(ObjectMapper mapper) { this.mapper = mapper; }
+//   }
+//
+// WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// ============================================================================
 // Maps ESPN's basketball scoreboard into our Match model.
 // Live status is period-aware: HT, Q1-Q4, then OT for period 5+.
 public class CoreBasketballAdapter {
@@ -27,6 +42,7 @@ public class CoreBasketballAdapter {
     }
 
     private Match toMatch(JsonNode event) {
+        // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and can collapse distinct matches. EXAMPLE: String id = textOrNull(event.path("id")); if (id == null) return null;
         int id = event.path("id").asInt();
         JsonNode comp = event.path("competitions").path(0);
         if (comp.isMissingNode()) return null;

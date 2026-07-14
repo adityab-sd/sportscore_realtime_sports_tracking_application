@@ -147,6 +147,26 @@ function ScrollRow({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
 
+  // ============================================================================
+  // PLEASE review — clean up cloned marquee nodes
+  // ----------------------------------------------------------------------------
+  // This effect appends DOM clones but never removes them when cards change or
+  // the row unmounts. ready also prevents rebuilding if a later render receives
+  // different cards, leaving stale duplicated links in the marquee.
+  //
+  // EXAMPLE:
+  //   useEffect(() => {
+  //     const scroller = scrollerRef.current;
+  //     if (!scroller) return;
+  //     const clones = Array.from(scroller.children).map((item) => {
+  //       const clone = item.cloneNode(true) as HTMLElement;
+  //       clone.dataset.clone = "true";
+  //       scroller.appendChild(clone);
+  //       return clone;
+  //     });
+  //     return () => clones.forEach((clone) => clone.remove());
+  //   }, [cards]);
+  // ============================================================================
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller || ready) return;
@@ -187,6 +207,7 @@ function ScrollRow({
         onMouseEnter={(e) => { e.currentTarget.style.animationPlayState = "paused"; }}
         onMouseLeave={(e) => { e.currentTarget.style.animationPlayState = "running"; }}
       >
+        {/* PLEASE review — stable keys: index keys remount cards when order changes and can reset image fallback state. EXAMPLE: <CardItem key={card.type === "match" ? card.match.id : card.href} card={card} />. */}
         {cards.map((card, i) => (
           <CardItem key={i} card={card} />
         ))}

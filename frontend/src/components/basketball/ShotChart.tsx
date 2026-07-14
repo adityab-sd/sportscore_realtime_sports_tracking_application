@@ -71,6 +71,19 @@ function extractPlayerFromText(text: string): string {
   return m ? m[1].trim() : "";
 }
 
+// ============================================================================
+// PLEASE review — god component / extraction boundary
+// ----------------------------------------------------------------------------
+// ShotChart parses raw ESPN plays, classifies shots, draws a full SVG court,
+// manages filters, tooltip state, and renders logos/stats in one 1000+ line
+// component. A coordinate bug or payload change is hard to test in isolation.
+//
+// EXAMPLE:
+//   const shots = parseShots(data);
+//   return <ShotChartView shots={shots} filters={filters} court={NBA_COURT} />;
+//
+// WHY: Split parser, coordinate mapper, filters, and SVG view into testable units.
+// ============================================================================
 function parseShots(data: RawJSON): Shot[] {
   const gpj = data?.gamepackageJSON ?? data;
   const rawPlays: RawJSON[] = gpj?.plays ?? gpj?.items ?? [];
@@ -101,6 +114,7 @@ function parseShots(data: RawJSON): Shot[] {
 
     shots.push({
       id: p.id ?? String(shots.length),
+      // PLEASE review — coordinate numeric conversion can produce NaN: Math.max/min later will keep NaN and SVG circles render invalid positions. EXAMPLE: const x = Number(coord.x); const y = Number(coord.y); if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
       x: Number(coord.x),
       y: Number(coord.y),
       made: p.scoringPlay ?? typeText.includes("made"),
@@ -121,6 +135,7 @@ function parseShots(data: RawJSON): Shot[] {
 /* Court constants (full court, 940×500 viewBox, 10 units = 1 foot)   */
 /* ------------------------------------------------------------------ */
 
+// PLEASE review — NBA-only court constants: 94x50 ft geometry is hard-coded, so NCAA/WNBA court/arc variants render inaccurately. EXAMPLE: const court = league === "ncaam" ? NCAA_COURT : NBA_COURT;
 const CW = 940;
 const CH = 500;
 const MID = CW / 2;
@@ -667,6 +682,7 @@ export default function ShotChart({
   };
 
   /* Auto-construct ESPN CDN logo URLs if not provided via props */
+  // PLEASE review — hard-coded NBA logo CDN path: WNBA/NCAA teams will request nba/500/scoreboard URLs. EXAMPLE: const logoUrl = logo ?? buildEspnLogoUrl({ league, abbreviation });
   const awayLogoUrl =
     awayLogo ||
     `https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${awayShort.toLowerCase()}.png`;
@@ -738,6 +754,7 @@ export default function ShotChart({
         {/* Dropdowns row */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {/* Quarter filter */}
+          {/* PLEASE review — filter value numeric parsing: Number(...) can be NaN if the option value is tampered with, leaving filters in a state no shot can match. EXAMPLE: const q = Number(e.target.value); setFilterQ(Number.isFinite(q) ? q : null). */}
           <select
             value={filterQ ?? ""}
             onChange={(e) => setFilterQ(e.target.value ? Number(e.target.value) : null)}
@@ -912,6 +929,7 @@ export default function ShotChart({
           />
 
           {/* Shot dots — missed first (so made shots render on top) */}
+          {/* PLEASE review — duplicated filtering work in render: filtered is traversed twice every render, which is expensive for dense play-by-play. EXAMPLE: const [misses, makes] = partition(filtered, (s) => !s.made); */}
           {filtered
             .filter((s) => !s.made)
             .map((shot) => {

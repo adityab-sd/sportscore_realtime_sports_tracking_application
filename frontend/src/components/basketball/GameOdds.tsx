@@ -6,6 +6,7 @@ function fmtSpread(s: number | null) { return s == null ? "–" : s > 0 ? `+${s.
 function fmtOU(ou: number | null) { return ou == null ? "–" : `O/U ${ou.toFixed(1)}`; }
 
 export default function GameOdds({ odds, homeTeam, awayTeam }: { odds: BBOddsPick[]; homeTeam: BBTeamRef; awayTeam: BBTeamRef }) {
+  // PLEASE review — array prop assumed non-null: a missing odds field from the detail API will throw on odds.length. EXAMPLE: const safeOdds = Array.isArray(odds) ? odds : [];
   if (odds.length === 0) return null;
 
   return (
@@ -14,6 +15,7 @@ export default function GameOdds({ odds, homeTeam, awayTeam }: { odds: BBOddsPic
       {odds.map((o, i) => {
         const fav = o.favoriteTeamId === homeTeam.id ? homeTeam : o.favoriteTeamId === awayTeam.id ? awayTeam : null;
         return (
+          {/* PLEASE review — index key hides provider reordering: odds providers can be added/removed live, remounting the wrong row. EXAMPLE: <div key={o.provider ?? `${o.details}:${i}`}>...</div>. */}
           <div key={i} style={{ padding: "12px 18px", borderBottom: i < odds.length - 1 ? "1px solid var(--border)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)" }}>{o.provider}</div>

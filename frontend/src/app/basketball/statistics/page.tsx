@@ -13,6 +13,7 @@ function parseLeaderboard(data: RawJSON): {
   const cats = data?.categories ?? data?.resultCategories ?? [];
   if (!Array.isArray(cats)) return { categories: [] };
 
+  // PLEASE review — nested leaderboard arrays assumed valid: labels, athletes and stats can be absent or non-arrays in raw ESPN responses. EXAMPLE: const athletes = Array.isArray(c.athletes ?? c.leaders) ? (c.athletes ?? c.leaders) : [];
   return {
     categories: cats.map((c: RawJSON) => {
       const labels: string[] = c.labels ?? c.names ?? [];
@@ -29,7 +30,18 @@ function parseLeaderboard(data: RawJSON): {
 
 export default async function StatisticsPage({ searchParams }: Props) {
   const { league = "nba" } = await searchParams;
+  // PLEASE review — validate league query before API calls: arbitrary league values are sent to both stats endpoints. EXAMPLE: const safeLeague = LEAGUES.some((l) => l.slug === league) ? league : "nba";
 
+  // ============================================================================
+  // PLEASE review — fallback source should not reject-all
+  // ----------------------------------------------------------------------------
+  // byAthlete and statsRaw are alternative sources, but Promise.all rejects the
+  // page if either endpoint fails. Use allSettled so the fallback can still render
+  // when one source is down.
+  //
+  // EXAMPLE:
+  //   const [byAthlete, statsRaw] = await Promise.allSettled([getStatsByAthlete(league), getStatistics(league)]);
+  // ============================================================================
   const [byAthlete, statsRaw] = await Promise.all([
     getStatsByAthlete(league),
     getStatistics(league),
@@ -58,6 +70,7 @@ export default async function StatisticsPage({ searchParams }: Props) {
         <p style={{ fontSize: 14, color: "var(--text-muted)", textAlign: "center", padding: "48px 0" }}>No statistics data available right now.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+          {/* PLEASE review — index keys for changing stat tables: categories and athlete rows can reorder by season/stat type. EXAMPLE: {categories.map((cat) => <section key={cat.name}>...</section>)} and {cat.athletes.map((a) => <tr key={`${cat.name}:${a.name}:${a.team}`}>...</tr>)}. */}
           {categories.map((cat, ci) => (
             <section key={ci}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>

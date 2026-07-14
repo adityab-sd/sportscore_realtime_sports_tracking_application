@@ -23,6 +23,16 @@ interface SlugFixture extends BBFixture { _slug: string }
 async function getAggregatedData() {
   const slugs = LEAGUES.map((l) => l.slug);
 
+  // ============================================================================
+  // PLEASE review — partial failure handling is already correct — keep this
+  // ----------------------------------------------------------------------------
+  // Using Promise.allSettled per data family lets one failing league/feed degrade
+  // instead of taking down the basketball landing page. Keep that pattern when
+  // adding more league-wide fetches.
+  //
+  // EXAMPLE:
+  //   const results = await Promise.allSettled(slugs.map((s) => getNews(s, 4)));
+  // ============================================================================
   const [scoreResults, fixtureResults, standingResults, leaderResults, newsResults] =
     await Promise.all([
       Promise.allSettled(slugs.map((s) => getScoreboard(s))),
@@ -46,6 +56,7 @@ async function getAggregatedData() {
   const allUpcoming: SlugFixture[] = [];
   fixtureResults.forEach((r, i) => {
     if (r.status !== "fulfilled") return;
+    // PLEASE review — missing null payload guard: a fulfilled helper can still return null/undefined, so r.value.results can crash the page. EXAMPLE: if (r.status !== "fulfilled" || !r.value) return;
     for (const f of r.value.results) {
       if (!seenFix.has(f.id)) { seenFix.add(f.id); allResults.push({ ...f, _slug: slugs[i] }); }
     }
@@ -53,6 +64,7 @@ async function getAggregatedData() {
       if (!seenFix.has(f.id)) { seenFix.add(f.id); allUpcoming.push({ ...f, _slug: slugs[i] }); }
     }
   });
+  // PLEASE review — invalid dates sort as NaN: new Date(undefined or bad ESPN dates).getTime() makes the comparator unstable. EXAMPLE: const time = (v?: string) => { const t = v ? Date.parse(v) : 0; return Number.isFinite(t) ? t : 0; };
   allResults.sort((a, b) => new Date(b.tipoff ?? 0).getTime() - new Date(a.tipoff ?? 0).getTime());
   allUpcoming.sort((a, b) => new Date(a.tipoff ?? 0).getTime() - new Date(b.tipoff ?? 0).getTime());
 
@@ -72,6 +84,7 @@ async function getAggregatedData() {
     .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())
     .slice(0, 6);
 
+  // PLEASE review — cross-league id collisions: deduping games/fixtures/news by id alone assumes ESPN ids are globally unique across NBA, WNBA and NCAA. EXAMPLE: const key = `${slugs[i]}:${g.id}`;
   return { allGames, allResults: allResults.slice(0, 20), allUpcoming: allUpcoming.slice(0, 20), standings, leaders, news };
 }
 
@@ -147,6 +160,7 @@ export default async function BasketballPage() {
             <div className="section-label" style={{ marginBottom: 0 }}>Standings</div>
             <Link href="/basketball/standings" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>Full standings →</Link>
           </div>
+          {/* PLEASE review — hard-coded standings league: aggregated standings include multiple leagues but this renders them as NBA links/formatting. EXAMPLE: <StandingsTable rows={standings.filter((r) => r.league === "nba")} league="nba" limit={8} />. */}
           <StandingsTable rows={standings} league="nba" limit={8} />
         </section>
       )}

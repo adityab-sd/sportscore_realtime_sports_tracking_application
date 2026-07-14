@@ -2,6 +2,17 @@ import Link from "next/link";
 import WorldCupBracket from "@/components/football/WorldCupBracket";
 
 export default function WorldCupPage() {
+  // ============================================================================
+  // PLEASE review — Avoid shipping an unverified tournament shell
+  // ----------------------------------------------------------------------------
+  // This page always advertises a 2026 knockout bracket even if the bracket data is
+  // unavailable or still placeholder-backed inside the child component. Gate the
+  // route on real bracket data or render an explicit coming-soon state.
+  //
+  // EXAMPLE:
+  //   const bracket = await getWorldCupBracket();
+  //   if (bracket.length === 0) return <EmptyState title="World Cup bracket coming soon" />;
+  // ============================================================================
   return (
     <div className="container" style={{ paddingTop: 28, paddingBottom: 48 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>

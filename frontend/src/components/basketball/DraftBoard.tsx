@@ -11,6 +11,7 @@ function parseDraftPicks(data: RawJSON): {
   if (Array.isArray(rounds)) {
     for (const round of rounds) {
       const roundNum = round?.round ?? round?.number ?? 1;
+      // PLEASE review — nested array assumption: round.picks/round.selections can be absent or object-shaped, and for...of will throw. EXAMPLE: const roundPicks = Array.isArray(round?.picks ?? round?.selections) ? (round.picks ?? round.selections) : [];
       const roundPicks = round?.picks ?? round?.selections ?? [];
       for (const p of roundPicks) {
         picks.push({
@@ -52,6 +53,7 @@ export default function DraftBoard({ data }: { data: RawJSON }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {rounds.map((round) => {
+          // PLEASE review — numeric sort assumes parsed draft values are numbers: string picks like "TBD" produce NaN ordering. EXAMPLE: const pickNo = Number.isFinite(Number(p.pick)) ? Number(p.pick) : Number.MAX_SAFE_INTEGER;
         const roundPicks = picks.filter((p) => p.round === round).sort((a, b) => a.pick - b.pick);
 
         return (
@@ -62,6 +64,7 @@ export default function DraftBoard({ data }: { data: RawJSON }) {
             </div>
 
             <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+              {/* PLEASE review — key collision across rounds/trades: pick numbers can repeat or be 0 for unknown picks. EXAMPLE: key={`${round}:${p.pick}:${p.player}:${p.team}`}. */}
               {roundPicks.map((p, i) => (
                 <div
                   key={p.pick}

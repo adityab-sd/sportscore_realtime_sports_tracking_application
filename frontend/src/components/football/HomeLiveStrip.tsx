@@ -13,6 +13,16 @@ export default function HomeLiveStrip() {
   const upcoming = matches.filter(m => classifyStatus(m.status) === "scheduled").slice(0, 4);
   const strip = [...live, ...upcoming].slice(0, 6);
 
+  // ============================================================================
+  // PLEASE review — disconnected live empty state
+  // ----------------------------------------------------------------------------
+  // When SignalR is disconnected and there are no cached matches, this returns
+  // null, so the home page gives no indication that the football feed is offline.
+  // A compact unavailable state is safer than hiding real-time UI entirely.
+  //
+  // EXAMPLE:
+  //   if (strip.length === 0 && state === "disconnected") return <p>Live feed unavailable.</p>;
+  // ============================================================================
   // hide the whole section until there's something or we're actively connected
   if (strip.length === 0 && state !== "connected" && state !== "connecting") return null;
 

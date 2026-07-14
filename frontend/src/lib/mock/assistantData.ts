@@ -1,5 +1,14 @@
 import { ChatMessage } from '@/types/assistant';
 
+// ============================================================================
+// PLEASE review — Mock assistant citations should match the final source model
+// ----------------------------------------------------------------------------
+// Citation strings are hard to render consistently once real assistant answers
+// include URLs, titles, or snippets. Model the shape now so UI code is stable.
+//
+// EXAMPLE:
+//   citations: [{ title: "IFAB Laws of the Game", url: "https://www.theifab.com/laws/" }]
+// ============================================================================
 export const mockConversation: ChatMessage[] = [
   {
     id: '1',

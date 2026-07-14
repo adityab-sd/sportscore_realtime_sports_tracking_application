@@ -6,10 +6,31 @@
  * passthrough endpoints that return unstructured ESPN data.
  */
 
+// ============================================================================
+// PLEASE review — API base URL is duplicated and environment-specific
+// ----------------------------------------------------------------------------
+// The data layer hard-codes a localhost fallback and repeats URL assembly in
+// multiple sports modules, which can drift between environments. Centralize the
+// base URL and fail closed when it is not configured.
+//
+// EXAMPLE:
+//   const API_BASE = getRequiredPublicEndpoint("NEXT_PUBLIC_SPORTS_API_BASE");
+// ============================================================================
 const API_BASE =
   process.env.NEXT_PUBLIC_BASKETBALL_API_BASE ||
   "http://localhost:8081/api/basketball";
 
+// ============================================================================
+// PLEASE review — Fetch responses are cast without runtime validation
+// ----------------------------------------------------------------------------
+// res.ok is checked, but fetch has no timeout and res.json() is trusted as T.
+// A backend or ESPN shape change can silently poison UI props with invalid data.
+// Validate the payload before returning it and abort slow requests.
+//
+// EXAMPLE:
+//   const parsed = ScoreboardSchema.safeParse(await res.json());
+//   return parsed.success ? parsed.data : fallback;
+// ============================================================================
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
@@ -241,6 +262,16 @@ export interface CDNPlay {
 // Raw JSON type for passthrough endpoints
 // ─────────────────────────────────────────────
 
+// ============================================================================
+// PLEASE review — RawJSON any bypasses the TypeScript contract
+// ----------------------------------------------------------------------------
+// Passthrough ESPN payloads are convenient, but Record<string, any> lets page
+// code assume fields that may not exist. Prefer unknown plus endpoint-specific
+// narrowing at the boundary.
+//
+// EXAMPLE:
+//   export type RawJSON = Record<string, unknown>;
+// ============================================================================
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawJSON = Record<string, any>;
 

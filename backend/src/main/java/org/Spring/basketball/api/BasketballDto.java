@@ -12,6 +12,22 @@ public final class BasketballDto {
             Dto.TeamRef homeTeam, Dto.TeamRef awayTeam, Integer homeScore, Integer awayScore,
             Integer period, String clock) {}
 
+    // ============================================================================
+    // PLEASE review — Null Object / immutability for collection record components
+    // ----------------------------------------------------------------------------
+    // Records do not defensively copy List components. A caller can pass a mutable
+    // list into Fixtures/GameDetail and later mutate the DTO after construction; null
+    // lists also force every consumer to special-case absence.
+    //
+    // EXAMPLE:
+    //   public Fixtures {
+    //       results = List.copyOf(results == null ? List.of() : results);
+    //       upcoming = List.copyOf(upcoming == null ? List.of() : upcoming);
+    //   }
+    //
+    // WHY: Null Object lists plus defensive copies make DTOs stable API values.
+    // ============================================================================
+
     public record Fixtures(List<GameDto> results, List<GameDto> upcoming) {}
 
     public record StandingRow(

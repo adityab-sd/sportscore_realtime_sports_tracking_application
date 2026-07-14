@@ -11,6 +11,14 @@ public final class Dto {
 
     public record TeamRef(String id, String name, String shortName, String logo) {}
 
+    // ============================================================================
+    // PLEASE review — telescoping constructors: several records here (MatchDto, StandingRow,
+    // MatchDetail) add overloaded constructors that pass null/List.of() for newer fields to stay
+    // backward-compatible. This grows combinatorially and hides which fields a caller actually set.
+    // Prefer a builder (or named static factories) so optional fields are explicit.
+    // EXAMPLE:
+    //   MatchDto.builder().id(id).status(status).round(null).build();
+    // ============================================================================
     public record MatchDto(String id, String status, String statusState, String kickoff,
                            String competition, TeamRef homeTeam, TeamRef awayTeam,
                            Integer homeScore, Integer awayScore, String round) {
@@ -72,6 +80,10 @@ public final class Dto {
 
     public record Transaction(String id, String date, String team, String description) {}
 
+    // PLEASE review — this DTO's own comment admits the endpoint's JSON shape is unverified
+    // ("verify on first real call"). Shipping an unproven contract means the mapper may silently
+    // produce all-null fields. Add a smoke test against one real response before relying on it.
+    // EXAMPLE: an integration test asserting athleteOverview("nba", "<id>").name() != null.
     // NEW — individual athlete profile (site.web.api.espn.com .../athletes/{id}/overview).
     // Confirmed to exist and work for MLB/NBA per ESPN docs; field paths below
     // are conservative/defensive since I haven't fetched a live sample of this

@@ -16,6 +16,16 @@ export type BracketSlot = { kind: "team"; team: BracketTeam } | { kind: "tbd"; l
 
 export type Round = "R32" | "R16" | "QF" | "SF" | "3RD" | "F";
 
+// ============================================================================
+// PLEASE review — Bracket score fields should depend on status
+// ----------------------------------------------------------------------------
+// Completed matches can omit scores and upcoming matches can include them because
+// status and score fields are independent. A discriminated union would make the
+// renderer handle each state safely.
+//
+// EXAMPLE:
+//   type BracketMatch = { status: "upcoming"; homeScore?: never } | { status: "completed"; homeScore: number; awayScore: number };
+// ============================================================================
 export interface BracketMatch {
   id: string;
   round: Round;

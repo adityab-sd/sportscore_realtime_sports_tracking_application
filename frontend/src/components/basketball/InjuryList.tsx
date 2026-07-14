@@ -3,6 +3,7 @@
 import { BBInjury } from "@/lib/api/basketball";
 
 function statusColor(s: string) {
+  // PLEASE review — status assumed present: s.toLowerCase() throws if an injury status is null from the feed. EXAMPLE: const l = (s ?? "").toLowerCase();
   const l = s.toLowerCase();
   if (l.includes("out")) return { bg: "#FEF2F2", text: "#DC2626" };
   if (l.includes("day") || l.includes("question") || l.includes("doubt")) return { bg: "#FEF3C7", text: "#B45309" };
@@ -11,6 +12,7 @@ function statusColor(s: string) {
 }
 
 export default function InjuryList({ injuries, showTeam = false }: { injuries: BBInjury[]; showTeam?: boolean }) {
+  // PLEASE review — array prop assumed non-null: injuries.length crashes if team details omit injuries. EXAMPLE: const safeInjuries = Array.isArray(injuries) ? injuries : [];
   if (injuries.length === 0) return null;
   return (
     <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>

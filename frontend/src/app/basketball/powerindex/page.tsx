@@ -20,6 +20,16 @@ function parsePowerIndex(data: RawJSON, leadersData: RawJSON | null): BPITeam[] 
   const items = data?.items ?? data?.teams ?? data?.entries ?? [];
   if (!Array.isArray(items)) return [];
 
+  // ============================================================================
+  // PLEASE review — leaders fallback is unreachable when items is empty
+  // ----------------------------------------------------------------------------
+  // Returning items.map(...) exits before the "If main data empty, try leaders"
+  // block. Empty primary BPI data will never use the secondary leaders response.
+  //
+  // EXAMPLE:
+  //   if (items.length > 0) return items.map(...);
+  //   if (leadersData) return parseLeaders(leadersData);
+  // ============================================================================
   return items.map((item: RawJSON, i: number) => {
     const team = item?.team ?? {};
     const stats = item?.statistics ?? item?.stats ?? {};
@@ -56,6 +66,7 @@ function parsePowerIndex(data: RawJSON, leadersData: RawJSON | null): BPITeam[] 
 
 export default async function PowerIndexPage({ searchParams }: Props) {
   const { year = String(new Date().getFullYear()) } = await searchParams;
+  // PLEASE review — validate year query before fetching: arbitrary strings can be sent to the BPI endpoint. EXAMPLE: const safeYear = /^\d{4}$/.test(year) ? year : String(new Date().getFullYear());
 
   const [piData, leadersData] = await Promise.all([
     getPowerIndex(year),
@@ -91,6 +102,7 @@ export default async function PowerIndexPage({ searchParams }: Props) {
             <span style={{ textAlign: "center" }}>DEF</span>
             <span style={{ textAlign: "center" }}>Record</span>
           </div>
+          {/* PLEASE review — event handlers in a Server Component: App Router Server Components cannot pass onMouseEnter/onMouseLeave to DOM nodes. EXAMPLE: move this row into a "use client" component, or replace handlers with CSS like .bpi-row:hover { background: var(--cloud); }. */}
           {teams.slice(0, 50).map((t, i) => (
             <div
               key={i}
