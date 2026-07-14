@@ -22,6 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public abstract class EspnApiHelper {
 
+    // PLEASE review — Singleton (Spring-managed), NOT a Factory.
+    // ~10 classes each do `new ObjectMapper()` / `new HttpClient()`. ObjectMapper is
+    // thread-safe and expensive to build — share ONE bean instead of per-class copies.
+    // Resist wrapping this in a GoF Factory hierarchy; a single @Bean is the right tool.
+    // EXAMPLE:
+    //   @Bean ObjectMapper objectMapper() { return new ObjectMapper(); }  // injected everywhere
     protected final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     protected final ObjectMapper mapper = new ObjectMapper();
 
@@ -43,6 +49,27 @@ public abstract class EspnApiHelper {
      * Retries on 5xx responses and I/O / timeout failures.
      * 4xx responses are returned as an empty node immediately (no retry).
      */
+    // ========================================================================
+    // PLEASE review — Proxy (GoF) + a real latent bug
+    // ------------------------------------------------------------------------
+    // @Retryable works because Spring wraps this bean in a PROXY that intercepts
+    // calls and adds retry/backoff. But this get() is reached via SELF-INVOCATION
+    // (athleteName() -> get(), and subclasses -> super.get()). Self-calls do NOT
+    // cross the proxy, so the retry/backoff SILENTLY NEVER FIRES today.
+    //
+    // FIX — move the retryable call to its own injected bean (a real proxy boundary):
+    //
+    //   @Component
+    //   class EspnHttpClient {
+    //       @Retryable(retryFor = IOException.class,
+    //                  backoff = @Backoff(delay = 500, multiplier = 2))
+    //       public JsonNode get(String url) { ... }
+    //   }
+    //   // then in the services:  private final EspnHttpClient http;  ...  http.get(url);
+    //
+    // WHY: AOP annotations only apply to calls that CROSS the proxy boundary —
+    // one of the most common Spring production traps.
+    // ========================================================================
     @Retryable(
         retryFor  = { EspnServerException.class, IOException.class },
         maxAttempts = 3,

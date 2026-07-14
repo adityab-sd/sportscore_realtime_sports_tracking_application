@@ -8,6 +8,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 // One Match shape for every sport, so the Event Hub -> SignalR pipeline and
 // consumers only deal with a single type. Sport decides which fields matter:
 // football uses elapsed; basketball uses period+clock; baseball uses period (inning).
+// ============================================================================
+// PLEASE review — two concerns:
+// 1) DRY: this record is duplicated field-for-field in the functions module
+//    (org.sportscore.model.Match) and kept in sync by hand. Extract a shared module
+//    so the wire contract has ONE definition (drift here silently breaks the pipeline).
+// 2) `id` is a primitive int, so a payload missing "id" deserializes to 0 instead of
+//    failing. Use Integer/String if ids can be absent or non-numeric.
+// EXAMPLE: move this record to a `common` module both backend + functions depend on;
+//          declare @JsonProperty("id") String id.
+// ============================================================================
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Match(
         @JsonProperty("id") int id,

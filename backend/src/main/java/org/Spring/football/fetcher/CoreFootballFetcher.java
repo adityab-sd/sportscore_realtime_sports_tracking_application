@@ -20,6 +20,41 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *  it fetches football data from the ESPN provider across many leagues and competitions,
  * including the World Cup. No API key required.
  */
+// ============================================================================
+// PLEASE review — Template Method (GoF)
+// ----------------------------------------------------------------------------
+// All four fetchers (football/basketball/baseball/f1) repeat this exact skeleton:
+// build an HttpClient, hold a LEAGUES map, loop the leagues, adapt JSON, filter
+// "live", then publish. Only THREE things vary per sport: the base URL, the league
+// map, and the isLive() test. That is the classic trigger for Template Method —
+// define the fixed algorithm ONCE in a base class and let subclasses fill the gaps.
+//
+// EXAMPLE — base class owns the algorithm via a FINAL template method:
+//
+//   public abstract class LiveSportFetcher {
+//       protected abstract String baseUrl();
+//       protected abstract Map<String,String> leagues();
+//       protected abstract List<Match> adapt(String rawJson, String friendlyName);
+//       protected boolean isLive(Match m) {
+//           return "LIVE".equals(m.status()) || "HT".equals(m.status());
+//       }
+//       public final void fetchAndPublishLive() throws Exception {   // fixed steps
+//           List<Match> live = fetchAllMatches().stream().filter(this::isLive).toList();
+//           if (!live.isEmpty()) producer.send(mapper.writeValueAsString(live));
+//       }
+//   }
+//
+//   @Component
+//   class FootballFetcher extends LiveSportFetcher {                  // only the gaps
+//       protected String baseUrl() { return BASE; }
+//       protected Map<String,String> leagues() { return LEAGUES; }
+//       protected List<Match> adapt(String j, String n) { return adapter.toMatches(j, n); }
+//   }
+//
+// WHY: ~500 duplicated lines collapse to one skeleton + four tiny subclasses; a
+// fetch-loop bug is fixed once; a new sport becomes a ~15-line class. This is
+// exactly how Spring's own JdbcTemplate / RestTemplate are structured.
+// ============================================================================
 @Component
 public class CoreFootballFetcher {
 

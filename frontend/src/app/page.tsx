@@ -40,6 +40,18 @@ async function getCarouselNews(): Promise<(ESPNNews | BBNews)[]> {
     .slice(0, 8);
 }
 
+// ============================================================================
+// PLEASE review — preserve article sport when merging feeds
+// ----------------------------------------------------------------------------
+// getCarouselNews returns a mixed football/basketball list, but HomePage later
+// renders every carousel and side-card link with sport="football". Basketball
+// stories will navigate to /football/news/[id], which breaks cross-sport news.
+//
+// EXAMPLE:
+//   type CarouselArticle = (ESPNNews | BBNews) & { sport: "football" | "basketball" };
+//   append(footballNews.value.map((a) => ({ ...a, sport: "football" })));
+//   <NewsCarousel articles={mainArticles} />
+// ============================================================================
 // ─────────────────────────────────────────────────────────────────────────────
 // Fetch a handful of upcoming (not-yet-started) fixtures per sport, sorted by
 // date, for the "no live matches right now" fallback in AllSportsLiveStrip.

@@ -21,6 +21,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * into one Match by CoreF1Adapter; only weekends with a session in progress are
  * pushed to Event Hub.
  */
+// ============================================================================
+// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
+// ----------------------------------------------------------------------------
+// F1 is the same skeleton with ONE variation: a single scoreboard endpoint instead
+// of a league loop. The base class models that by overriding just the fetch step:
+//
+// EXAMPLE:
+//   @Component
+//   class F1Fetcher extends LiveSportFetcher {
+//       protected String baseUrl() { return BASE; }
+//       @Override protected List<Match> fetchAllMatches() throws Exception {
+//           return adapt(fetchScoreboardRaw(), "Formula 1");   // no league loop
+//       }
+//       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
+//   }
+// ============================================================================
 @Component
 public class CoreF1Fetcher {
 

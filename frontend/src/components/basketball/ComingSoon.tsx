@@ -5,6 +5,7 @@ interface Props {
   description?: string;
 }
 
+// PLEASE review — empty-state component [already correct — keep this]: this keeps unavailable basketball sections explicit instead of returning null. EXAMPLE: return <ComingSoon title="Shot chart" description="Tracking data is not available for this game." />.
 export default function ComingSoon({ title, description }: Props) {
   return (
     <div style={{

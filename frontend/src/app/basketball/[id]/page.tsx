@@ -23,14 +23,36 @@ interface Props {
 export default async function GamePage({ params, searchParams }: Props) {
   const { id }             = await params;
   const { league = "nba" } = await searchParams;
+  // ============================================================================
+  // PLEASE review — validate dynamic route inputs
+  // ----------------------------------------------------------------------------
+  // id and league come straight from the URL. A typo or unsupported league still
+  // fans out to every downstream fetch and can render links under the wrong
+  // league namespace.
+  //
+  // EXAMPLE:
+  //   const safeLeague = LEAGUES.some((l) => l.slug === league) ? league : "nba";
+  //   if (!/^\d+$/.test(id)) return notFound();
+  // ============================================================================
 
   const game = await getGameDetail(league, id);
+  // PLEASE review — missing game correctly 404s [already correct — keep this]: dynamic game routes should not render a shell when the entity is absent. EXAMPLE: if (!game) return notFound();
   if (!game) return notFound();
 
   const isPost = game.statusState === "post";
   const isLive = game.statusState === "in";
   const hasScores = isPost || isLive;
 
+  // ============================================================================
+  // PLEASE review — optional side-panel fetches reject the whole page
+  // ----------------------------------------------------------------------------
+  // Once the game exists, standings, CDN boxscore/play-by-play, or team chrome are
+  // additive data. Promise.all means one flaky optional feed prevents the primary
+  // score header from rendering.
+  //
+  // EXAMPLE:
+  //   const details = await Promise.allSettled([getCdnBoxscore(league, id), getCdnPlayByPlay(league, id)]);
+  // ============================================================================
   const [standings, boxscoreRaw, pbpRaw, homeTeamInfo, awayTeamInfo] = await Promise.all([
     isPost ? getStandings(league) : Promise.resolve([]),
     hasScores ? getCdnBoxscore(league, id) : Promise.resolve(null),
@@ -254,6 +276,7 @@ function CompactStandings({
         <span style={{ textAlign: "center" }}>PCT</span>
         <span style={{ textAlign: "center" }}>STK</span>
       </div>
+      {/* PLEASE review — index fallback weakens identity: team ids should be required for standings links; key={r.teamId || i} can hide missing ids and collide across leagues. EXAMPLE: if (!r.teamId) return null; return <Link key={`${league}:${r.teamId}`} href={`/basketball/team/${r.teamId}?league=${league}`}>...</Link>. */}
       {shown.map((r, i) => {
         const hl = r.teamId === homeId || r.teamId === awayId;
         return (

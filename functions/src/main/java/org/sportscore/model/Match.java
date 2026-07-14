@@ -13,6 +13,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+// PLEASE review — assumption: `id` is a primitive int, so a payload missing "id" silently
+// deserializes to 0 (a valid-looking id) instead of failing. If ids can be absent or
+// non-numeric, use Integer/String. EXAMPLE: @JsonProperty("id") String id
 public record Match(
         @JsonProperty("id") int id,
         @JsonProperty("sport") String sport,

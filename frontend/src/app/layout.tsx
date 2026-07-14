@@ -15,6 +15,18 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
+// ============================================================================
+// PLEASE review — remove blanket hydration suppression
+// ----------------------------------------------------------------------------
+// suppressHydrationWarning on both html and body can hide real client/server
+// mismatches from Date.now(), local time formatting, or browser-only state in
+// child components. Scope suppression only to the exact text that must differ.
+//
+// EXAMPLE:
+//   <html lang="en">
+//     <body>{children}</body>
+//   </html>
+// ============================================================================
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>

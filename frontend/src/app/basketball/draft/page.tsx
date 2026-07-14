@@ -8,6 +8,17 @@ interface Props { searchParams: Promise<{ league?: string }> }
 
 export default async function DraftPage({ searchParams }: Props) {
   const { league = "nba" } = await searchParams;
+  // ============================================================================
+  // PLEASE review — validate league query before using API helper
+  // ----------------------------------------------------------------------------
+  // The page accepts any league string from the URL and forwards it to getDraft.
+  // That can create unsupported ESPN requests while the copy still says "NBA
+  // Draft" for every value.
+  //
+  // EXAMPLE:
+  //   const safeLeague = league === "wnba" ? "wnba" : "nba";
+  //   const data = await getDraft(safeLeague);
+  // ============================================================================
   const data = await getDraft(league);
 
   return (

@@ -1,6 +1,16 @@
 import Link from "next/link";
 
 const columns = [
+  // ============================================================================
+  // PLEASE review — avoid hard-coded footer routes
+  // ----------------------------------------------------------------------------
+  // Footer links are maintained separately from the Navbar/SportCards configs, so
+  // unavailable sports or renamed routes can drift and produce dead navigation.
+  // Generate this from the same sport registry used by the primary navigation.
+  //
+  // EXAMPLE:
+  //   const columns = buildFooterColumns(SPORTS_NAV.filter((sport) => sport.enabled));
+  // ============================================================================
   {
     title: "Sports",
     links: [

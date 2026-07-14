@@ -10,6 +10,7 @@ function parseRankings(data: RawJSON): { polls: { name: string; ranks: { rank: n
   const rankings = data?.rankings ?? data?.polls ?? [];
   if (!Array.isArray(rankings)) return { polls: [] };
 
+  // PLEASE review — rank arrays assumed valid: (poll.ranks ?? poll.entries ?? []) can be a non-array response shape, so .map may throw. EXAMPLE: const entries = Array.isArray(poll.ranks ?? poll.entries) ? (poll.ranks ?? poll.entries) : [];
   return {
     polls: rankings.map((poll: RawJSON) => ({
       name: poll.name ?? poll.headline ?? "Rankings",
@@ -28,6 +29,7 @@ function parseRankings(data: RawJSON): { polls: { name: string; ranks: { rank: n
 
 export default async function RankingsPage({ searchParams }: Props) {
   const { league = "mens-college-basketball" } = await searchParams;
+  // PLEASE review — validate league query before fetching: any string is accepted, but the UI only offers men's/women's CBB. EXAMPLE: const safeLeague = league === "womens-college-basketball" ? league : "mens-college-basketball";
   const data = await getRankings(league);
   const { polls } = data ? parseRankings(data) : { polls: [] };
 
@@ -50,6 +52,7 @@ export default async function RankingsPage({ searchParams }: Props) {
         <p style={{ fontSize: 14, color: "var(--text-muted)", textAlign: "center", padding: "48px 0" }}>No rankings data available. Rankings are typically updated during the college basketball season.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+          {/* PLEASE review — index keys for polls/ranks: ranking lists reorder weekly, so key={pi}/key={ri} can preserve the wrong row. EXAMPLE: {polls.map((poll) => <section key={poll.name}>...</section>)} and {poll.ranks.map((r) => <div key={`${poll.name}:${r.rank}:${r.team}`}>...</div>)}. */}
           {polls.map((poll, pi) => (
             <section key={pi}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
@@ -64,6 +67,7 @@ export default async function RankingsPage({ searchParams }: Props) {
                     <span style={{ fontSize: 14, fontWeight: 800, color: r.rank <= 4 ? "#EA580C" : "var(--text-muted)" }}>{r.rank}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)" }}>{r.team}</span>
                     <span className="stat-num" style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)" }}>{r.record || "–"}</span>
+                    {/* PLEASE review — zero points display as missing: || treats legitimate 0 as "–". EXAMPLE: {r.points != null ? r.points : "–"}. */}
                     <span className="stat-num" style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)" }}>{r.points || "–"}</span>
                   </div>
                 ))}

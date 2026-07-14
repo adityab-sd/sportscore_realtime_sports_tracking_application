@@ -40,6 +40,25 @@ import com.fasterxml.jackson.databind.JsonNode;
  *     existed here, causing 29 "cannot find symbol" compile errors. Adapted
  *     directly from BasketballService's matching, already-working section.
  */
+// ============================================================================
+// PLEASE review — Proxy (GoF) retry still bypassed from this subclass
+// ----------------------------------------------------------------------------
+// This service extends EspnApiHelper, whose get() is @Retryable. Calls such as
+// scoreboard() -> get(...) compile, but they do not cross a Spring proxy boundary;
+// the AOP retry/backoff documented in EspnApiHelper will not fire here either.
+//
+// EXAMPLE:
+//   @Service
+//   class BaseballService {
+//       private final EspnHttpClient http;
+//       List<?> scoreboard(String league) throws Exception {
+//           JsonNode raw = http.get(SITE + "/" + league + "/scoreboard");
+//           ...
+//       }
+//   }
+//
+// WHY: AOP annotations need an injected collaborator/proxy, not inherited self-calls.
+// ============================================================================
 @Service
 public class BaseballService extends EspnApiHelper {
 
@@ -293,6 +312,7 @@ public class BaseballService extends EspnApiHelper {
         JsonNode raw = get(WEB.replace("/common/v3/sports/baseball", "/common/v3/sports/baseball/" + league)
                 + "/athletes/" + athleteId + "/overview");
         JsonNode athlete = raw.path("athlete");
+    // PLEASE review — Null Object: returning null from a service forces controllers to serialize 200/null or NPE later. EXAMPLE: return Optional.empty(); or throw new ResponseStatusException(HttpStatus.NOT_FOUND, "athlete not found");
         if (athlete.isMissingNode() || athlete.isNull()) return null;
 
         List<Dto.StatLine> stats = new ArrayList<>();
@@ -399,6 +419,7 @@ public class BaseballService extends EspnApiHelper {
             }
             return out;
         } catch (Exception e) {
+        // PLEASE review — observability: catching Exception and returning an empty leader list hides upstream/data-shape failures from operations. EXAMPLE: catch (Exception ex) { log.warn("ESPN leaders unavailable for {}", league, ex); return List.of(); }
             return List.of();
         }
     }
@@ -651,6 +672,20 @@ public class BaseballService extends EspnApiHelper {
     //  from BasketballService's matching, already-working section - same
     //  ESPN URL shapes, pointed at baseball's SITE/CORE/WEB constants.
     // ══════════════════════════════════════════════════════════════════════
+
+    // ============================================================================
+    // PLEASE review — Pagination bounds / URL encoding
+    // ----------------------------------------------------------------------------
+    // Raw passthrough methods accept page/limit/query fragments directly from REST
+    // controllers. Negative or huge limits can amplify ESPN calls, and category/sort
+    // values are concatenated without URL encoding.
+    //
+    // EXAMPLE:
+    //   int safeLimit = Math.min(Math.max(limit, 1), 100);
+    //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
+    //
+    // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
+    // ============================================================================
 
     public JsonNode teams(String league, int page, int limit) throws Exception {
         return getPaged(SITE + "/" + league + "/teams", page, limit);

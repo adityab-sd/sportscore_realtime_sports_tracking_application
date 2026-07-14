@@ -36,6 +36,16 @@ function TeamColumn({
   roster: ESPNPlayer[];
   league: string;
 }) {
+  // ============================================================================
+  // PLEASE review — roster input normalization
+  // ----------------------------------------------------------------------------
+  // TeamColumn assumes roster is always an array. That is true for the current
+  // prop type, but ESPN detail payloads often omit one side's roster; normalize at
+  // the boundary so a partial response can still render the other squad.
+  //
+  // EXAMPLE:
+  //   const groups = groupByPosition(roster ?? []);
+  // ============================================================================
   const groups = groupByPosition(roster);
 
   return (

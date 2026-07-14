@@ -13,14 +13,17 @@ function groupByConference(rows: BBStandingRow[]): { name: string; rows: BBStand
   for (const r of rows) {
     const key = r.conference || "League";
     if (!buckets.has(key)) buckets.set(key, []);
+    // PLEASE review — avoid non-null assertion in aggregation: buckets.get(key)! assumes the prior mutation always succeeded and hides future refactor bugs. EXAMPLE: const bucket = buckets.get(key) ?? []; bucket.push(r); buckets.set(key, bucket);
     buckets.get(key)!.push(r);
   }
   return Array.from(buckets.entries())
+    // PLEASE review — rank sort can produce NaN: missing ranks from ESPN make a.rank - b.rank unstable. EXAMPLE: rs.sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER));
     .map(([name, rs]) => ({ name, rows: rs.sort((a,b) => a.rank - b.rank) }));
 }
 
 export default async function StandingsPage({ searchParams }: Props) {
   const { league = "nba" } = await searchParams;
+  // PLEASE review — validate league query before fetching: any URL value is forwarded to getStandings and rendered in links. EXAMPLE: const safeLeague = LEAGUES.some((l) => l.slug === league) ? league : "nba";
   const rows = await getStandings(league);
   const groups = groupByConference(rows);
 

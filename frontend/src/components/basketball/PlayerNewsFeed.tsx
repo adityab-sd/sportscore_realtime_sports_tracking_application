@@ -23,6 +23,7 @@ function parseArticles(data: RawJSON): ParsedArticle[] {
     description: a.description ?? "",
     published: a.published ?? "",
     image: a.images?.[0]?.url ?? null,
+    // PLEASE review — external URL trust: rendering API-provided href directly can allow unsupported protocols. EXAMPLE: link: /^https?:\/\//.test(String(a.links?.web?.href ?? "")) ? a.links.web.href : null,
     link: a.links?.web?.href ?? null,
   }));
 }
@@ -47,6 +48,7 @@ export default function PlayerNewsFeed({ data }: { data: RawJSON }) {
       {articles.map((a) => (
         <div key={a.id} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
           <div style={{ display: "flex", gap: 12, padding: "12px 14px" }}>
+            {/* PLEASE review — meaningful news image has empty alt text: screen-reader users lose the article context. EXAMPLE: alt={a.headline}. */}
             {a.image && (
               // eslint-disable-next-line @next/next/no-img-element
               <img

@@ -12,6 +12,28 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+// ============================================================================
+// PLEASE review — Facade (GoF) that outgrew itself
+// ----------------------------------------------------------------------------
+// A Facade is meant to be a THIN front over subsystems. This class is ~45 KB / ~40
+// endpoints doing HTTP, JSON parsing, DTO assembly AND business rules — the facade
+// swallowed its subsystems (a God class). Split the work it delegates to and keep
+// the service a slim coordinator.
+//
+// EXAMPLE:
+//   class MatchDetailAssembler { Dto.MatchDetail assemble(JsonNode raw) { ... } }
+//   class StandingsAssembler   { List<Dto.StandingRow> assemble(JsonNode raw) { ... } }
+//
+//   @Service class FootballService extends EspnApiHelper {
+//       Dto.MatchDetail matchDetail(String lg, String id) throws Exception {
+//           return matchDetails.assemble(get(SITE + "/" + lg + "/summary?event=" + id));
+//       }
+//   }
+//
+// WHY: 45 KB in one class means merge conflicts, no unit seams, and no single
+// responsibility. (The frontend's espnGet() in config.ts is a correct, minimal
+// Facade — use its size as the target.)
+// ============================================================================
 @Service
 public class FootballService extends EspnApiHelper {
 
@@ -772,6 +794,16 @@ public class FootballService extends EspnApiHelper {
                 first(txt(athlete.path("citizenship")), txt(athlete.path("birthPlace").path("country")), null),
                 stats);
     }
+    // ============================================================================
+    // PLEASE review — hard-coded, single-tournament logic (missing cases + brittle parsing):
+    // Rounds are derived from (a) fixed 2026 World Cup date windows below and (b) substring
+    // matches on team NAMES ("Semifinal", "Winner", "1"). This silently breaks for any other
+    // year/tournament and for any name-format change from ESPN. Prefer ESPN's own round / notes
+    // metadata over kickoff-date guessing and string sniffing.
+    // EXAMPLE:
+    //   String round = mapEspnRound(m.roundName());   // e.g. "Round of 16" -> "R16"
+    //   // keep any tournament-specific windows in config, not compiled-in literals.
+    // ============================================================================
     public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
         Dto.Fixtures fx = fixtures("fifa.world");
         List<Dto.MatchDto> all = new ArrayList<>();
@@ -824,6 +856,9 @@ public class FootballService extends EspnApiHelper {
             return new Dto.BracketSlotDto("tbd", null, "TBD");
         }
         if (t.name().contains("Semifinal")) {
+            // PLEASE review — brittle: contains("1")/contains("Winner") sniff placeholder names,
+            // so any wording change ("SF A", "Semi-final one") misclassifies the slot.
+            // EXAMPLE: parse a structured field (ESPN competitor "order"/"type"), not the label text.
             boolean isFirst  = t.name().contains("1");
             boolean isWinner = t.name().contains("Winner");
             String label = (isWinner ? "Winner SF" : "Loser SF") + (isFirst ? "1" : "2");
@@ -835,6 +870,9 @@ public class FootballService extends EspnApiHelper {
     private String formatKickoff(String isoKickoff) {
         java.time.Instant instant = parseKickoff(isoKickoff);
         if (instant == null) return isoKickoff;
+        // PLEASE review — hard-coded timezone: every user sees kickoff in Europe/Dublin regardless
+        // of their locale. Send an ISO/epoch timestamp and format in the browser with the user's tz.
+        // EXAMPLE: return isoKickoff;  // let the client do new Date(iso).toLocaleString()
         java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.of("Europe/Dublin"));
         return zdt.format(DateTimeFormatter.ofPattern("MMM d · h:mm a"));
     }

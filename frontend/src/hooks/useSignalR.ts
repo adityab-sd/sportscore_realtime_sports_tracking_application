@@ -14,6 +14,17 @@ const SignalRContext = createContext<SignalRValue>({
   matches: [], state: "connecting", lastUpdate: null,
 });
 
+// ============================================================================
+// PLEASE review — Observer (GoF)   [already correct — keep this]
+// ----------------------------------------------------------------------------
+// This is a clean Observer implementation: connection.on("matchUpdate", ...) is the
+// subscription, and components read via useSignalR() and re-render on each push.
+// Nothing structural to change.
+//
+// EXAMPLE (the subscribe / notify pair that makes it Observer):
+//   connection.on("matchUpdate", (incoming: Match[]) => mergeMatches(incoming)); // subscribe
+//   export function useSignalR() { return useContext(SignalRContext); }           // observers read
+// ============================================================================
 export function SignalRProvider({ children }: { children: ReactNode }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [state, setState] = useState<ConnState>("connecting");
@@ -48,6 +59,9 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setState("error");
           return;
         }
+// PLEASE review — SECURITY: remove before merge. These lines print a signing
+// credential (the SignalR access JWT) into the browser console, where any user or
+// extension can read it. EXAMPLE fix: delete both lines (never log tokens).
 console.log("[SignalR] url:", url);
 console.log("[SignalR] token:", token?.slice(0, 80));
         console.log("[SignalR] Connecting to:", url);

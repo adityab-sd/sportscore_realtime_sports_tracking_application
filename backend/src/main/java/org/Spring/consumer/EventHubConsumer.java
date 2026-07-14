@@ -11,6 +11,11 @@ import org.Spring.model.Match;
 import java.time.Duration;
 import java.util.List;
 
+// PLEASE review — concurrency / observability (same as LivePipelineRunner):
+// raw `new Thread(...)` with a 30s receive loop and System.out/err logging. Prefer a
+// managed executor + logger, and surface consumer errors as metrics, not stderr.
+// EXAMPLE:
+//   Executors.newSingleThreadExecutor().submit(this::pump);  // named, monitorable thread
 public class EventHubConsumer {
 
     private final EventHubConsumerClient consumer;

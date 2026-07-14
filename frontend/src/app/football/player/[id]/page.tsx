@@ -14,9 +14,30 @@ const posFull: Record<string, string> = {
 export default async function PlayerPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "eng.1", team: teamId } = await searchParams;
+
+  // ============================================================================
+  // PLEASE review — Validate player lookup params
+  // ----------------------------------------------------------------------------
+  // id, league, and team are trusted directly from the URL. A malformed team id or
+  // unknown league should be rejected before it is used in API paths and links.
+  //
+  // EXAMPLE:
+  //   if (!teamId || !/^\d+$/.test(id) || !LEAGUES.some(l => l.slug === league)) return notFound();
+  // ============================================================================
   if (!teamId) return notFound();
 
   const [roster, team] = await Promise.all([getRoster(league, teamId), getTeam(league, teamId)]);
+
+  // ============================================================================
+  // PLEASE review — Do not render a player page for a missing team
+  // ----------------------------------------------------------------------------
+  // The team fetch can return null while the roster fallback is [], yet the page
+  // continues with a generic "Team" breadcrumb. Dynamic entity pages should notFound
+  // when the parent team is missing.
+  //
+  // EXAMPLE:
+  //   if (!team) return notFound();
+  // ============================================================================
   const player = roster.find(p => p.id === id);
   if (!player) return notFound();
 

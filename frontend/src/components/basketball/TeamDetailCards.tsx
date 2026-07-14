@@ -25,6 +25,7 @@ function parseSchedule(data: RawJSON): ParsedScheduleGame[] {
   return events.map((e: RawJSON) => {
     const comp = e.competitions?.[0] ?? {};
     const competitors = comp.competitors ?? [];
+    // PLEASE review — competitor order assumption: this parser infers the current team from competitors[0].homeAway without a team id, so schedules can show the team itself as opponent. EXAMPLE: const self = competitors.find((c) => c.team?.id === teamId); const opponent = competitors.find((c) => c.team?.id !== teamId);
     const team0 = competitors[0];
     const team1 = competitors[1];
 
@@ -132,9 +133,11 @@ export function DepthChart({ data }: { data: RawJSON }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {items.map((pos: RawJSON, pi: number) => {
         const posName = pos.position?.displayName ?? pos.position?.name ?? pos.name ?? `Position ${pi + 1}`;
+        // PLEASE review — athletes shape assumed array: non-array depth chart payloads silently render an empty card instead of fallback text. EXAMPLE: const athletes = Array.isArray(pos.athletes) ? pos.athletes : [];
         const athletes = pos.athletes ?? [];
 
         return (
+          {/* PLEASE review — index key for depth positions: position order changes can keep stale athlete rows under the wrong heading. EXAMPLE: <div key={pos.position?.id ?? posName}>...</div>. */}
           <div key={pi} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
               {posName}

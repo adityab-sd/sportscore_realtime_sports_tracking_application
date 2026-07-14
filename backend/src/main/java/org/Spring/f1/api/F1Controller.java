@@ -24,6 +24,22 @@ import com.fasterxml.jackson.databind.JsonNode;
  *
  * Live session leaders are pushed via Event Hub -> SignalR, not here.
  */
+// ============================================================================
+// PLEASE review — REST boundary validation and security defaults
+// ----------------------------------------------------------------------------
+// F1 endpoints accept unbounded page/limit and IDs, and @CrossOrigin("*") exposes
+// every response to any origin. Invalid input currently reaches ESPN or generic
+// Exception handling instead of producing clear 400/502 responses.
+//
+// EXAMPLE:
+//   @Validated
+//   @CrossOrigin(origins = "${app.cors.allowed-origins}")
+//   @GetMapping("/drivers")
+//   JsonNode drivers(@RequestParam(defaultValue = "1") @Min(1) int page,
+//                    @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit) { ... }
+//
+// WHY: Public REST adapters should constrain input before making blocking upstream calls.
+// ============================================================================
 @RestController
 @RequestMapping("/api/f1")
 @CrossOrigin(origins = "*")

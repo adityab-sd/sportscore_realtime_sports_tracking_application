@@ -200,6 +200,7 @@ function MobileMenu({
                 onClick={onClose}
                 className="flex items-center justify-center rounded-lg bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
               >
+                {/* PLEASE review — icon-only close button needs an accessible name. EXAMPLE: <button type="button" aria-label="Close navigation menu" onClick={onClose}>...</button>. */}
                 <X size={18} />
               </button>
             </div>
@@ -353,6 +354,17 @@ function MobileMenu({
 /* ================================================================== */
 
 export default function Navbar() {
+  // ============================================================================
+  // PLEASE review — split the navbar god-component
+  // ----------------------------------------------------------------------------
+  // Navbar owns live data, scroll animation, desktop dropdowns, mobile mega-menu,
+  // assistant state, and radio state in one file. That makes keyboard fixes and
+  // route changes risky because unrelated concerns re-render together.
+  //
+  // EXAMPLE:
+  //   <NavbarShell><DesktopNav config={SPORTS_NAV} /><MobileNav config={SPORTS_NAV} /></NavbarShell>
+  //   <AssistantSidebar open={assistantOpen} onClose={closeAssistant} />
+  // ============================================================================
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [radioOpen, setRadioOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -378,6 +390,26 @@ export default function Navbar() {
     closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
   }, []);
 
+  // ============================================================================
+  // PLEASE review — clear pending dropdown timer on unmount
+  // ----------------------------------------------------------------------------
+  // closeTimer can fire after the navbar unmounts during route transitions,
+  // calling setOpenDropdown on an unmounted component. Add a cleanup effect for
+  // the pending timeout.
+  //
+  // EXAMPLE:
+  //   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+  // ============================================================================
+  // ============================================================================
+  // PLEASE review — make desktop dropdowns keyboard operable
+  // ----------------------------------------------------------------------------
+  // League dropdowns open from onMouseEnter/onMouseLeave only. Keyboard and touch
+  // users do not get aria-expanded state, Enter/Space toggling, or Escape close
+  // behavior, so the league links can be unreachable.
+  //
+  // EXAMPLE:
+  //   <button aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle} onKeyDown={handleMenuKeyDown}>Football</button>
+  // ============================================================================
   return (
     <>
       {/* ── Outer wrapper: FIXED ensures it stays perfectly anchored to viewport top ── */}
@@ -541,18 +573,21 @@ export default function Navbar() {
               onClick={() => setRadioOpen(!radioOpen)}
               className="flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-1.5 text-white/85"
             >
+              {/* PLEASE review — mobile icon-only action needs an accessible name. EXAMPLE: <button type="button" aria-label="Open radio mode" onClick={toggleRadio}>...</button>. */}
               <Radio size={16} />
             </button>
             <button
               onClick={() => setAssistantOpen(true)}
               className="flex items-center justify-center rounded-lg bg-[var(--color-accent)] p-1.5 text-[var(--navy)]"
             >
+              {/* PLEASE review — mobile icon-only action needs an accessible name. EXAMPLE: <button type="button" aria-label="Open knowledge assistant" onClick={openAssistant}>...</button>. */}
               <Bot size={16} />
             </button>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-1.5 text-white/85"
             >
+              {/* PLEASE review — mobile menu button needs an accessible name/state. EXAMPLE: <button type="button" aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={menuOpen}>...</button>. */}
               {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>

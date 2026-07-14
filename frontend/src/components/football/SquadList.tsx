@@ -3,6 +3,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { ESPNPlayer } from "@/lib/api/espn";
 
+// ============================================================================
+// PLEASE review — hard-coded country registry
+// ----------------------------------------------------------------------------
+// Maintaining ISO codes by hand in the component is brittle and incomplete for
+// ESPN nationality variants. Missing countries render two-letter fallbacks even
+// when standardized metadata could supply the correct flag.
+//
+// EXAMPLE:
+//   const code = countryCodeFromNationality(nationality) ?? null;
+// ============================================================================
 // ── Country name → ISO 3166-1 alpha-2 code ──────────────────────────────────
 // flagcdn.com serves flags at https://flagcdn.com/w40/{code}.png
 const COUNTRY_TO_ISO: Record<string, string> = {
@@ -69,6 +79,15 @@ const POSITION_GROUPS = [
   { key: ["F","FW","ST","CF","LW","RW","SS"],    label: "Attackers"   },
 ];
 
+// ============================================================================
+// PLEASE review — jersey sort NaN handling
+// ----------------------------------------------------------------------------
+// parseInt can return NaN for values like "--" or "A", and Array.sort with NaN
+// produces unstable ordering. Normalize non-numeric jerseys to the end.
+//
+// EXAMPLE:
+//   const jersey = Number.parseInt(p.jersey ?? "", 10); return Number.isFinite(jersey) ? jersey : 999;
+// ============================================================================
 function sortByJersey(players: ESPNPlayer[]) {
   return [...players].sort((a,b) => (a.jersey ? parseInt(a.jersey) : 999) - (b.jersey ? parseInt(b.jersey) : 999));
 }

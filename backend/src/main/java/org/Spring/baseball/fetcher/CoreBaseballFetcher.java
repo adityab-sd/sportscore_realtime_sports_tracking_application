@@ -17,6 +17,20 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// ============================================================================
+// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
+// ----------------------------------------------------------------------------
+// Same skeleton as the other sports; only the LEAGUES map (12 entries) and isLive()
+// differ. The subclass supplies just those pieces:
+//
+// EXAMPLE:
+//   @Component
+//   class BaseballFetcher extends LiveSportFetcher {
+//       protected String baseUrl() { return BASE; }
+//       protected Map<String,String> leagues() { return LEAGUES; }
+//       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
+//   }
+// ============================================================================
 @Component
 public class CoreBaseballFetcher {
 

@@ -10,6 +10,21 @@ import java.util.List;
 public final class F1Dto {
     private F1Dto() {}
 
+    // ============================================================================
+    // PLEASE review — Null Object / immutability for nested DTO lists
+    // ----------------------------------------------------------------------------
+    // RaceWeekend, SessionDto, and Standings carry List components but records do
+    // not copy them. Mutable grids/sessions can be changed after construction and
+    // null lists make frontend consumers branch on every response.
+    //
+    // EXAMPLE:
+    //   public RaceWeekend {
+    //       sessions = List.copyOf(sessions == null ? List.of() : sessions);
+    //   }
+    //
+    // WHY: DTO records should be immutable value snapshots, not mutable views.
+    // ============================================================================
+
     /** One driver's line in a session classification. */
     public record DriverResult(int position, String driverId, String driver,
                                String country, String flag, boolean winner) {}

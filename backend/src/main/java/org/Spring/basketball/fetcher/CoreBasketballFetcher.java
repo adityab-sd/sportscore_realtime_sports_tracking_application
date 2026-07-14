@@ -17,6 +17,17 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// ============================================================================
+// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
+// ----------------------------------------------------------------------------
+// Same skeleton as the other sports. Basketball's only real variation is isLive()
+// (it is period-aware). In the shared base class it becomes a one-method override:
+//
+// EXAMPLE:
+//   @Override protected boolean isLive(Match m) {
+//       return java.util.Set.of("LIVE","HT","Q1","Q2","Q3","Q4","OT").contains(m.status());
+//   }
+// ============================================================================
 @Component
 public class CoreBasketballFetcher {
 

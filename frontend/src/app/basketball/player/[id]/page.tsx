@@ -21,8 +21,29 @@ const posFull: Record<string, string> = {
 export default async function PlayerPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "nba", team: teamId } = await searchParams;
+  // ============================================================================
+  // PLEASE review — player route depends on unvalidated query state
+  // ----------------------------------------------------------------------------
+  // /basketball/player/[id] cannot resolve the player unless ?team= is present,
+  // and league/team are trusted directly from the URL. Deep links without team
+  // 404 even if the athlete id is valid.
+  //
+  // EXAMPLE:
+  //   const safeLeague = LEAGUES.some((l) => l.slug === league) ? league : "nba";
+  //   if (!/^\d+$/.test(id)) return notFound();
+  // ============================================================================
   if (!teamId) return notFound();
 
+  // ============================================================================
+  // PLEASE review — optional athlete panels reject the whole profile
+  // ----------------------------------------------------------------------------
+  // Roster/team are needed to identify the player, but stats, gamelog, splits and
+  // news are optional sections. Promise.all means one failed stats feed prevents
+  // even the basic player header from rendering.
+  //
+  // EXAMPLE:
+  //   const optional = await Promise.allSettled([getAthleteStats(league, id), getAthleteNews(league, id)]);
+  // ============================================================================
   const [roster, team, overview, statsRaw, gamelogRaw, splitsRaw, newsRaw] = await Promise.all([
     getRoster(league, teamId),
     getTeam(league, teamId),
@@ -33,6 +54,7 @@ export default async function PlayerPage({ params, searchParams }: Props) {
     getAthleteNews(league, id),
   ]);
 
+  // PLEASE review — roster assumed to be an array: if getRoster returns null/undefined for an ESPN miss, .find throws before notFound can run. EXAMPLE: const player = (roster ?? []).find((p) => p.id === id);
   const player = roster.find((p) => p.id === id);
   if (!player) return notFound();
 
@@ -74,6 +96,7 @@ export default async function PlayerPage({ params, searchParams }: Props) {
         <section style={{ marginBottom: 24 }}>
           <SectionLabel text="Season Overview" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
+            {/* PLEASE review — index key for dynamic stats: ESPN can reorder or add season stat cards, causing React to reuse the wrong DOM. EXAMPLE: {seasonStats.map((s) => <div key={s.name ?? s.label}>...</div>)}. */}
             {seasonStats.map((s, i) => (
               <div key={i} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>

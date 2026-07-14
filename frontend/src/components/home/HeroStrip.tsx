@@ -144,6 +144,17 @@ async function getRealMatches(): Promise<MatchCard[]> {
 /* ------------------------------------------------------------------ */
 
 function buildRows(matches: MatchCard[]): [Card[], Card[], Card[]] {
+  // ============================================================================
+  // PLEASE review — avoid random ordering in render path
+  // ----------------------------------------------------------------------------
+  // Math.random() makes the server-rendered rows non-deterministic across
+  // requests and revalidations, which makes bugs hard to reproduce and can
+  // reshuffle visible content for no data change.
+  //
+  // EXAMPLE:
+  //   const shuffled = [...matches].sort((a, b) => a.id.localeCompare(b.id));
+  //   // or use a seeded shuffle derived from a stable daily key.
+  // ============================================================================
   // Shuffle matches so the 3 rows don't each start with the same league block
   const shuffled = [...matches].sort(() => Math.random() - 0.5);
 
