@@ -62,7 +62,7 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
 
   return (
     <div
-      style={{ position: "relative", width: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
+      style={{ position: "relative", width: "100%", height: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

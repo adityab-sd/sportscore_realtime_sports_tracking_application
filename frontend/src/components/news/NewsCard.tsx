@@ -25,6 +25,14 @@ interface NewsCardProps {
    * Defaults to "football" so existing usages don't need updating.
    */
   sport?: "football" | "basketball";
+  /**
+   * Optional extra classes merged onto the outer <Link>. Purely additive —
+   * omit it and NewsCard behaves exactly as before. Used e.g. when stacking
+   * a few cards next to a taller sibling (like the home page's carousel)
+   * and you want them to divide that height evenly: pass "lg:flex-1 lg:min-h-0"
+   * from a `flex flex-col` parent.
+   */
+  className?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,11 +89,11 @@ function ImageSlot({ src, category }: { src: string | null; category: string }) 
   );
 }
 
-export default function NewsCard({ article, sport = "football" }: NewsCardProps) {
+export default function NewsCard({ article, sport = "football", className }: NewsCardProps) {
   const href = `/${sport}/news/${article.id}`;
 
   return (
-    <Link href={href} style={{ textDecoration: "none" }}>
+    <Link href={href} className={className} style={{ textDecoration: "none" }}>
       <article className="news-card card-hover" style={{
         background: "var(--white)", border: "1px solid var(--border)",
         borderRadius: 12, height: "100%", display: "flex", flexDirection: "column",
