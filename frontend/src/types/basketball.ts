@@ -11,8 +11,12 @@ const espnLogo = (slug: string) =>
   `https://a.espncdn.com/i/teamlogos/leagues/500/${slug}.png`;
 
 export const LEAGUES: LeagueInfo[] = [
-  { slug: "nba",  name: "NBA",  short: "NBA",  logo: espnLogo("nba")  },
-  { slug: "wnba", name: "WNBA", short: "WNBA", logo: espnLogo("wnba") },
+  { slug: "nba",                       name: "NBA",                          short: "NBA",      logo: espnLogo("nba")  },
+  { slug: "wnba",                      name: "WNBA",                         short: "WNBA",     logo: espnLogo("wnba") },
+  { slug: "nba-summer-las-vegas",      name: "NBA Summer League",            short: "Summer",   logo: espnLogo("nba")  },
+  { slug: "mens-college-basketball",   name: "NCAA Men's Basketball",        short: "NCAAM",    logo: espnLogo("ncaa") },
+  { slug: "womens-college-basketball", name: "NCAA Women's Basketball",      short: "NCAAW",    logo: espnLogo("ncaa_wbball") },
+  { slug: "nba-development",           name: "NBA G League",                 short: "G-LG",     logo: espnLogo("nba")  },
 ];
 
 export const leagueName = (slug: string): string =>
@@ -34,8 +38,14 @@ export function classifyStatus(statusState: string | null | undefined): GameStat
 
 export function periodLabel(period: number | null, league: string): string {
   if (period == null) return "";
-  // NBA/WNBA use quarters. Overtime shown as "OT", "2OT", ...
-  const regulation = league === "wnba" ? 4 : 4; // both use 4 quarters
+  // NCAA uses halves, everything else uses quarters
+  const isHalves = league.includes("college-basketball");
+  if (isHalves) {
+    if (period <= 2) return `H${period}`;
+    const otNum = period - 2;
+    return otNum === 1 ? "OT" : `${otNum}OT`;
+  }
+  const regulation = 4;
   if (period <= regulation) return `Q${period}`;
   const otNum = period - regulation;
   return otNum === 1 ? "OT" : `${otNum}OT`;

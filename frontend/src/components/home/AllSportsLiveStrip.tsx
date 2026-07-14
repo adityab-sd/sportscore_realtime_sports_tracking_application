@@ -57,6 +57,74 @@ const SPORT_CONFIGS: Record<string, SportConfig> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Fallback data shape — pre-fetched server-side (see getUpcomingBySport in
+// app/page.tsx) and passed in as a prop, since this component is client-only
+// (it needs useSignalR) and can't fetch from the REST fixtures endpoints itself.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface UpcomingFixture {
+  id: string;
+  /** ISO date string, or null if the schedule isn't confirmed yet. */
+  dateISO: string | null;
+  competition: string;
+  home: { name: string; shortName: string; logo: string | null };
+  away: { name: string; shortName: string; logo: string | null };
+  href: string;
+}
+
+function formatUpcoming(iso: string | null): string {
+  if (!iso) return "Date TBD";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "Date TBD";
+  const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${date} · ${time}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Single upcoming-fixture card — same visual language as LiveMatchCard below,
+// minus the score/live indicator, plus a formatted kickoff date/time.
+// ─────────────────────────────────────────────────────────────────────────────
+function UpcomingMatchCard({ fixture, sport }: { fixture: UpcomingFixture; sport: string }) {
+  const config = SPORT_CONFIGS[sport] ?? SPORT_CONFIGS["football"];
+
+  return (
+    <Link href={fixture.href} style={{ textDecoration: "none" }}>
+      <div className="card-hover" style={{
+        background: "var(--white)", border: "1px solid var(--border)",
+        borderRadius: 12, padding: "14px 16px", position: "relative",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+            {fixture.competition}
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: config.color }} suppressHydrationWarning>
+            {formatUpcoming(fixture.dateISO)}
+          </span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <TeamLogo logo={fixture.home.logo} shortName={fixture.home.shortName} />
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {fixture.home.shortName || fixture.home.name}
+            </span>
+          </div>
+
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", flexShrink: 0 }}>vs</span>
+
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, minWidth: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
+              {fixture.away.shortName || fixture.away.name}
+            </span>
+            <TeamLogo logo={fixture.away.logo} shortName={fixture.away.shortName} />
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Single match card — sport-agnostic
 // ─────────────────────────────────────────────────────────────────────────────
 function LiveMatchCard({ match, sport }: { match: Match; sport: string }) {
@@ -136,7 +204,19 @@ function LiveMatchCard({ match, sport }: { match: Match; sport: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AllSportsLiveStrip() {
+interface AllSportsLiveStripProps {
+  /**
+   * Pre-fetched upcoming fixtures, grouped by the same sport keys used in
+   * SPORT_CONFIGS. Shown as a "few upcoming matches per sport" fallback
+   * ONLY when there's currently nothing live. Add a sport to SPORT_CONFIGS
+   * above and give it a non-empty entry here (see getUpcomingBySport in
+   * app/page.tsx) and it slots into this fallback automatically — nothing
+   * else in this file needs to change.
+   */
+  upcomingBySport?: Record<string, UpcomingFixture[]>;
+}
+
+export default function AllSportsLiveStrip({ upcomingBySport = {} }: AllSportsLiveStripProps) {
   const { matches: allMatches, state, lastUpdate } = useSignalR();
 
   // Group matches by sport — default "football" if sport field is absent
@@ -150,10 +230,15 @@ export default function AllSportsLiveStrip() {
   // Only show sports we have a config for
   const activeSports = Object.keys(SPORT_CONFIGS).filter(s => (bySport[s]?.length ?? 0) > 0);
 
+  // Sports with upcoming fixtures to fall back to, same registry/ordering as above
+  const upcomingSports = Object.keys(SPORT_CONFIGS).filter(
+    (s) => (upcomingBySport[s]?.length ?? 0) > 0
+  );
+
   // Flatten to get live count across all sports
   const totalLive = allMatches.filter(m => classifyStatus(m.status) === "live").length;
 
-  if (activeSports.length === 0 && state !== "connected" && state !== "connecting") return null;
+  if (activeSports.length === 0 && upcomingSports.length === 0 && state !== "connected" && state !== "connecting") return null;
 
   return (
     <section style={{ paddingTop: 36, paddingBottom: 12 }}>
@@ -163,7 +248,7 @@ export default function AllSportsLiveStrip() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {totalLive > 0 && <span className="live-dot" />}
             <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px", margin: 0 }}>
-              {totalLive > 0 ? `${totalLive} Live Now` : "Match Feed"}
+              {totalLive > 0 ? `${totalLive} Live Now` : activeSports.length === 0 && upcomingSports.length > 0 ? "Upcoming Matches" : "Match Feed"}
             </h2>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -173,9 +258,35 @@ export default function AllSportsLiveStrip() {
 
         {/* Per-sport sections */}
         {activeSports.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
-            No live matches right now — they&apos;ll appear here as they start.
-          </p>
+          upcomingSports.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+              {upcomingSports.map((sport) => {
+                const config = SPORT_CONFIGS[sport];
+                const fixtures = upcomingBySport[sport] ?? [];
+
+                return (
+                  <div key={sport}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: config.color }}>
+                        {config.label}
+                      </span>
+                      <Link href={config.detailPath} style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>
+                        All matches →
+                      </Link>
+                    </div>
+
+                    <div className="matches-grid">
+                      {fixtures.map((f) => <UpcomingMatchCard key={f.id} fixture={f} sport={sport} />)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
+              No live matches right now — they&apos;ll appear here as they start.
+            </p>
+          )
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
             {activeSports.map(sport => {
