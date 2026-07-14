@@ -9,20 +9,19 @@ import org.Spring.model.Team;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 // Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[]) into the unified Match model.
+@Component
 public class CoreFootballAdapter {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public List<Match> toMatches(String json) throws Exception {
-        return toMatches(json, null);
-    }
+
 
     // friendlyName comes from the fetcher's LEAGUES map and is used when ESPN omits
     // league.name, so cards don't fall back to "Unknown" over SignalR.
-    public List<Match> toMatches(String json, String friendlyName) throws Exception {
-        JsonNode root = mapper.readTree(json);
+    public List<Match> toMatches(JsonNode root, String friendlyName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             matches.add(toMatch(event, friendlyName));

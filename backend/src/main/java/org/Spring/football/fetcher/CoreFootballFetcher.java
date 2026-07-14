@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.Spring.api.EspnHttpClient;
 import org.Spring.football.adapter.CoreFootballAdapter;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
@@ -49,13 +51,16 @@ public class CoreFootballFetcher {
         LEAGUES.put("aus.1",             "A-League");
     }
 
-    private final HttpClient     client   = HttpClient.newHttpClient();
-    private final CoreFootballAdapter adapter = new CoreFootballAdapter();
-    private final ObjectMapper   mapper   = new ObjectMapper();
+    private final EspnHttpClient     client;
+    private final CoreFootballAdapter adapter;
+    private final ObjectMapper   mapper;
     private final EventHubProducer producer;
 
-    public CoreFootballFetcher(EventHubProducer producer) {
+    public CoreFootballFetcher(EventHubProducer producer, EspnHttpClient client, ObjectMapper mapper, CoreFootballAdapter adapter) {
         this.producer = producer;
+        this.client   = client;
+        this.mapper   = mapper;
+        this.adapter  = adapter;
     }
 
     public void fetchAndPublishLive() throws Exception {
@@ -64,8 +69,8 @@ public class CoreFootballFetcher {
     }
 
     /** Raw JSON for one competition's scoreboard. */
-    public String fetchScoreboardRaw(String league) throws Exception {
-        return get("/" + league + "/scoreboard");
+    public JsonNode fetchScoreboardRaw(String league) throws Exception {
+        return client.get(BASE + "/" + league + "/scoreboard");
     }
 
     /** Parsed matches for one competition. */
@@ -74,7 +79,9 @@ public class CoreFootballFetcher {
         // fallback when ESPN's JSON doesn't include a league.name node.
         // This fixes the "Football" placeholder showing on match cards via SignalR.
         String friendlyName = LEAGUES.getOrDefault(league, league);
-        return adapter.toMatches(fetchScoreboardRaw(league), friendlyName);
+        JsonNode scoreboard =
+                client.get(BASE + "/" + league + "/scoreboard");
+        return adapter.toMatches(scoreboard, friendlyName);
     }
 
     /** Parsed matches across ALL configured competitions, combined. */
@@ -82,7 +89,8 @@ public class CoreFootballFetcher {
         List<Match> all = new ArrayList<>();
         for (Map.Entry<String, String> entry : LEAGUES.entrySet()) {
             try {
-                all.addAll(adapter.toMatches(fetchScoreboardRaw(entry.getKey()), entry.getValue()));
+                JsonNode root = fetchScoreboardRaw(entry.getKey());
+                all.addAll(adapter.toMatches(root, entry.getValue()));
             } catch (Exception e) {
                 System.out.println("  (skipped " + entry.getKey() + ": " + e.getMessage() + ")");
             }
@@ -90,25 +98,18 @@ public class CoreFootballFetcher {
         return all;
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + path))
-                .header("User-Agent", "SportScore/1.0")
-                .GET()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("API error " + response.statusCode());
-        }
-        return response.body();
-    }
-
     // Manual test which is for only me, not part of the production service.
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
         // so live matches are logged instead of crashing with NullPointerException
-        CoreFootballFetcher fetcher = new CoreFootballFetcher(new EventHubProducer("", ""));
+        ObjectMapper mapper = new ObjectMapper();
+
+        EspnHttpClient httpClient =
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+        CoreFootballAdapter adapter = new CoreFootballAdapter();
+        CoreFootballFetcher fetcher = new CoreFootballFetcher(new EventHubProducer("", ""),
+                httpClient, mapper, adapter);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

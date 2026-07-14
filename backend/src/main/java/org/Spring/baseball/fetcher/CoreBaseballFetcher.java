@@ -11,11 +11,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.Spring.baseball.adapter.CoreBaseballAdapter;
+import org.Spring.f1.adapter.CoreF1Adapter;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.Spring.api.EspnHttpClient;
 
 @Component
 public class CoreBaseballFetcher {
@@ -42,14 +45,16 @@ public class CoreBaseballFetcher {
         LEAGUES.put("lls",                       "Little League Softball World Series");
     }
 
-    private final HttpClient          client  = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10)).build();
-    private final CoreBaseballAdapter adapter = new CoreBaseballAdapter();
-    private final ObjectMapper        mapper  = new ObjectMapper();
+    private final EspnHttpClient          client;
+    private final CoreBaseballAdapter adapter;
+    private final ObjectMapper        mapper;
     private final EventHubProducer    producer;
 
-    public CoreBaseballFetcher(EventHubProducer producer) {
+    public CoreBaseballFetcher(EventHubProducer producer, EspnHttpClient client, ObjectMapper mapper, CoreBaseballAdapter adapter) {
         this.producer = producer;
+        this.client   = client;
+        this.mapper   = mapper;
+        this.adapter = adapter;
     }
 
     // Pipeline
@@ -72,12 +77,16 @@ public class CoreBaseballFetcher {
         };
     }
 
-    public String fetchScoreboardRaw(String league) throws Exception {
-        return get("/" + league + "/scoreboard");
-    }
 
     public List<Match> fetchMatches(String league) throws Exception {
-        return adapter.toMatches(fetchScoreboardRaw(league));
+        try {
+            JsonNode scoreboard = client.get(BASE + "/" + league + "/scoreboard");
+            return adapter.toMatches(scoreboard);
+        } catch (Exception e) {
+            System.out.println("  (baseball scoreboard error: " + e.getMessage() + ")");
+            return new ArrayList<>();
+        }
+
     }
 
     public List<Match> fetchAllMatches() throws Exception {
@@ -92,25 +101,20 @@ public class CoreBaseballFetcher {
         return all;
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + path))
-                .header("User-Agent", "SportScore/1.0")
-                .timeout(Duration.ofSeconds(15))
-                .GET().build();
-        HttpResponse<String> response =
-                client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200)
-            throw new RuntimeException("API error " + response.statusCode());
-        return response.body();
-    }
 
     // Manual test for only me, not part of the production service.
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
         // so live matches are logged instead of pushed to Event Hub.
-        CoreBaseballFetcher fetcher = new CoreBaseballFetcher(new EventHubProducer("", ""));
+        ObjectMapper mapper = new ObjectMapper();
+
+        EspnHttpClient httpClient =
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+
+        CoreBaseballAdapter adapter = new CoreBaseballAdapter();
+        CoreBaseballFetcher fetcher = new CoreBaseballFetcher(new EventHubProducer("", ""),
+                httpClient, mapper, adapter);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

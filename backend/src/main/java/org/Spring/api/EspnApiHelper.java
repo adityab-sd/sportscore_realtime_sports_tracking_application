@@ -1,77 +1,45 @@
 package org.Spring.api;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Shared ESPN API helpers for all sport services.
- * Eliminates duplication between FootballService, BasketballService, etc.
+ *
+ * <p>HTTP calls are delegated to the injected {@link EspnHttpClient} bean so
+ * that {@code @Retryable} crosses the Spring proxy boundary and actually fires.
+ * {@link ObjectMapper} is the single application-wide bean from {@code AppConfig}
+ * — thread-safe and shared rather than re-constructed per class.
  */
 public abstract class EspnApiHelper {
 
-    protected final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-    protected final ObjectMapper mapper = new ObjectMapper();
+    /**
+     * Injected by Spring into every concrete subclass (@Service / @Component).
+     * Field injection is used here because the abstract base has no constructor
+     * that subclasses are required to call with these collaborators.
+     */
+    @Autowired protected EspnHttpClient espnHttp;
+    @Autowired protected ObjectMapper   mapper;
 
     private static final Pattern TEAM_ID_FROM_REF = Pattern.compile("/teams/(\\d+)");
 
-    /** Thrown when ESPN returns a 5xx status — triggers retry. */
-    static class EspnServerException extends RuntimeException {
-        final int status;
-        EspnServerException(int status, String url) {
-            super("ESPN " + status + " for " + url);
-            this.status = status;
-        }
-    }
+    // ── HTTP delegation ───────────────────────────────────────────────────────
 
-    // ── HTTP ─────────────────────────────────────────────────────────────────
-
-    /**
-     * Fetches a URL with up to 3 attempts and exponential backoff (500 ms → 1 s → 2 s).
-     * Retries on 5xx responses and I/O / timeout failures.
-     * 4xx responses are returned as an empty node immediately (no retry).
-     */
-    @Retryable(
-        retryFor  = { EspnServerException.class, IOException.class },
-        maxAttempts = 3,
-        backoff   = @Backoff(delay = 500, multiplier = 2)
-    )
+    /** Delegates to {@link EspnHttpClient#get} — retry/backoff fires correctly. */
     protected JsonNode get(String url) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SportScore/1.0").GET().build();
-        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-        if (res.statusCode() >= 500) throw new EspnServerException(res.statusCode(), url);
-        if (res.statusCode() != 200)  return mapper.createObjectNode();
-        return mapper.readTree(res.body());
+        return espnHttp.get(url);
     }
 
-    /** Called after all retry attempts are exhausted — returns an empty node so callers degrade gracefully. */
-    @Recover
-    protected JsonNode getRecover(Exception ex, String url) {
-        System.err.println("[EspnApiHelper] All retries exhausted for " + url + " — " + ex.getMessage());
-        return mapper.createObjectNode();
-    }
-
-    /** Same as get(), but for list endpoints that support page/limit query params. */
     protected JsonNode getPaged(String baseUrl, int page, int limit) throws Exception {
         String sep = baseUrl.contains("?") ? "&" : "?";
         return get(baseUrl + sep + "page=" + page + "&limit=" + limit);
     }
 
-    // ── Node helpers ─────────────────────────────────────────────────────────
+    // ── Node helpers ──────────────────────────────────────────────────────────
 
     protected String txt(JsonNode n) {
         return (n == null || n.isMissingNode() || n.isNull()) ? null : n.asText();
@@ -159,7 +127,8 @@ public abstract class EspnApiHelper {
         if (ref == null) return null;
         if (cache.containsKey(ref)) return cache.get(ref);
         try {
-            JsonNode athlete = get(ref.replaceFirst("^http://", "https://"));
+            // Calls through espnHttp — crosses the proxy, retry fires correctly.
+            JsonNode athlete = espnHttp.get(ref.replaceFirst("^http://", "https://"));
             String name = first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), txt(athlete.path("shortName")));
             cache.put(ref, name);
             return name;
@@ -169,20 +138,14 @@ public abstract class EspnApiHelper {
         }
     }
 
-    /**
-     * Resolve a Core API hypermedia object: either inline data or a {"$ref": url}
-     * pointer. Shared by any sport's leaders-from-core-API fallback (baseball,
-     * basketball) - mirrors the pattern FootballService already used privately
-     * for soccer, promoted here so it isn't duplicated per sport.
-     */
     protected JsonNode resolveRef(JsonNode node, Map<String, JsonNode> cache) {
         if (node == null || node.isMissingNode() || node.isNull()) return null;
-        if (node.has("displayName") || node.has("fullName")) return node; // already inline
+        if (node.has("displayName") || node.has("fullName")) return node;
         String ref = txt(node.path("$ref"));
         if (ref == null) return null;
         if (cache.containsKey(ref)) return cache.get(ref);
         try {
-            JsonNode resolved = get(ref.replaceFirst("^http://", "https://"));
+            JsonNode resolved = espnHttp.get(ref.replaceFirst("^http://", "https://"));
             cache.put(ref, resolved);
             return resolved;
         } catch (Exception e) {

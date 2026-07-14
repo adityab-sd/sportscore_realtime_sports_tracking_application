@@ -9,6 +9,7 @@ import org.Spring.model.Team;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 // F1 isn't team-vs-team, so we fold a whole GP weekend into one Match for the
 // live pipeline: pick a representative session (in-progress, else next up, else
@@ -16,12 +17,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // score-display fields. Keeps F1 on the same Match shape as every other sport, so
 // the Event Hub -> SignalR path needs no special-casing. Full per-session detail
 // is served over REST by F1Service instead.
+@Component
 public class CoreF1Adapter {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public List<Match> toMatches(String json) throws Exception {
-        JsonNode root = mapper.readTree(json);
+    public List<Match> toMatches(JsonNode root) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             Match m = toMatch(event);

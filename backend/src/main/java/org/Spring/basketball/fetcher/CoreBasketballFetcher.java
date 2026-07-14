@@ -10,12 +10,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.Spring.api.EspnHttpClient;
 import org.Spring.basketball.adapter.CoreBasketballAdapter;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.Spring.api.EspnHttpClient;
+
 
 @Component
 public class CoreBasketballFetcher {
@@ -48,14 +52,16 @@ public class CoreBasketballFetcher {
         LEAGUES.put("womens-olympics-basketball", "Olympics Women's Basketball");
     }
 
-    private final HttpClient            client   = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10)).build();
-    private final CoreBasketballAdapter adapter  = new CoreBasketballAdapter();
-    private final ObjectMapper          mapper   = new ObjectMapper();
+    private final EspnHttpClient client;
+    private final CoreBasketballAdapter adapter;
+    private final ObjectMapper          mapper;
     private final EventHubProducer      producer;
 
-    public CoreBasketballFetcher(EventHubProducer producer) {
+    public CoreBasketballFetcher(EventHubProducer producer, EspnHttpClient client, ObjectMapper mapper, CoreBasketballAdapter adapter) {
         this.producer = producer;
+        this.client   = client;
+        this.mapper   = mapper;
+        this.adapter  = adapter;
     }
 
     // Pipeline
@@ -78,12 +84,17 @@ public class CoreBasketballFetcher {
         };
     }
 
-    public String fetchScoreboardRaw(String league) throws Exception {
-        return get("/" + league + "/scoreboard");
-    }
+
 
     public List<Match> fetchMatches(String league) throws Exception {
-        return adapter.toMatches(fetchScoreboardRaw(league));
+        try {
+            JsonNode scoreboard = client.get("/" + league + "/scoreboard");
+            return adapter.toMatches(scoreboard);
+        } catch (Exception e) {
+            System.out.println("  (basketball scoreboard error: " + e.getMessage() + ")");
+            return new ArrayList<>();
+        }
+
     }
 
     public List<Match> fetchAllMatches() throws Exception {
@@ -98,25 +109,20 @@ public class CoreBasketballFetcher {
         return all;
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + path))
-                .header("User-Agent", "SportScore/1.0")
-                .timeout(Duration.ofSeconds(15))
-                .GET().build();
-        HttpResponse<String> response =
-                client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200)
-            throw new RuntimeException("API error " + response.statusCode());
-        return response.body();
-    }
+
 
     // Manual test
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
         // so live matches are logged instead of crashing with NullPointerException
-        CoreBasketballFetcher fetcher = new CoreBasketballFetcher(new EventHubProducer("", ""));
+        ObjectMapper mapper = new ObjectMapper();
+
+        EspnHttpClient httpClient =
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+        CoreBasketballAdapter adapter = new CoreBasketballAdapter();
+        CoreBasketballFetcher fetcher = new CoreBasketballFetcher(new EventHubProducer("", ""),
+                httpClient, mapper, adapter);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

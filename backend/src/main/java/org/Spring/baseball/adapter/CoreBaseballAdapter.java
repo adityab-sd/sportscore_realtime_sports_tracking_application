@@ -9,16 +9,17 @@ import org.Spring.model.Team;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 // ESPN's MLB scoreboard uses the same envelope as basketball, so this mirrors
 // CoreBasketballAdapter. Baseball specifics: period holds the inning,
 // homeScore/awayScore are runs, and statusDetail carries ESPN's "Top 5th" text.
+@Component
 public class CoreBaseballAdapter {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public List<Match> toMatches(String json) throws Exception {
-        JsonNode root = mapper.readTree(json);
+    public List<Match> toMatches(JsonNode root) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             Match m = toMatch(event);
