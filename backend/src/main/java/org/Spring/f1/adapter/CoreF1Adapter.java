@@ -1,6 +1,7 @@
 package org.Spring.f1.adapter;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.Spring.adapter.ScoreboardAdapter;
@@ -26,6 +27,9 @@ import org.springframework.stereotype.Component;
 //   }
 //
 // WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// UPDATE
+// Refactored to implement the shared ScoreboardAdapter interface, decoupling
+// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
 // ============================================================================
 // F1 isn't team-vs-team, so we fold a whole GP weekend into one Match for the
 // live pipeline: pick a representative session (in-progress, else next up, else
@@ -104,21 +108,52 @@ public class CoreF1Adapter implements ScoreboardAdapter {
     }
 
     // PLEASE review — Strategy (GoF): representative session selection assumes ESPN ordering, so "earliest upcoming" may be whichever pre-session appears first. EXAMPLE: upcoming.sort(Comparator.comparing(s -> textOrNull(s.path("date")), Comparator.nullsLast(String::compareTo))); return upcoming.isEmpty() ? null : upcoming.get(0);
-    /** in-progress > earliest upcoming > latest completed. */
+    // UPDATE:
+    // Refactored representative session selection to choose the earliest upcoming
+    // and latest completed sessions based on their scheduled date rather than
+    // relying on ESPN's response ordering.
+    /** Returns: in-progress > earliest upcoming > latest completed. */
     private JsonNode representativeSession(JsonNode sessions) {
-        JsonNode inProgress = null, upcoming = null, lastDone = null;
+
+        JsonNode inProgress = null;
+        List<JsonNode> upcoming = new ArrayList<>();
+        List<JsonNode> completed = new ArrayList<>();
+
         for (JsonNode s : sessions) {
             String state = s.path("status").path("type").path("state").asText("");
+
             switch (state) {
-                case "in"   -> { if (inProgress == null) inProgress = s; }
-                case "pre"  -> { if (upcoming == null) upcoming = s; }
-                case "post" -> lastDone = s;
-                default     -> { }
+                case "in" -> {
+                    if (inProgress == null) {
+                        inProgress = s;
+                    }
+                }
+                case "pre" -> upcoming.add(s);
+                case "post" -> completed.add(s);
+                default -> { }
             }
         }
-        if (inProgress != null) return inProgress;
-        if (upcoming   != null) return upcoming;
-        if (lastDone   != null) return lastDone;
+
+        if (inProgress != null) {
+            return inProgress;
+        }
+
+        if (!upcoming.isEmpty()) {
+            upcoming.sort(Comparator.comparing(
+                    s -> textOrNull(s.path("date")),
+                    Comparator.nullsLast(String::compareTo)
+            ));
+            return upcoming.get(0);
+        }
+
+        if (!completed.isEmpty()) {
+            completed.sort(Comparator.comparing(
+                    (JsonNode s) -> textOrNull(s.path("date")),
+                    Comparator.nullsLast(String::compareTo)
+            ).reversed());
+            return completed.get(0);
+        }
+
         return sessions.has(0) ? sessions.get(0) : null;
     }
 

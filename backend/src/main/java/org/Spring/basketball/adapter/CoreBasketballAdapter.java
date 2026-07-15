@@ -26,6 +26,9 @@ import org.springframework.stereotype.Component;
 //   }
 //
 // WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// UPDATE:
+// Refactored to implement the shared ScoreboardAdapter interface, decoupling
+// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
 // ============================================================================
 // Maps ESPN's basketball scoreboard into our Match model.
 // Live status is period-aware: HT, Q1-Q4, then OT for period 5+.

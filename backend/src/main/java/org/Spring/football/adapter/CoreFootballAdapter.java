@@ -9,7 +9,7 @@ import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.stereotype.Component;
 
 // Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[]) into the unified Match model.
@@ -31,6 +31,9 @@ import org.springframework.stereotype.Component;
 //
 // WHY: isolates the core from third-party formats we don't control, and lets tests
 // feed canned JSON without hitting the network.
+// UPDATE
+// Refactored to implement the shared ScoreboardAdapter interface, decoupling
+// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
 // ============================================================================
 public class CoreFootballAdapter implements ScoreboardAdapter {
 
@@ -94,6 +97,9 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
     //
     // EXAMPLE — a lookup table is enough:
     //   private static final Map<String,String> STATE = Map.of("in","LIVE","post","FT");
+    // UPDATE
+    // Status mapping is intentionally kept as a simple lookup/switch since it is
+    // value translation rather than behavior that changes over an object's lifecyclE
     // ------------------------------------------------------------------------
     // Collapse ESPN's status into the small vocabulary the pipeline groups on.
     private String mapStatus(JsonNode type) {

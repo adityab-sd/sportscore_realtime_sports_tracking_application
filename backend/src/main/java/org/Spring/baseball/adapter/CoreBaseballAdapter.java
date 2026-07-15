@@ -26,6 +26,9 @@ import org.springframework.stereotype.Component;
 //   }
 //
 // WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// UPDATE:
+// Refactored to implement the shared ScoreboardAdapter interface, decoupling
+// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
 // ============================================================================
 // ESPN's MLB scoreboard uses the same envelope as basketball, so this mirrors
 // CoreBasketballAdapter. Baseball specifics: period holds the inning,
@@ -45,7 +48,22 @@ public class CoreBaseballAdapter implements ScoreboardAdapter {
 
     private Match toMatch(JsonNode event) {
         // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and can collapse distinct matches. EXAMPLE: String id = textOrNull(event.path("id")); if (id == null) return null;
-        int id = event.path("id").asInt();
+        // Validate ESPN match IDs before parsing to avoid treating missing or
+        // malformed IDs as 0, which could incorrectly merge distinct matches.
+        String idText = textOrNull(event.path("id"));
+        if (idText == null) {
+            return null;
+        }
+
+        if (!idText.matches("\\d+")) {
+            return null;
+        }
+        int id;
+        try {
+            id = Integer.parseInt(idText);
+        } catch (NumberFormatException e) {
+            return null;
+        }
         JsonNode comp = event.path("competitions").path(0);
         if (comp.isMissingNode()) return null;
 
