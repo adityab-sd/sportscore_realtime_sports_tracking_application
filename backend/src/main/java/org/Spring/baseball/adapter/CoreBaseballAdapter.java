@@ -3,6 +3,7 @@ package org.Spring.baseball.adapter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
@@ -11,15 +12,29 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
+// ============================================================================
+// PLEASE review — Singleton (Spring-managed) ObjectMapper
+// ----------------------------------------------------------------------------
+// This adapter creates its own ObjectMapper. ObjectMapper is thread-safe after
+// configuration and already called out in EspnApiHelper as a shared-bean concern;
+// per-adapter mappers duplicate expensive configuration and can drift by sport.
+//
+// EXAMPLE:
+//   @Component
+//   class CoreBaseballAdapter {
+//       CoreBaseballAdapter(ObjectMapper mapper) { this.mapper = mapper; }
+//   }
+//
+// WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// ============================================================================
 // ESPN's MLB scoreboard uses the same envelope as basketball, so this mirrors
 // CoreBasketballAdapter. Baseball specifics: period holds the inning,
 // homeScore/awayScore are runs, and statusDetail carries ESPN's "Top 5th" text.
 @Component
-public class CoreBaseballAdapter {
+public class CoreBaseballAdapter implements ScoreboardAdapter {
 
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    public List<Match> toMatches(JsonNode root) throws Exception {
+    @Override
+    public List<Match> toMatches(JsonNode root, String leagueName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             Match m = toMatch(event);
@@ -29,6 +44,7 @@ public class CoreBaseballAdapter {
     }
 
     private Match toMatch(JsonNode event) {
+        // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and can collapse distinct matches. EXAMPLE: String id = textOrNull(event.path("id")); if (id == null) return null;
         int id = event.path("id").asInt();
         JsonNode comp = event.path("competitions").path(0);
         if (comp.isMissingNode()) return null;

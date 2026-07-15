@@ -7,8 +7,10 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.Spring.f1.adapter.CoreF1Adapter;
+import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
@@ -23,48 +25,75 @@ import org.Spring.api.EspnHttpClient;
  * into one Match by CoreF1Adapter; only weekends with a session in progress are
  * pushed to Event Hub.
  */
+// ============================================================================
+// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
+// ----------------------------------------------------------------------------
+// F1 is the same skeleton with ONE variation: a single scoreboard endpoint instead
+// of a league loop. The base class models that by overriding just the fetch step:
+//
+// EXAMPLE:
+//   @Component
+//   class F1Fetcher extends LiveSportFetcher {
+//       protected String baseUrl() { return BASE; }
+//       @Override protected List<Match> fetchAllMatches() throws Exception {
+//           return adapt(fetchScoreboardRaw(), "Formula 1");   // no league loop
+//       }
+//       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
+//   }
+//    UPDATE:
+//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
+//
+// ============================================================================
 @Component
-public class CoreF1Fetcher {
+public class CoreF1Fetcher extends AbstractEspnFetcher {
 
     private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
 
-    private final EspnHttpClient espnHttpClient;
+    private static final Map<String, String> LEAGUES = Map.of(
+            "f1", "Formula 1"
+    );
     private final CoreF1Adapter    adapter;
-    private final ObjectMapper     mapper;
-    private final EventHubProducer producer;
 
-    public CoreF1Fetcher(EventHubProducer producer, EspnHttpClient client, ObjectMapper mapper, CoreF1Adapter adapter) {
-        this.producer = producer;
-        this.espnHttpClient   = client;
-        this.mapper   = mapper;
-        this.adapter  = adapter;
+    public CoreF1Fetcher(
+            EventHubProducer producer,
+            EspnHttpClient client,
+            ObjectMapper mapper,
+            CoreF1Adapter adapter) {
+
+        super(producer, client, mapper);
+        this.adapter = adapter;
     }
 
     // Pipeline
 
-    public void fetchAndPublishLive() throws Exception {
-        List<Match> live = new ArrayList<>();
-        for (Match m : fetchAllMatches()) {
-            if (isLive(m.status())) live.add(m);
-        }
-        if (!live.isEmpty()) {
-            producer.send(mapper.writeValueAsString(live));
-        }
+    @Override
+    protected String baseUrl() {
+        return BASE;
     }
 
-    private static boolean isLive(String status) {
-        return "LIVE".equals(status);
+    @Override
+    protected Map<String, String> leagues() {
+        return LEAGUES;
     }
 
+    @Override
+    protected List<Match> adapt(JsonNode root, String leagueName) throws Exception {
+        return adapter.toMatches(root, leagueName);
+    }
 
-    public List<Match> fetchAllMatches() throws Exception {
-        try {
-            JsonNode scoreboard = espnHttpClient.get(BASE + "/scoreboard");
-            return adapter.toMatches(scoreboard);
-        } catch (Exception e) {
-            System.out.println("  (f1 scoreboard error: " + e.getMessage() + ")");
-            return new ArrayList<>();
-        }
+    @Override
+    protected boolean isLive(Match match) {
+        return "LIVE".equals(match.status());
+    }
+
+    @Override
+    protected String scoreboardUrl(String league) {
+        return BASE + "/scoreboard";
+    }
+
+    @Override
+    public String sportName() {
+        return "f1";
     }
 
 

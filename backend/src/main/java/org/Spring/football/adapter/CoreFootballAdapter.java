@@ -3,6 +3,7 @@ package org.Spring.football.adapter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
@@ -13,14 +14,30 @@ import org.springframework.stereotype.Component;
 
 // Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[]) into the unified Match model.
 @Component
-public class CoreFootballAdapter {
-
-    private final ObjectMapper mapper = new ObjectMapper();
-
+// ============================================================================
+// PLEASE review — Adapter (GoF)   [you are already doing this — formalize it]
+// ----------------------------------------------------------------------------
+// These *Adapter classes correctly translate ESPN's wire JSON into our own Match
+// model — that IS the Adapter pattern. The gap: callers do `new CoreFootballAdapter()`,
+// so the provider is hard-wired and cannot be swapped or mocked. Extract the role
+// into an interface OUR domain owns:
+//
+// EXAMPLE:
+//   public interface ScoreboardAdapter {                 // target interface WE own
+//       List<Match> toMatches(String providerJson, String friendlyName);
+//   }
+//   class EspnFootballAdapter implements ScoreboardAdapter { ... }
+//   // A future Opta / Sportradar feed = a new adapter, and nothing else changes.
+//
+// WHY: isolates the core from third-party formats we don't control, and lets tests
+// feed canned JSON without hitting the network.
+// ============================================================================
+public class CoreFootballAdapter implements ScoreboardAdapter {
 
 
     // friendlyName comes from the fetcher's LEAGUES map and is used when ESPN omits
     // league.name, so cards don't fall back to "Unknown" over SignalR.
+    @Override
     public List<Match> toMatches(JsonNode root, String friendlyName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
@@ -69,6 +86,15 @@ public class CoreFootballAdapter {
                 home, away, homeScore, awayScore, events);
     }
 
+    // ------------------------------------------------------------------------
+    // PLEASE review — judgement note: do NOT reach for the State pattern here.
+    // mapStatus() can look like a State candidate, but State is for objects whose
+    // BEHAVIOUR changes across a lifecycle — this is a pure value lookup. A switch
+    // (or a small map) is clearer; State here would be over-engineering.
+    //
+    // EXAMPLE — a lookup table is enough:
+    //   private static final Map<String,String> STATE = Map.of("in","LIVE","post","FT");
+    // ------------------------------------------------------------------------
     // Collapse ESPN's status into the small vocabulary the pipeline groups on.
     private String mapStatus(JsonNode type) {
         String state = type.path("state").asText("");

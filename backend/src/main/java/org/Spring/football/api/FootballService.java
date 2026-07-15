@@ -12,6 +12,28 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+// ============================================================================
+// PLEASE review — Facade (GoF) that outgrew itself
+// ----------------------------------------------------------------------------
+// A Facade is meant to be a THIN front over subsystems. This class is ~45 KB / ~40
+// endpoints doing HTTP, JSON parsing, DTO assembly AND business rules — the facade
+// swallowed its subsystems (a God class). Split the work it delegates to and keep
+// the service a slim coordinator.
+//
+// EXAMPLE:
+//   class MatchDetailAssembler { Dto.MatchDetail assemble(JsonNode raw) { ... } }
+//   class StandingsAssembler   { List<Dto.StandingRow> assemble(JsonNode raw) { ... } }
+//
+//   @Service class FootballService extends EspnApiHelper {
+//       Dto.MatchDetail matchDetail(String lg, String id) throws Exception {
+//           return matchDetails.assemble(get(SITE + "/" + lg + "/summary?event=" + id));
+//       }
+//   }
+//
+// WHY: 45 KB in one class means merge conflicts, no unit seams, and no single
+// responsibility. (The frontend's espnGet() in config.ts is a correct, minimal
+// Facade — use its size as the target.)
+// ============================================================================
 @Service
 public class FootballService extends EspnApiHelper {
 
@@ -772,7 +794,102 @@ public class FootballService extends EspnApiHelper {
                 first(txt(athlete.path("citizenship")), txt(athlete.path("birthPlace").path("country")), null),
                 stats);
     }
+    // ============================================================================
+    // PLEASE review — hard-coded, single-tournament logic (missing cases + brittle parsing):
+    // Rounds are derived from (a) fixed 2026 World Cup date windows below and (b) substring
+    // matches on team NAMES ("Semifinal", "Winner", "1"). This silently breaks for any other
+    // year/tournament and for any name-format change from ESPN. Prefer ESPN's own round / notes
+    // metadata over kickoff-date guessing and string sniffing.
+    // EXAMPLE:
+    //   String round = mapEspnRound(m.roundName());   // e.g. "Round of 16" -> "R16"
+    //   // keep any tournament-specific windows in config, not compiled-in literals.
+    // ============================================================================
+    public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
+        Dto.Fixtures fx = fixtures("fifa.world");
+        List<Dto.MatchDto> all = new ArrayList<>();
+        all.addAll(fx.results());
+        all.addAll(fx.upcoming());
 
+        List<Dto.BracketMatchDto> out = new ArrayList<>();
+        for (Dto.MatchDto m : all) {
+            String round = roundFromMatch(m);
+            if (round == null) continue; // group stage, or outside known knockout windows
+
+            out.add(new Dto.BracketMatchDto(
+                    m.id(), round,
+                    bracketSlot(m.homeTeam()), bracketSlot(m.awayTeam()),
+                    m.homeScore(), m.awayScore(),
+                    null,
+                    "post".equals(m.statusState()) ? "completed" : "upcoming",
+                    formatKickoff(m.kickoff()),
+                    null
+            ));
+        }
+        return out;
+    }
+
+    private String roundFromMatch(Dto.MatchDto m) {
+        String h = m.homeTeam() != null ? m.homeTeam().name() : "";
+        String a = m.awayTeam() != null ? m.awayTeam().name() : "";
+        if (h.contains("Semifinal") || a.contains("Semifinal")) {
+            return (h.contains("Winner") || a.contains("Winner")) ? "F" : "3RD";
+        }
+
+        java.time.Instant kickoff = parseKickoff(m.kickoff());
+        if (kickoff == null) return null;
+
+        if (isBetween(kickoff, "2026-06-28T07:00:00Z", "2026-07-04T07:00:00Z")) return "R32";
+        if (isBetween(kickoff, "2026-07-04T07:00:00Z", "2026-07-09T07:00:00Z")) return "R16";
+        if (isBetween(kickoff, "2026-07-09T07:00:00Z", "2026-07-14T07:00:00Z")) return "QF";
+        if (isBetween(kickoff, "2026-07-14T07:00:00Z", "2026-07-18T07:00:00Z")) return "SF";
+        return null;
+    }
+
+    private boolean isBetween(java.time.Instant t, String startIso, String endIsoExclusive) {
+        java.time.Instant start = java.time.Instant.parse(startIso);
+        java.time.Instant end   = java.time.Instant.parse(endIsoExclusive);
+        return !t.isBefore(start) && t.isBefore(end);
+    }
+
+    private Dto.BracketSlotDto bracketSlot(Dto.TeamRef t) {
+        if (t == null || t.name() == null || t.name().isBlank()) {
+            return new Dto.BracketSlotDto("tbd", null, "TBD");
+        }
+        if (t.name().contains("Semifinal")) {
+            // PLEASE review — brittle: contains("1")/contains("Winner") sniff placeholder names,
+            // so any wording change ("SF A", "Semi-final one") misclassifies the slot.
+            // EXAMPLE: parse a structured field (ESPN competitor "order"/"type"), not the label text.
+            boolean isFirst  = t.name().contains("1");
+            boolean isWinner = t.name().contains("Winner");
+            String label = (isWinner ? "Winner SF" : "Loser SF") + (isFirst ? "1" : "2");
+            return new Dto.BracketSlotDto("tbd", null, label);
+        }
+        return new Dto.BracketSlotDto("team", new Dto.BracketTeamDto(t.name(), t.shortName(), t.logo()), null);
+    }
+
+    private String formatKickoff(String isoKickoff) {
+        java.time.Instant instant = parseKickoff(isoKickoff);
+        if (instant == null) return isoKickoff;
+        // PLEASE review — hard-coded timezone: every user sees kickoff in Europe/Dublin regardless
+        // of their locale. Send an ISO/epoch timestamp and format in the browser with the user's tz.
+        // EXAMPLE: return isoKickoff;  // let the client do new Date(iso).toLocaleString()
+        java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.of("Europe/Dublin"));
+        return zdt.format(DateTimeFormatter.ofPattern("MMM d · h:mm a"));
+    }
+    private java.time.Instant parseKickoff(String iso) {
+        if (iso == null) return null;
+        try {
+            return java.time.Instant.parse(iso);
+        } catch (Exception e) {
+            // ESPN sometimes omits seconds ("...T01:00Z" instead of
+            // "...T01:00:00Z"), which Instant.parse() rejects outright.
+            try {
+                return java.time.Instant.parse(iso.replace("Z", ":00Z"));
+            } catch (Exception e2) {
+                return null;
+            }
+        }
+    }
     // ══════════════════════════════════════════════════════════════════════
     //  Reference-data passthrough — the remaining documented ESPN endpoints
     //  nothing in this service called yet. Raw JsonNode (see BaseballService's
@@ -905,5 +1022,6 @@ public class FootballService extends EspnApiHelper {
     public JsonNode cdnScoreboard(String siteSlug) throws Exception {
         return get(CDN + "/" + siteSlug + "/scoreboard?xhr=1");
     }
+    
 
 }

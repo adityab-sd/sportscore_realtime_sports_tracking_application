@@ -13,6 +13,24 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+// ============================================================================
+// PLEASE review — REST boundary validation and error mapping
+// ----------------------------------------------------------------------------
+// The controller lets raw path/query values and thrown Exceptions cross the REST
+// boundary. That makes bad league IDs, negative limits/pages, and ESPN failures
+// surface as generic 500s instead of explicit 400/502 responses.
+//
+// EXAMPLE:
+//   @Validated
+//   @RestController
+//   class BaseballController {
+//       @GetMapping("/{league}/news")
+//       ResponseEntity<List<Dto.NewsItem>> news(@PathVariable @Pattern(regexp = "[a-z0-9-]+") String league,
+//               @RequestParam(defaultValue = "12") @Min(1) @Max(50) int limit) { ... }
+//   }
+//
+// WHY: Controllers are the API contract; validation and status codes belong at this boundary.
+// ============================================================================
 @RestController
 @RequestMapping("/api/baseball")
 @CrossOrigin(origins = "*")

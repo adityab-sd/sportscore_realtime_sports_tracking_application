@@ -18,6 +18,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // returns GP weekends with sessions and driver grids; the calendar drives the
 // season schedule; standings come from the standings endpoints (site for drivers,
 // core API for constructors). Same helper conventions as the other services.
+// ============================================================================
+// PLEASE review — Singleton + Proxy (GoF) missing for ESPN I/O
+// ----------------------------------------------------------------------------
+// F1Service repeats the per-class HttpClient/ObjectMapper anti-pattern instead
+// of using shared beans, and its private get() has no retry/backoff proxy. This
+// diverges from EspnApiHelper and makes transient ESPN 5xx/timeouts fail once.
+//
+// EXAMPLE:
+//   @Service
+//   class F1Service {
+//       private final EspnHttpClient http;
+//       F1Service(EspnHttpClient http, ObjectMapper mapper) { this.http = http; }
+//       List<RaceWeekend> scoreboard() throws Exception {
+//           JsonNode raw = http.get(SITE + "/scoreboard");
+//           return parseScoreboard(raw);
+//       }
+//   }
+//
+// WHY: one shared HTTP/JSON infrastructure avoids duplicate connection pools and retry gaps.
+// ============================================================================
 @Service
 public class F1Service {
 
@@ -276,6 +296,7 @@ public class F1Service {
             }
             out.sort((x, y) -> Integer.compare(x.rank(), y.rank()));
         } catch (Exception ex) {
+        // PLEASE review — observability: System.err is not structured, correlated, or level-controlled by Spring logging. EXAMPLE: private static final Logger log = LoggerFactory.getLogger(F1Service.class); log.warn("F1 constructor standings unavailable", ex);
             System.err.println("[f1 standings] constructor fetch failed: " + ex.getMessage());
         }
         return out;
@@ -375,6 +396,20 @@ public class F1Service {
             System.err.println("[f1 standings] compute-from-results failed: " + ex.getMessage());
         }
 
+    // ============================================================================
+    // PLEASE review — N+1 HTTP calls in a loop
+    // ----------------------------------------------------------------------------
+    // Computing fallback driver standings resolves each driver's team by calling
+    // resolveDriverTeam() inside the stream. On a cold cache that is one blocking
+    // HTTP request per driver during a single REST request.
+    //
+    // EXAMPLE:
+    //   Map<String, String> teams = resolveDriverTeamsInBatch(driverIds);
+    //   out.add(new DriverStanding(rank, id, name, flag, teams.get(id), points, wins));
+    //
+    // WHY: Bulk/prefetch keeps request latency bounded and avoids upstream rate limits.
+    // ============================================================================
+
         List<F1Dto.DriverStanding> out = new ArrayList<>();
         pts.entrySet().stream()
            .sorted((x, y) -> Double.compare(y.getValue()[0], x.getValue()[0]))
@@ -434,6 +469,20 @@ public class F1Service {
     // reference-data passthrough (raw ESPN JSON - no bespoke DTO yet; these are
     // long-tail resources whose exact shape hasn't been verified against a live
     // sample, unlike scoreboard/standings/news above)
+
+    // ============================================================================
+    // PLEASE review — Pagination bounds / URL encoding
+    // ----------------------------------------------------------------------------
+    // Raw passthrough methods accept page/limit/date fragments directly from REST
+    // controllers. Negative or huge limits can amplify ESPN calls, and dates are
+    // concatenated without URL encoding.
+    //
+    // EXAMPLE:
+    //   int safeLimit = Math.min(Math.max(limit, 1), 100);
+    //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
+    //
+    // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
+    // ============================================================================
 
     public JsonNode teams(int page, int limit) throws Exception {
         return getRawPaged(CORE + "/teams", page, limit);

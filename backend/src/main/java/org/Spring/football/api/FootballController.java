@@ -21,6 +21,20 @@ import com.fasterxml.jackson.databind.JsonNode;
  * Replaces FootballGatewayController.java / any earlier FootballController.java.
  * Keep only ONE controller on /api/football/** or Spring won't start.
  */
+// ============================================================================
+// PLEASE review — controller-wide concerns:
+// 1) SECURITY: @CrossOrigin(origins = "*") allows any site to call every endpoint.
+//    Restrict to known frontend origins (config-driven).
+// 2) Every handler declares `throws Exception`, so any upstream failure surfaces as a
+//    raw 500 + stack trace. Add a @RestControllerAdvice to map errors to clean statuses.
+// 3) `@PathVariable String league` is never validated but is used to build ESPN URLs.
+//    Constrain it to a known set (enum/allowlist) to avoid bad/abusive upstream calls.
+// EXAMPLE:
+//   @CrossOrigin(origins = "${app.allowed-origins}")
+//   @ExceptionHandler(Exception.class)
+//   ResponseEntity<?> onError(Exception e){ return ResponseEntity.status(502).body(...); }
+//   if (!League.isValid(league)) throw new ResponseStatusException(BAD_REQUEST, "unknown league");
+// ============================================================================
 @RestController
 @RequestMapping("/api/football")
 @CrossOrigin(origins = "*")
@@ -99,6 +113,12 @@ public class FootballController {
 
     // ── reference data (raw passthrough — see FootballService's class comment) ──
 
+    // PLEASE review — unbounded pagination + raw passthrough (applies to every JsonNode endpoint
+    // below): `limit` is not clamped, so ?limit=100000 forces a huge upstream fetch, and returning
+    // raw ESPN JsonNode leaks the provider schema and defeats this class's stated DTO contract.
+    // EXAMPLE:
+    //   int safe = Math.max(1, Math.min(limit, 100));   // clamp before calling upstream
+    //   return service.teams(league, page, safe);        // ideally map to a Dto, not raw JsonNode
     @GetMapping("/{league}/teams")
     public JsonNode teams(@PathVariable String league,
                           @RequestParam(defaultValue = "1") int page,
@@ -265,5 +285,10 @@ public class FootballController {
     @GetMapping("/cdn/{siteSlug}/scoreboard")
     public JsonNode cdnScoreboard(@PathVariable String siteSlug) throws Exception {
         return service.cdnScoreboard(siteSlug);
+    }
+
+    @GetMapping("/worldcup/bracket")
+    public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
+        return service.worldCupBracket();
     }
 }

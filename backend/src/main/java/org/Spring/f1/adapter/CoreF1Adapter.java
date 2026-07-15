@@ -3,6 +3,7 @@ package org.Spring.f1.adapter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
@@ -11,6 +12,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
+// ============================================================================
+// PLEASE review — Singleton (Spring-managed) ObjectMapper
+// ----------------------------------------------------------------------------
+// This adapter creates its own ObjectMapper. ObjectMapper is thread-safe after
+// configuration and already called out in EspnApiHelper as a shared-bean concern;
+// per-adapter mappers duplicate expensive configuration and can drift by sport.
+//
+// EXAMPLE:
+//   @Component
+//   class CoreF1Adapter {
+//       CoreF1Adapter(ObjectMapper mapper) { this.mapper = mapper; }
+//   }
+//
+// WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// ============================================================================
 // F1 isn't team-vs-team, so we fold a whole GP weekend into one Match for the
 // live pipeline: pick a representative session (in-progress, else next up, else
 // last done), then put P1 as homeTeam and P2 as awayTeam with their names in the
@@ -18,11 +34,11 @@ import org.springframework.stereotype.Component;
 // the Event Hub -> SignalR path needs no special-casing. Full per-session detail
 // is served over REST by F1Service instead.
 @Component
-public class CoreF1Adapter {
+public class CoreF1Adapter implements ScoreboardAdapter {
 
-    private final ObjectMapper mapper = new ObjectMapper();
 
-    public List<Match> toMatches(JsonNode root) throws Exception {
+    @Override
+    public List<Match> toMatches(JsonNode root, String leagueName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             Match m = toMatch(event);
@@ -87,6 +103,7 @@ public class CoreF1Adapter {
                 List.<MatchEvent>of());
     }
 
+    // PLEASE review — Strategy (GoF): representative session selection assumes ESPN ordering, so "earliest upcoming" may be whichever pre-session appears first. EXAMPLE: upcoming.sort(Comparator.comparing(s -> textOrNull(s.path("date")), Comparator.nullsLast(String::compareTo))); return upcoming.isEmpty() ? null : upcoming.get(0);
     /** in-progress > earliest upcoming > latest completed. */
     private JsonNode representativeSession(JsonNode sessions) {
         JsonNode inProgress = null, upcoming = null, lastDone = null;

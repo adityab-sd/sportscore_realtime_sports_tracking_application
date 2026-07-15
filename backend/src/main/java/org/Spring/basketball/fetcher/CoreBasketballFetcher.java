@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.Spring.api.EspnHttpClient;
 import org.Spring.basketball.adapter.CoreBasketballAdapter;
+import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
@@ -21,8 +22,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.Spring.api.EspnHttpClient;
 
 
+// ============================================================================
+// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
+// ----------------------------------------------------------------------------
+// Same skeleton as the other sports. Basketball's only real variation is isLive()
+// (it is period-aware). In the shared base class it becomes a one-method override:
+//
+// EXAMPLE:
+//   @Override protected boolean isLive(Match m) {
+//       return java.util.Set.of("LIVE","HT","Q1","Q2","Q3","Q4","OT").contains(m.status());
+//   }
+//    UPDATE:
+//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
+// ============================================================================
 @Component
-public class CoreBasketballFetcher {
+public class CoreBasketballFetcher extends AbstractEspnFetcher {
 
     private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/basketball";
 
@@ -52,61 +66,49 @@ public class CoreBasketballFetcher {
         LEAGUES.put("womens-olympics-basketball", "Olympics Women's Basketball");
     }
 
-    private final EspnHttpClient client;
     private final CoreBasketballAdapter adapter;
-    private final ObjectMapper          mapper;
-    private final EventHubProducer      producer;
 
-    public CoreBasketballFetcher(EventHubProducer producer, EspnHttpClient client, ObjectMapper mapper, CoreBasketballAdapter adapter) {
-        this.producer = producer;
-        this.client   = client;
-        this.mapper   = mapper;
-        this.adapter  = adapter;
+    public CoreBasketballFetcher(
+            EventHubProducer producer,
+            EspnHttpClient client,
+            ObjectMapper mapper,
+            CoreBasketballAdapter adapter) {
+
+        super(producer, client, mapper);
+        this.adapter = adapter;
     }
 
     // Pipeline
-
-    public void fetchAndPublishLive() throws Exception {
-        List<Match> live = new ArrayList<>();
-        for (Match m : fetchAllMatches()) {
-            if (isLive(m.status())) live.add(m);
-        }
-        if (!live.isEmpty()) {
-            producer.send(mapper.writeValueAsString(live));
-        }
+    @Override
+    protected String baseUrl() {
+        return BASE;
     }
 
-    private static boolean isLive(String status) {
-        if (status == null) return false;
-        return switch (status) {
+    @Override
+    protected Map<String, String> leagues() {
+        return LEAGUES;
+    }
+
+    @Override
+    protected List<Match> adapt(JsonNode root, String leagueName) throws Exception {
+        return adapter.toMatches(root, leagueName);
+    }
+
+    @Override
+    protected boolean isLive(Match match) {
+        if (match.status() == null) {
+            return false;
+        }
+
+        return switch (match.status()) {
             case "LIVE", "HT", "Q1", "Q2", "Q3", "Q4", "OT" -> true;
             default -> false;
         };
     }
 
-
-
-    public List<Match> fetchMatches(String league) throws Exception {
-        try {
-            JsonNode scoreboard = client.get("/" + league + "/scoreboard");
-            return adapter.toMatches(scoreboard);
-        } catch (Exception e) {
-            System.out.println("  (basketball scoreboard error: " + e.getMessage() + ")");
-            return new ArrayList<>();
-        }
-
-    }
-
-    public List<Match> fetchAllMatches() throws Exception {
-        List<Match> all = new ArrayList<>();
-        for (String slug : LEAGUES.keySet()) {
-            try {
-                all.addAll(fetchMatches(slug));
-            } catch (Exception e) {
-                System.out.println("  (basketball skipped " + slug + ": " + e.getMessage() + ")");
-            }
-        }
-        return all;
+    @Override
+    public String sportName() {
+        return "basketball";
     }
 
 

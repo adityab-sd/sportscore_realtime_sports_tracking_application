@@ -1,11 +1,11 @@
 package org.Spring.api;
 
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Shared ESPN API helpers for all sport services.
@@ -17,7 +17,16 @@ import java.util.regex.Pattern;
  */
 public abstract class EspnApiHelper {
 
-    /**
+    // PLEASE review — Singleton (Spring-managed), NOT a Factory.
+    // ~10 classes each do `new ObjectMapper()` / `new HttpClient()`. ObjectMapper is
+    // thread-safe and expensive to build — share ONE bean instead of per-class copies.
+    // Resist wrapping this in a GoF Factory hierarchy; a single @Bean is the right tool.
+    // EXAMPLE:
+    //   @Bean ObjectMapper objectMapper() { return new ObjectMapper(); }  // injected everywhere
+    // UPDATE
+    // Refactored to use the shared Spring-managed ObjectMapper and EspnHttpClient
+    // beans, removing redundant per-class HTTP client and mapper instances.
+        /**
      * Injected by Spring into every concrete subclass (@Service / @Component).
      * Field injection is used here because the abstract base has no constructor
      * that subclasses are required to call with these collaborators.
@@ -27,9 +36,46 @@ public abstract class EspnApiHelper {
 
     private static final Pattern TEAM_ID_FROM_REF = Pattern.compile("/teams/(\\d+)");
 
-    // ── HTTP delegation ───────────────────────────────────────────────────────
+    /** Thrown when ESPN returns a 5xx status — triggers retry. */
+    static class EspnServerException extends RuntimeException {
+        final int status;
+        EspnServerException(int status, String url) {
+            super("ESPN " + status + " for " + url);
+            this.status = status;
+        }
+    }
 
-    /** Delegates to {@link EspnHttpClient#get} — retry/backoff fires correctly. */
+    // ── HTTP ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Fetches a URL with up to 3 attempts and exponential backoff (500 ms → 1 s → 2 s).
+     * Retries on 5xx responses and I/O / timeout failures.
+     * 4xx responses are returned as an empty node immediately (no retry).
+     */
+    // ========================================================================
+    // PLEASE review — Proxy (GoF) + a real latent bug
+    // ------------------------------------------------------------------------
+    // @Retryable works because Spring wraps this bean in a PROXY that intercepts
+    // calls and adds retry/backoff. But this get() is reached via SELF-INVOCATION
+    // (athleteName() -> get(), and subclasses -> super.get()). Self-calls do NOT
+    // cross the proxy, so the retry/backoff SILENTLY NEVER FIRES today.
+    //
+    // FIX — move the retryable call to its own injected bean (a real proxy boundary):
+    //
+    //   @Component
+    //   class EspnHttpClient {
+    //       @Retryable(retryFor = IOException.class,
+    //                  backoff = @Backoff(delay = 500, multiplier = 2))
+    //       public JsonNode get(String url) { ... }
+    //   }
+    //   // then in the services:  private final EspnHttpClient http;  ...  http.get(url);
+    //
+    // WHY: AOP annotations only apply to calls that CROSS the proxy boundary —
+    // one of the most common Spring production traps.
+    // UPDATE
+    // Retry logic has been delegated to the injected EspnHttpClient bean so that
+    // calls cross the Spring proxy boundary and @Retryable is applied correctly.
+    // ========================================================================
     protected JsonNode get(String url) throws Exception {
         return espnHttp.get(url);
     }
