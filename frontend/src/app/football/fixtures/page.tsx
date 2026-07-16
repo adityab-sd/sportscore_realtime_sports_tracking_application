@@ -13,18 +13,6 @@ export default async function FixturesPage({ searchParams }: Props) {
   const info = LEAGUES.find(l => l.slug === league);
   if (!info) return notFound();
 
-
-  // ============================================================================
-  // PLEASE review — Distinguish empty fixtures from fetch fallback
-  // ----------------------------------------------------------------------------
-  // getFixtures returns empty arrays on API failure, and this page renders that as
-  // normal empty copy. Users cannot tell a real no-fixtures window from a backend
-  // outage or bad upstream response.
-  //
-  // EXAMPLE:
-  //   const fixtures = await getFixtures(league);
-  //   if (!fixtures) throw new Error("Unable to load fixtures");
-  // ============================================================================
   const { results, upcoming } = await getFixtures(league);
 
   return (

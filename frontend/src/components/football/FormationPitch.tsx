@@ -9,16 +9,6 @@ import type { TeamLineup, LineupPlayer, LineupPlayerEvent } from "@/types/lineup
  * the eleven starters are sliced into [1, 4, 2, 3, 1].
  */
 
-// ============================================================================
-// PLEASE review — formation validation
-// ----------------------------------------------------------------------------
-// parseFormation accepts any digits and does not validate that outfield rows sum
-// to ten. Bad ESPN strings can silently produce empty/extra rows and misleading
-// player placement on the pitch.
-//
-// EXAMPLE:
-//   const rows = f.split("-").map(Number); return rows.every(Number.isFinite) && rows.reduce((a, b) => a + b, 0) === 10 ? rows : [4, 4, 2];
-// ============================================================================
 function parseFormation(f: string): number[] {
   const digits = f.replace(/[^0-9]/g, "");
   return digits ? digits.split("").map(Number) : [4, 4, 2];
@@ -201,16 +191,6 @@ export default function FormationPitch({
   homeName, awayName, league,
   homeColor = "#DC2626", awayColor = "#0369A1",
 }: Props) {
-  // ============================================================================
-  // PLEASE review — FormationPitch coordinate assumptions
-  // ----------------------------------------------------------------------------
-  // Row slicing assumes players are already ordered GK-to-striker for both teams.
-  // If the API sends lineup order by shirt number or position code, the visual
-  // formation is wrong even though the component still renders.
-  //
-  // EXAMPLE:
-  //   const homeRows = toRows(orderByLineupSlot(home.players), home.formation);
-  // ============================================================================
   const homeRows = toRows(home.players, home.formation);
   const awayRows = toRows(away.players, away.formation).slice().reverse();
 

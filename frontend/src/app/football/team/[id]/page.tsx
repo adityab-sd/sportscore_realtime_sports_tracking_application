@@ -11,27 +11,7 @@ interface Props { params: Promise<{ id: string }>; searchParams: Promise<{ leagu
 export default async function TeamPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "eng.1" } = await searchParams;
-
-  // ============================================================================
-  // PLEASE review — Validate team route inputs
-  // ----------------------------------------------------------------------------
-  // id and league come from the URL and are used in fetch paths and generated links.
-  // Reject unknown leagues and malformed ids before fetching team details.
-  //
-  // EXAMPLE:
-  //   if (!/^\d+$/.test(id) || !LEAGUES.some(l => l.slug === league)) return notFound();
-  // ============================================================================
   const [team, roster] = await Promise.all([getTeam(league, id), getRoster(league, id)]);
-
-  // ============================================================================
-  // PLEASE review — Show roster fallback explicitly
-  // ----------------------------------------------------------------------------
-  // getRoster falls back to [] on failures, so an API outage renders as an empty
-  // squad for a valid team. Add an error/empty distinction before passing data down.
-  //
-  // EXAMPLE:
-  //   if (roster.length === 0) return <EmptyState title="Squad unavailable" />;
-  // ============================================================================
   if (!team) return notFound();
 
   return (

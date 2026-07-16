@@ -3,12 +3,14 @@ package org.Spring.basketball.adapter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 // ============================================================================
 // PLEASE review — Singleton (Spring-managed) ObjectMapper
@@ -24,15 +26,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //   }
 //
 // WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
+// UPDATE:
+// Refactored to implement the shared ScoreboardAdapter interface, decoupling
+// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
 // ============================================================================
 // Maps ESPN's basketball scoreboard into our Match model.
 // Live status is period-aware: HT, Q1-Q4, then OT for period 5+.
-public class CoreBasketballAdapter {
+@Component
+public class CoreBasketballAdapter implements ScoreboardAdapter {
 
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    public List<Match> toMatches(String json) throws Exception {
-        JsonNode root = mapper.readTree(json);
+    @Override
+    public List<Match> toMatches(JsonNode root, String leagueName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             Match m = toMatch(event);

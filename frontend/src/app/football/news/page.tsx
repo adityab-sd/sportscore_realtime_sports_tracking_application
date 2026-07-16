@@ -19,17 +19,6 @@ async function getAllFootballNews(): Promise<ESPNNews[]> {
       seen.add(a.id);
       return true;
     })
-    // ============================================================================
-    // PLEASE review — Guard date sorting from malformed articles
-    // ----------------------------------------------------------------------------
-    // Dates are parsed without checking for invalid published values. A single
-    // malformed upstream date can make the comparator return NaN and produce
-    // unstable story ordering.
-    //
-    // EXAMPLE:
-    //   const time = Date.parse(a.published);
-    //   const safeTime = Number.isFinite(time) ? time : 0;
-    // ============================================================================
     .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
 }
 
@@ -40,16 +29,6 @@ interface PageProps {
 export default async function NewsPage({ searchParams }: PageProps) {
   const { league } = await searchParams;
 
-
-  // ============================================================================
-  // PLEASE review — Validate news filters
-  // ----------------------------------------------------------------------------
-  // Unknown league query values silently fall back to all football news, so a typo
-  // like ?league=engg.1 returns a successful but misleading page.
-  //
-  // EXAMPLE:
-  //   if (league && league !== "transfer" && !LEAGUES.some(l => l.slug === league)) return notFound();
-  // ============================================================================
   const isTransfer = league === "transfer";
   const isLeague   = !isTransfer && league && LEAGUES.some(l => l.slug === league);
   const selected   = isLeague ? league : null;

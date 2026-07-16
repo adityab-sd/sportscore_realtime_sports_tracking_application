@@ -3,14 +3,17 @@ package org.Spring.football.adapter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.stereotype.Component;
 
 // Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[]) into the unified Match model.
+@Component
 // ============================================================================
 // PLEASE review — Adapter (GoF)   [you are already doing this — formalize it]
 // ----------------------------------------------------------------------------
@@ -28,19 +31,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //
 // WHY: isolates the core from third-party formats we don't control, and lets tests
 // feed canned JSON without hitting the network.
+// UPDATE
+// Refactored to implement the shared ScoreboardAdapter interface, decoupling
+// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
 // ============================================================================
-public class CoreFootballAdapter {
+public class CoreFootballAdapter implements ScoreboardAdapter {
 
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    public List<Match> toMatches(String json) throws Exception {
-        return toMatches(json, null);
-    }
 
     // friendlyName comes from the fetcher's LEAGUES map and is used when ESPN omits
     // league.name, so cards don't fall back to "Unknown" over SignalR.
-    public List<Match> toMatches(String json, String friendlyName) throws Exception {
-        JsonNode root = mapper.readTree(json);
+    @Override
+    public List<Match> toMatches(JsonNode root, String friendlyName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
             matches.add(toMatch(event, friendlyName));
@@ -96,6 +97,9 @@ public class CoreFootballAdapter {
     //
     // EXAMPLE — a lookup table is enough:
     //   private static final Map<String,String> STATE = Map.of("in","LIVE","post","FT");
+    // UPDATE
+    // Status mapping is intentionally kept as a simple lookup/switch since it is
+    // value translation rather than behavior that changes over an object's lifecyclE
     // ------------------------------------------------------------------------
     // Collapse ESPN's status into the small vocabulary the pipeline groups on.
     private String mapStatus(JsonNode type) {

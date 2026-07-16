@@ -42,17 +42,6 @@ function SideImage({ src }: { src: string | null }) {
 }
 
 function timeAgo(iso: string): string {
-  // ============================================================================
-  // PLEASE review — avoid Date.now() in featured story render
-  // ----------------------------------------------------------------------------
-  // Rendering "Just now/2h ago" from Date.now() can differ at hydration time and
-  // will not update on its own as the page sits open. Compute the label on the
-  // server or drive it from a cleaned-up client clock state.
-  //
-  // EXAMPLE:
-  //   const [now, setNow] = useState(() => Date.now());
-  //   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
-  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";

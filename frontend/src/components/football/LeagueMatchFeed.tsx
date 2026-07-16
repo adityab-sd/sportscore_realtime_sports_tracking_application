@@ -12,16 +12,6 @@ interface Props {
 export default function LeagueMatchFeed({ leagueName, slug }: Props) {
   const { matches, state, lastUpdate } = useSignalR();
 
-  // ============================================================================
-  // PLEASE review — live league matching
-  // ----------------------------------------------------------------------------
-  // Filtering by exact lowercased competition name drops ESPN display variants
-  // like "UEFA Europa League" vs "Europa League", even though this component
-  // already receives the canonical slug. Match on resolved slug or aliases.
-  //
-  // EXAMPLE:
-  //   const leagueMatches = matches.filter(m => (!m.sport || m.sport === "football") && leagueByName(m.competition)?.slug === slug);
-  // ============================================================================
   // Filter by sport=football AND competition name (basketball can share competition names like "Premier League"; double-guard).
   const leagueMatches = matches.filter(m =>
     (!m.sport || m.sport === "football") &&

@@ -35,28 +35,6 @@ export default function EventFeed({ match }: { match: Match }) {
   }
   const sorted = [...match.events].sort((a, b) => b.minute - a.minute);
 
-  // ============================================================================
-  // PLEASE review — stable event identity
-  // ----------------------------------------------------------------------------
-  // This feed keys rows by array index after sorting by minute, so a late SignalR
-  // insert can cause React to reuse the wrong DOM node for an existing event.
-  // Live match events need a stable key derived from event identity.
-  //
-  // EXAMPLE:
-  //   {sorted.map(e => <div key={`${e.minute}-${e.type}-${e.teamId ?? "unknown"}-${e.player ?? e.detail}`} />)}
-  // ============================================================================
-
-  // ============================================================================
-  // PLEASE review — defensive team resolution
-  // ----------------------------------------------------------------------------
-  // Any event whose teamId is missing or does not match the home team is rendered
-  // as the away team. ESPN/SignalR payloads can omit team data for VAR, kickoff,
-  // or administrative events, which makes the feed attribute events incorrectly.
-  //
-  // EXAMPLE:
-  //   const sn = e.teamId === match.homeTeam.id ? match.homeTeam.shortName : e.teamId === match.awayTeam.id ? match.awayTeam.shortName : "—";
-  // ============================================================================
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {sorted.map((e: MatchEvent, i: number) => {

@@ -30,17 +30,6 @@ export default async function MatchPage({ params, searchParams }: Props) {
   const { id }             = await params;
   const { league = "eng.1" } = await searchParams;
 
-
-  // ============================================================================
-  // PLEASE review — Validate route inputs before fetching
-  // ----------------------------------------------------------------------------
-  // id and league come straight from params/searchParams, but this page later uses
-  // Number(id) and builds backend paths with league. Reject unknown leagues and
-  // non-numeric match ids before calling the API.
-  //
-  // EXAMPLE:
-  //   if (!LEAGUES.some(l => l.slug === league) || !/^\d+$/.test(id)) return notFound();
-  // ============================================================================
   const match = await getMatchDetail(league, id);
   if (!match) return notFound();
 
@@ -137,7 +126,6 @@ export default async function MatchPage({ params, searchParams }: Props) {
             Match Events
           </div>
           <div style={{ padding: "8px 0" }}>
-            {/* PLEASE review — Stable event keys: using the map index can remount rows when late live events are inserted or resorted. EXAMPLE: {[...match.events].sort((a, b) => b.minute - a.minute).map(e => <div key={`${e.minute}-${e.teamId}-${e.type}-${e.player ?? "unknown"}`} />)}. */}
             {[...match.events].sort((a,b) => b.minute - a.minute).map((e, i) => {
               const isHome = e.teamId === match.homeTeam.id;
               const teamLineup = (match.lineups ?? []).find(l => l.teamId === e.teamId);

@@ -1,227 +1,220 @@
 package org.Spring.football.fetcher;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.Spring.api.EspnHttpClient;
+import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.football.adapter.CoreFootballAdapter;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.http.HttpClient;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-/**
- *  it fetches football data from the ESPN provider across many leagues and competitions,
- * including the World Cup. No API key required.
- */
-// ============================================================================
-// PLEASE review — Template Method (GoF)
-// ----------------------------------------------------------------------------
-// All four fetchers (football/basketball/baseball/f1) repeat this exact skeleton:
-// build an HttpClient, hold a LEAGUES map, loop the leagues, adapt JSON, filter
-// "live", then publish. Only THREE things vary per sport: the base URL, the league
-// map, and the isLive() test. That is the classic trigger for Template Method —
-// define the fixed algorithm ONCE in a base class and let subclasses fill the gaps.
-//
-// EXAMPLE — base class owns the algorithm via a FINAL template method:
-//
-//   public abstract class LiveSportFetcher {
-//       protected abstract String baseUrl();
-//       protected abstract Map<String,String> leagues();
-//       protected abstract List<Match> adapt(String rawJson, String friendlyName);
-//       protected boolean isLive(Match m) {
-//           return "LIVE".equals(m.status()) || "HT".equals(m.status());
-//       }
-//       public final void fetchAndPublishLive() throws Exception {   // fixed steps
-//           List<Match> live = fetchAllMatches().stream().filter(this::isLive).toList();
-//           if (!live.isEmpty()) producer.send(mapper.writeValueAsString(live));
-//       }
-//   }
-//
-//   @Component
-//   class FootballFetcher extends LiveSportFetcher {                  // only the gaps
-//       protected String baseUrl() { return BASE; }
-//       protected Map<String,String> leagues() { return LEAGUES; }
-//       protected List<Match> adapt(String j, String n) { return adapter.toMatches(j, n); }
-//   }
-//
-// WHY: ~500 duplicated lines collapse to one skeleton + four tiny subclasses; a
-// fetch-loop bug is fixed once; a new sport becomes a ~15-line class. This is
-// exactly how Spring's own JdbcTemplate / RestTemplate are structured.
-// ============================================================================
+//    UPDATE:
+//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
 @Component
-public class CoreFootballFetcher {
+public class CoreFootballFetcher extends AbstractEspnFetcher {
 
-    private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+    private static final String BASE =
+            "https://site.api.espn.com/apis/site/v2/sports/soccer";
 
     /** Competitions to pull. Key = slug, value = friendly name. */
     private static final Map<String, String> LEAGUES = new LinkedHashMap<>();
+
     static {
-        LEAGUES.put("fifa.world",        "World Cup 2026");
-        LEAGUES.put("fifa.friendly",     "International Friendly");
-        LEAGUES.put("uefa.champions",    "Champions League");
-        LEAGUES.put("uefa.europa",       "Europa League");
-        LEAGUES.put("uefa.europa.conf",   "Conference League");
-        LEAGUES.put("eng.1",             "Premier League");
-        LEAGUES.put("eng.2",             "Championship");
-        LEAGUES.put("esp.1",             "La Liga");
-        LEAGUES.put("ita.1",             "Serie A");
-        LEAGUES.put("ger.1",             "Bundesliga");
-        LEAGUES.put("fra.1",             "Ligue 1");
-        LEAGUES.put("usa.1",             "MLS");
-        LEAGUES.put("bra.1",             "Brazil Serie A");
-        LEAGUES.put("ned.1",             "Eredivisie");
-        LEAGUES.put("por.1",             "Primeira Liga");
-        LEAGUES.put("mex.1",             "Liga MX");
-        LEAGUES.put("arg.1",             "Argentina Primera");
-        LEAGUES.put("jpn.1",             "J-League");
-        LEAGUES.put("aus.1",             "A-League");
+        LEAGUES.put("fifa.world", "World Cup 2026");
+        LEAGUES.put("fifa.friendly", "International Friendly");
+        LEAGUES.put("uefa.champions", "Champions League");
+        LEAGUES.put("uefa.europa", "Europa League");
+        LEAGUES.put("uefa.europa.conf", "Conference League");
+        LEAGUES.put("eng.1", "Premier League");
+        LEAGUES.put("eng.2", "Championship");
+        LEAGUES.put("esp.1", "La Liga");
+        LEAGUES.put("ita.1", "Serie A");
+        LEAGUES.put("ger.1", "Bundesliga");
+        LEAGUES.put("fra.1", "Ligue 1");
+        LEAGUES.put("usa.1", "MLS");
+        LEAGUES.put("bra.1", "Brazil Serie A");
+        LEAGUES.put("ned.1", "Eredivisie");
+        LEAGUES.put("por.1", "Primeira Liga");
+        LEAGUES.put("mex.1", "Liga MX");
+        LEAGUES.put("arg.1", "Argentina Primera");
+        LEAGUES.put("jpn.1", "J-League");
+        LEAGUES.put("aus.1", "A-League");
     }
 
-    private final HttpClient     client   = HttpClient.newHttpClient();
-    private final CoreFootballAdapter adapter = new CoreFootballAdapter();
-    private final ObjectMapper   mapper   = new ObjectMapper();
-    private final EventHubProducer producer;
+    private final CoreFootballAdapter adapter;
 
-    public CoreFootballFetcher(EventHubProducer producer) {
-        this.producer = producer;
+    public CoreFootballFetcher(
+            EventHubProducer producer,
+            EspnHttpClient client,
+            ObjectMapper mapper,
+            CoreFootballAdapter adapter) {
+
+        super(producer, client, mapper);
+        this.adapter = adapter;
     }
 
-    public void fetchAndPublishLive() throws Exception {
-        List<Match> all = fetchAllMatches();
-        producer.send(mapper.writeValueAsString(all));
+    @Override
+    protected String baseUrl() {
+        return BASE;
     }
 
-    /** Raw JSON for one competition's scoreboard. */
-    public String fetchScoreboardRaw(String league) throws Exception {
-        return get("/" + league + "/scoreboard");
+    @Override
+    protected Map<String, String> leagues() {
+        return LEAGUES;
     }
 
-    /** Parsed matches for one competition. */
-    public List<Match> fetchMatches(String league) throws Exception {
-        // Pass the known friendly name so the adapter can use it as a reliable
-        // fallback when ESPN's JSON doesn't include a league.name node.
-        // This fixes the "Football" placeholder showing on match cards via SignalR.
-        String friendlyName = LEAGUES.getOrDefault(league, league);
-        return adapter.toMatches(fetchScoreboardRaw(league), friendlyName);
+    @Override
+    protected List<Match> adapt(JsonNode root, String leagueName) throws Exception {
+        return adapter.toMatches(root, leagueName);
     }
 
-    /** Parsed matches across ALL configured competitions, combined. */
-    public List<Match> fetchAllMatches() throws Exception {
-        List<Match> all = new ArrayList<>();
-        for (Map.Entry<String, String> entry : LEAGUES.entrySet()) {
-            try {
-                all.addAll(adapter.toMatches(fetchScoreboardRaw(entry.getKey()), entry.getValue()));
-            } catch (Exception e) {
-                System.out.println("  (skipped " + entry.getKey() + ": " + e.getMessage() + ")");
-            }
-        }
-        return all;
+    @Override
+    public String sportName() {
+        return "football";
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + path))
-                .header("User-Agent", "SportScore/1.0")
-                .GET()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("API error " + response.statusCode());
-        }
-        return response.body();
+    @Override
+    protected boolean isLive(Match match) {
+        return "LIVE".equals(match.status())
+                || "HT".equals(match.status());
     }
 
-    // Manual test which is for only me, not part of the production service.
+    // -------------------------------------------------------------------------
+    // Manual test only. Not used by Spring.
+    // -------------------------------------------------------------------------
 
     public static void main(String[] args) throws Exception {
-        // Empty strings trigger the null-guard in EventHubProducer.send()
-        // so live matches are logged instead of crashing with NullPointerException
-        CoreFootballFetcher fetcher = new CoreFootballFetcher(new EventHubProducer("", ""));
 
-        List<String> live      = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+
+        EspnHttpClient httpClient =
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+
+        CoreFootballAdapter adapter = new CoreFootballAdapter();
+
+        CoreFootballFetcher fetcher =
+                new CoreFootballFetcher(
+                        new EventHubProducer("", ""),
+                        httpClient,
+                        mapper,
+                        adapter);
+
+        List<String> live = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();
-        List<String> finished  = new ArrayList<>();
-        List<String> other     = new ArrayList<>();
+        List<String> finished = new ArrayList<>();
+        List<String> other = new ArrayList<>();
 
         System.out.println("Fetching " + LEAGUES.size() + " football competitions...\n");
 
         for (Map.Entry<String, String> entry : LEAGUES.entrySet()) {
+
             String slug = entry.getKey();
             String name = entry.getValue();
+
             List<Match> matches;
+
             try {
+
                 matches = fetcher.fetchMatches(slug);
+
                 if (!matches.isEmpty()) {
-                    System.out.println("  ✓ " + name + " (" + matches.size() + " matches)");
+                    System.out.println("✓ " + name + " (" + matches.size() + " matches)");
                 } else {
-                    System.out.println("  - " + name + " (0 matches today)");
+                    System.out.println("- " + name + " (0 matches today)");
                 }
+
             } catch (Exception e) {
-                System.out.println("  ✗ " + name + " [" + slug + "]: " + e.getMessage());
+
+                System.out.println("✗ " + name + " [" + slug + "]: " + e.getMessage());
                 continue;
             }
+
             for (Match m : matches) {
+
                 String line = format(name, m);
+
                 switch (category(m.status())) {
-                    case "LIVE"      -> live.add(line);
+
+                    case "LIVE" -> live.add(line);
                     case "SCHEDULED" -> scheduled.add(line);
-                    case "FINISHED"  -> finished.add(line);
-                    default          -> other.add(line);
+                    case "FINISHED" -> finished.add(line);
+                    default -> other.add(line);
                 }
             }
         }
 
         System.out.println();
-        printSection("LIVE NOW",                     live);
-        printSection("SCHEDULED",                    scheduled);
-        printSection("FINISHED",                     finished);
+
+        printSection("LIVE NOW", live);
+        printSection("SCHEDULED", scheduled);
+        printSection("FINISHED", finished);
         printSection("OTHER (canceled / postponed)", other);
 
         System.out.println("\n----------------------------------------");
-        System.out.println("Live: "     + live.size()
-                + "   Scheduled: " + scheduled.size()
-                + "   Finished: "  + finished.size()
-                + "   Other: "     + other.size());
+        System.out.println(
+                "Live: " + live.size()
+                        + "   Scheduled: " + scheduled.size()
+                        + "   Finished: " + finished.size()
+                        + "   Other: " + other.size());
     }
 
-    // Helpers for the manual test above.
     private static String category(String status) {
+
         if (status == null) return "OTHER";
+
         return switch (status) {
-            case "LIVE", "HT"            -> "LIVE";
+
+            case "LIVE", "HT" -> "LIVE";
             case "FT", "FT-Pens", "AET" -> "FINISHED";
-            case "Scheduled", "TBD"      -> "SCHEDULED";
-            default                      -> "OTHER"; // Canceled, Postponed
+            case "Scheduled", "TBD" -> "SCHEDULED";
+            default -> "OTHER";
         };
     }
 
     private static String format(String league, Match m) {
+
         String home = m.homeTeam() != null ? m.homeTeam().name() : "?";
         String away = m.awayTeam() != null ? m.awayTeam().name() : "?";
 
         if ("SCHEDULED".equals(category(m.status()))) {
-            return String.format("  [%s] %s vs %s   kickoff: %s",
-                    league, home, away, m.kickoff());
+
+            return String.format(
+                    "  [%s] %s vs %s   kickoff: %s",
+                    league,
+                    home,
+                    away,
+                    m.kickoff());
         }
 
         String score = m.homeScore() + "-" + m.awayScore();
-        String tail  = m.status();
+
+        String tail = m.status();
+
         if (m.elapsed() != null) {
             tail = m.status() + " " + m.elapsed() + "'";
         }
-        return String.format("  [%s] %s %s %s   (%s)   events: %d",
-                league, home, score, away, tail, m.events().size());
+
+        return String.format(
+                "  [%s] %s %s %s   (%s)   events: %d",
+                league,
+                home,
+                score,
+                away,
+                tail,
+                m.events().size());
     }
 
     private static void printSection(String title, List<String> lines) {
+
         System.out.println("\n===== " + title + " (" + lines.size() + ") =====");
+
         if (lines.isEmpty()) {
             System.out.println("  (none)");
         } else {

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { BBPlayer } from "@/lib/api/basketball";
 
 // Country → ISO for flagcdn (subset — same as football; extend as needed)
-// PLEASE review — hard-coded country list: new nationalities silently render fallback flags until this map is manually updated. EXAMPLE: const code = new Intl.DisplayNames(["en"], { type: "region" }) /* or backend-provided ISO */;
 const COUNTRY_TO_ISO: Record<string, string> = {
   "Argentina":"ar","Australia":"au","Austria":"at","Bahamas":"bs","Belgium":"be",
   "Bosnia and Herzegovina":"ba","Brazil":"br","Cameroon":"cm","Canada":"ca","China":"cn",
@@ -51,7 +50,6 @@ const POSITION_GROUPS = [
   { key: ["C"],                 label: "Centers"  },
 ];
 
-// PLEASE review — numeric jersey parsing: parseInt("12A") becomes 12 and parseInt("--") becomes NaN, destabilizing roster order. EXAMPLE: const jerseyNo = Number.isInteger(Number(p.jersey)) ? Number(p.jersey) : 999;
 function sortByJersey(players: BBPlayer[]) {
   return [...players].sort((a,b) => (a.jersey ? parseInt(a.jersey) : 999) - (b.jersey ? parseInt(b.jersey) : 999));
 }

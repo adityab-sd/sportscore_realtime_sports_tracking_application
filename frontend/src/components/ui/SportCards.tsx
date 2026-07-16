@@ -46,17 +46,6 @@ function F1Icon() {
 }
 
 const sports = [
-  // ============================================================================
-  // PLEASE review — centralize sport navigation config
-  // ----------------------------------------------------------------------------
-  // This list duplicates Navbar/Footer/HeroSplit sport labels and routes. As
-  // sports launch, one file can say "SOON" while another links as live, which is
-  // already easy to do across football/basketball/cricket/F1.
-  //
-  // EXAMPLE:
-  //   import { SPORTS_NAV } from "@/config/sports";
-  //   const sports = SPORTS_NAV.map(({ key, label, href, status }) => ({ key, label, href, isLive: status === "live" }));
-  // ============================================================================
   { key: "football",   label: "Football",   href: "/football",   Icon: FootballIcon,   desc: "Live scores, standings & match stats",    live: true },
   { key: "basketball", label: "Basketball", href: "/basketball", Icon: BasketballIcon, desc: "NBA & WNBA scores, standings & rosters", live: true },
   { key: "cricket",    label: "Cricket",    href: "/cricket",    Icon: CricketIcon,    desc: "Scorecards, NRR & player profiles",      soon: true },

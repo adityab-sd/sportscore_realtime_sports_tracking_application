@@ -9,7 +9,6 @@ function StatusChip({ game, league }: { game: BBGame; league: string }) {
   if (state === "scheduled") {
     let label = game.status ?? "";
     if (game.tipoff) {
-      // PLEASE review — invalid tipoff not guarded: getUTCHours/getUTCMinutes can produce NaN:NaN for malformed dates. EXAMPLE: const t = Date.parse(game.tipoff); if (Number.isFinite(t)) { const d = new Date(t); label = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }); }
       const d = new Date(game.tipoff);
       label = `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
     }
@@ -32,7 +31,6 @@ function StatusChip({ game, league }: { game: BBGame; league: string }) {
 interface Props { game: BBGame; league?: string }
 
 export default function GameCard({ game, league = "nba" }: Props) {
-  // PLEASE review — nested team fields assumed present: game.homeTeam.logo/name access will crash if a partial scoreboard row is returned. EXAMPLE: if (!game.homeTeam || !game.awayTeam) return null;
   const live = classifyStatus(game.statusState) === "live";
   const homeWin = game.homeScore != null && game.awayScore != null && game.homeScore > game.awayScore;
   const awayWin = game.homeScore != null && game.awayScore != null && game.awayScore > game.homeScore;

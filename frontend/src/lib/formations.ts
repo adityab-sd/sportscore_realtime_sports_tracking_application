@@ -8,16 +8,6 @@
  * so when rendering the away team we flip: y → (100 - y).
  */
 
-// ============================================================================
-// PLEASE review — Formation coordinates are not bounded by type
-// ----------------------------------------------------------------------------
-// Coord accepts any number even though renderers assume a 0-100 pitch scale. A
-// bad future formation entry can place players outside the SVG without a type or
-// validation error.
-//
-// EXAMPLE:
-//   const coord = z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) });
-// ============================================================================
 export interface Coord { x: number; y: number }
 
 export type Formation = Record<string, Coord>;
@@ -178,17 +168,6 @@ export const FORMATIONS: Record<string, Formation> = {
   },
 };
 
-// ============================================================================
-// PLEASE review — Formation keys should be constrained to supported shapes
-// ----------------------------------------------------------------------------
-// normaliseFormation accepts any digit string and unsupported shapes silently
-// fall back to 4-4-2, which can hide upstream lineup data defects. Return a
-// typed FormationKey or surface the unsupported value to the caller.
-//
-// EXAMPLE:
-//   type FormationKey = keyof typeof FORMATIONS;
-//   if (!(key in FORMATIONS)) throw new Error(`Unsupported formation: ${raw}`);
-// ============================================================================
 /** Normalise formation string: "433" → "4-3-3", "4-2-3-1" stays as-is */
 export function normaliseFormation(raw: string): string {
   const digits = raw.replace(/[^0-9]/g, "");

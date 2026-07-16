@@ -7,13 +7,17 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.Spring.f1.adapter.CoreF1Adapter;
+import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.Spring.api.EspnHttpClient;
 
 /**
  * F1 live fetcher. Unlike the team sports there is no league loop — F1 is a
@@ -36,68 +40,73 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //       }
 //       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
 //   }
+//    UPDATE:
+//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
+//
 // ============================================================================
 @Component
-public class CoreF1Fetcher {
+public class CoreF1Fetcher extends AbstractEspnFetcher {
 
     private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
 
-    private final HttpClient       client  = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10)).build();
-    private final CoreF1Adapter    adapter = new CoreF1Adapter();
-    private final ObjectMapper     mapper  = new ObjectMapper();
-    private final EventHubProducer producer;
+    private static final Map<String, String> LEAGUES = Map.of(
+            "f1", "Formula 1"
+    );
+    private final CoreF1Adapter    adapter;
 
-    public CoreF1Fetcher(EventHubProducer producer) {
-        this.producer = producer;
+    public CoreF1Fetcher(
+            EventHubProducer producer,
+            EspnHttpClient client,
+            ObjectMapper mapper,
+            CoreF1Adapter adapter) {
+
+        super(producer, client, mapper);
+        this.adapter = adapter;
     }
 
     // Pipeline
 
-    public void fetchAndPublishLive() throws Exception {
-        List<Match> live = new ArrayList<>();
-        for (Match m : fetchAllMatches()) {
-            if (isLive(m.status())) live.add(m);
-        }
-        if (!live.isEmpty()) {
-            producer.send(mapper.writeValueAsString(live));
-        }
+    @Override
+    protected String baseUrl() {
+        return BASE;
     }
 
-    private static boolean isLive(String status) {
-        return "LIVE".equals(status);
+    @Override
+    protected Map<String, String> leagues() {
+        return LEAGUES;
     }
 
-    public String fetchScoreboardRaw() throws Exception {
-        return get("/scoreboard");
+    @Override
+    protected List<Match> adapt(JsonNode root, String leagueName) throws Exception {
+        return adapter.toMatches(root, leagueName);
     }
 
-    public List<Match> fetchAllMatches() throws Exception {
-        try {
-            return adapter.toMatches(fetchScoreboardRaw());
-        } catch (Exception e) {
-            System.out.println("  (f1 scoreboard error: " + e.getMessage() + ")");
-            return new ArrayList<>();
-        }
+    @Override
+    protected boolean isLive(Match match) {
+        return "LIVE".equals(match.status());
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + path))
-                .header("User-Agent", "SportScore/1.0")
-                .timeout(Duration.ofSeconds(15))
-                .GET().build();
-        HttpResponse<String> response =
-                client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200)
-            throw new RuntimeException("API error " + response.statusCode());
-        return response.body();
+    @Override
+    protected String scoreboardUrl(String league) {
+        return BASE + "/scoreboard";
     }
+
+    @Override
+    public String sportName() {
+        return "f1";
+    }
+
 
     // Manual test  ->  run this main() to print F1 weekends to the terminal
 
     public static void main(String[] args) throws Exception {
-        CoreF1Fetcher fetcher = new CoreF1Fetcher(new EventHubProducer("", ""));
+        ObjectMapper mapper = new ObjectMapper();
+
+        EspnHttpClient httpClient =
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+
+        CoreF1Adapter adapter = new CoreF1Adapter();
+        CoreF1Fetcher fetcher = new CoreF1Fetcher(new EventHubProducer("", ""), httpClient, mapper, adapter);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

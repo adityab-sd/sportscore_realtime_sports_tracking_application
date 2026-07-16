@@ -11,16 +11,6 @@ interface Props {
   showViewLink?: boolean;
 }
 
-// ============================================================================
-// PLEASE review — defensive theme color parsing
-// ----------------------------------------------------------------------------
-// darken assumes every league accent is a six-digit hex string. A short hex, CSS
-// variable, or malformed registry value produces rgb(NaN, NaN, NaN) and breaks
-// the banner background.
-//
-// EXAMPLE:
-//   if (!/^#[0-9a-f]{6}$/i.test(hex)) return "#1e293b";
-// ============================================================================
 /** Mix a hex color toward black by `amount` (0..1). Used to build a subtle gradient. */
 function darken(hex: string, amount = 0.55): string {
   const h = hex.replace("#", "");

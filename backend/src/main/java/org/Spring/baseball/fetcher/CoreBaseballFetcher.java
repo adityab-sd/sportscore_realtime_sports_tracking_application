@@ -11,11 +11,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.Spring.baseball.adapter.CoreBaseballAdapter;
+import org.Spring.f1.adapter.CoreF1Adapter;
+import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.Spring.api.EspnHttpClient;
 
 // ============================================================================
 // PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
@@ -30,9 +34,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //       protected Map<String,String> leagues() { return LEAGUES; }
 //       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
 //   }
+//    UPDATE:
+//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
 // ============================================================================
 @Component
-public class CoreBaseballFetcher {
+public class CoreBaseballFetcher extends AbstractEspnFetcher {
 
     private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/baseball";
 
@@ -56,75 +62,58 @@ public class CoreBaseballFetcher {
         LEAGUES.put("lls",                       "Little League Softball World Series");
     }
 
-    private final HttpClient          client  = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10)).build();
-    private final CoreBaseballAdapter adapter = new CoreBaseballAdapter();
-    private final ObjectMapper        mapper  = new ObjectMapper();
-    private final EventHubProducer    producer;
+    private final CoreBaseballAdapter adapter;
 
-    public CoreBaseballFetcher(EventHubProducer producer) {
-        this.producer = producer;
+    public CoreBaseballFetcher(
+            EventHubProducer producer,
+            EspnHttpClient client,
+            ObjectMapper mapper,
+            CoreBaseballAdapter adapter) {
+
+        super(producer, client, mapper);
+        this.adapter = adapter;
     }
 
-    // Pipeline
-
-    public void fetchAndPublishLive() throws Exception {
-        List<Match> live = new ArrayList<>();
-        for (Match m : fetchAllMatches()) {
-            if (isLive(m.status())) live.add(m);
-        }
-        if (!live.isEmpty()) {
-            producer.send(mapper.writeValueAsString(live));
-        }
+    @Override
+    protected String baseUrl() {
+        return BASE;
     }
 
-    private static boolean isLive(String status) {
-        if (status == null) return false;
-        return switch (status) {
-            case "LIVE" -> true;
-            default     -> false;
-        };
+    @Override
+    protected Map<String, String> leagues() {
+        return LEAGUES;
     }
 
-    public String fetchScoreboardRaw(String league) throws Exception {
-        return get("/" + league + "/scoreboard");
+    @Override
+    protected List<Match> adapt(JsonNode root, String leagueName) throws Exception {
+        // Baseball adapter doesn't need the friendly league name.
+        return adapter.toMatches(root, leagueName);
     }
 
-    public List<Match> fetchMatches(String league) throws Exception {
-        return adapter.toMatches(fetchScoreboardRaw(league));
+    @Override
+    protected boolean isLive(Match match) {
+        return "LIVE".equals(match.status());
     }
 
-    public List<Match> fetchAllMatches() throws Exception {
-        List<Match> all = new ArrayList<>();
-        for (String slug : LEAGUES.keySet()) {
-            try {
-                all.addAll(fetchMatches(slug));
-            } catch (Exception e) {
-                System.out.println("  (baseball skipped " + slug + ": " + e.getMessage() + ")");
-            }
-        }
-        return all;
+    @Override
+    protected String sportName() {
+        return "baseball";
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + path))
-                .header("User-Agent", "SportScore/1.0")
-                .timeout(Duration.ofSeconds(15))
-                .GET().build();
-        HttpResponse<String> response =
-                client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200)
-            throw new RuntimeException("API error " + response.statusCode());
-        return response.body();
-    }
 
     // Manual test for only me, not part of the production service.
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
         // so live matches are logged instead of pushed to Event Hub.
-        CoreBaseballFetcher fetcher = new CoreBaseballFetcher(new EventHubProducer("", ""));
+        ObjectMapper mapper = new ObjectMapper();
+
+        EspnHttpClient httpClient =
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+
+        CoreBaseballAdapter adapter = new CoreBaseballAdapter();
+        CoreBaseballFetcher fetcher = new CoreBaseballFetcher(new EventHubProducer("", ""),
+                httpClient, mapper, adapter);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

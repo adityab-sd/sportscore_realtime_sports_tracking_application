@@ -15,17 +15,6 @@ async function getAllFixtures(): Promise<{ allResults: SlugFixture[]; allUpcomin
   const allResults: SlugFixture[] = [];
   const allUpcoming: SlugFixture[] = [];
 
-  // ============================================================================
-  // PLEASE review — Surface aggregate fetch failures
-  // ----------------------------------------------------------------------------
-  // Promise.allSettled currently drops rejected league fetches, so a backend outage
-  // can look like a quiet day with no fixtures. Track failures and render/throw an
-  // explicit error state instead of silently returning partial or empty content.
-  //
-  // EXAMPLE:
-  //   const failed = results.filter(r => r.status === "rejected");
-  //   if (failed.length === slugs.length) throw new Error("Unable to load football fixtures");
-  // ============================================================================
   results.forEach((r, i) => {
     if (r.status !== "fulfilled") return;
     const slug = slugs[i];
@@ -36,19 +25,6 @@ async function getAllFixtures(): Promise<{ allResults: SlugFixture[]; allUpcomin
       if (!seen.has(f.id)) { seen.add(f.id); allUpcoming.push({ ...f, _slug: slug }); }
     });
   });
-
-  // ============================================================================
-  // PLEASE review — Use league-aware dedupe and safe date sorting
-  // ----------------------------------------------------------------------------
-  // ESPN event ids are treated as globally unique and kickoff strings are parsed
-  // directly. If ids collide across competitions or a kickoff is malformed, rows
-  // can disappear or the sort comparator can return NaN.
-  //
-  // EXAMPLE:
-  //   const key = `${slug}:${f.id}`;
-  //   const time = Date.parse(f.kickoff ?? "");
-  //   return Number.isFinite(time) ? time : 0;
-  // ============================================================================
   allResults.sort((a, b)  => new Date(b.kickoff ?? 0).getTime() - new Date(a.kickoff ?? 0).getTime());
   allUpcoming.sort((a, b) => new Date(a.kickoff ?? 0).getTime() - new Date(b.kickoff ?? 0).getTime());
   return { allResults: allResults.slice(0, 40), allUpcoming: allUpcoming.slice(0, 40) };

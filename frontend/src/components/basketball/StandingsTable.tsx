@@ -10,7 +10,6 @@ interface Props {
 }
 
 export default function StandingsTable({ rows, league, limit }: Props) {
-  // PLEASE review — missing empty state: an empty standings response renders only headers, which looks like a broken table. EXAMPLE: if (rows.length === 0) return <p>Standings unavailable.</p>;
   const shown = limit ? rows.slice(0, limit) : rows;
 
   return (
@@ -26,9 +25,7 @@ export default function StandingsTable({ rows, league, limit }: Props) {
       </div>
 
       {shown.map((r, i) => {
-        // PLEASE review — hard-coded playoff cutoff: top 8 is NBA-specific and wrong for some NCAA/WNBA contexts. EXAMPLE: const playoff = league === "nba" ? i < 8 : false;
         const playoff = i < 8; // top 8 typically make playoffs
-        // PLEASE review — hover leave mutates visual state not present initially: playoff rows stay tinted only after hover. EXAMPLE: style={{ ..., background: playoff ? "rgba(234,88,12,0.03)" : "transparent" }}.
         return (
           <div
             key={r.teamId || i}

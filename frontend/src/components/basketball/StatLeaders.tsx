@@ -2,7 +2,6 @@
 import { BBLeader } from "@/lib/api/basketball";
 
 export default function StatLeaders({ leaders, leagueLabel = "NBA" }: { leaders: BBLeader[]; leagueLabel?: string }) {
-  // PLEASE review — missing empty state: returning null makes the whole leaders panel disappear with no explanation. EXAMPLE: if (leaders.length === 0) return <p style={{ fontSize: 13 }}>Leaders unavailable.</p>;
   if (leaders.length === 0) return null;
   const catName = leaders[0]?.category ?? "Scoring Leaders";
 
@@ -13,7 +12,6 @@ export default function StatLeaders({ leaders, leagueLabel = "NBA" }: { leaders:
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{leagueLabel}</span>
       </div>
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-        {/* PLEASE review — index key and fixed border count: re-ranked leaders remount the wrong player row, and i < 9 draws a border after the last row when fewer than 10 leaders exist. EXAMPLE: {leaders.slice(0, 10).map((l, i, arr) => <div key={`${l.player}:${l.team}`} style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>...</div>)}. */}
         {leaders.slice(0, 10).map((l, i) => (
           <div
             key={i}

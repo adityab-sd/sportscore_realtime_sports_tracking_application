@@ -25,16 +25,6 @@ function groupBySlug(fixtures: SlugFixture[]): { slug: string; name: string; fix
     arr.push(f);
     buckets.set(key, arr);
   }
-  // ============================================================================
-  // PLEASE review — unknown league preservation
-  // ----------------------------------------------------------------------------
-  // Fixtures whose _slug is absent or not in LEAGUES are placed in the "other"
-  // bucket, then dropped because only registered leagues are returned. Cached
-  // matches should not disappear before SignalR connects.
-  //
-  // EXAMPLE:
-  //   return [...knownGroups, ...unknownGroups];
-  // ============================================================================
   // Preserve LEAGUES order (World Cup first, then UCL, then domestic top leagues).
   return LEAGUES
     .filter(l => buckets.has(l.slug))
@@ -90,16 +80,6 @@ function LeagueSection({
 export default function PrefetchedFixtures({ results, upcoming }: Props) {
   const { matches, state } = useSignalR();
 
-  // ============================================================================
-  // PLEASE review — live takeover granularity
-  // ----------------------------------------------------------------------------
-  // A single football match from SignalR hides all prefetched results/upcoming
-  // fixtures, even if the live feed only contains one league. Merge by fixture id
-  // or league so cached coverage is not lost during partial hub updates.
-  //
-  // EXAMPLE:
-  //   const visibleFixtures = cached.filter(f => !matches.some(m => m.id === f.id));
-  // ============================================================================
   // Hide once SignalR has delivered at least one football match. Basketball matches don't count.
   const hasLiveData = matches.some(m => !m.sport || m.sport === "football");
   if (hasLiveData) return null;

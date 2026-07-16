@@ -23,17 +23,6 @@ export default function AssistantSidebar({ open, onClose }: Props) {
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    // ============================================================================
-    // PLEASE review — clean up pending assistant timeout
-    // ----------------------------------------------------------------------------
-    // If the sidebar unmounts or closes before this timeout fires, it can still
-    // call setMessages/setLoading after the UI is gone. Track the timeout in a ref
-    // and clear it from an effect cleanup.
-    //
-    // EXAMPLE:
-    //   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    //   useEffect(() => () => { if (replyTimer.current) clearTimeout(replyTimer.current); }, []);
-    // ============================================================================
     setTimeout(() => {
       const reply: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -47,7 +36,6 @@ export default function AssistantSidebar({ open, onClose }: Props) {
 
   return (
     <>
-      {/* PLEASE review — clickable backdrop is not keyboard accessible: a div with onClick cannot be dismissed by keyboard users. EXAMPLE: <button type="button" aria-label="Close assistant overlay" onClick={onClose} style={backdropStyle} />. */}
       {open && (
         <div
           onClick={onClose}
@@ -89,7 +77,6 @@ export default function AssistantSidebar({ open, onClose }: Props) {
               <div style={{ fontSize: 11, color: "var(--indigo-text)" }}>Powered by Azure OpenAI</div>
             </div>
           </div>
-          {/* PLEASE review — icon-only close button needs an accessible name. EXAMPLE: <button type="button" aria-label="Close assistant" onClick={onClose}>...</button>. */}
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}>
             <X size={20} />
           </button>
@@ -178,7 +165,6 @@ export default function AssistantSidebar({ open, onClose }: Props) {
             onMouseEnter={e => (e.currentTarget.style.background = "var(--indigo-mid)")}
             onMouseLeave={e => (e.currentTarget.style.background = "var(--indigo)")}
           >
-            {/* PLEASE review — send icon button needs an accessible name. EXAMPLE: <button type="button" aria-label="Send assistant message" onClick={handleSend}>...</button>. */}
             <Send size={15} color="#fff" />
           </button>
         </div>

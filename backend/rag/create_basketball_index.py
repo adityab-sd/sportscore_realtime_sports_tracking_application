@@ -20,15 +20,6 @@ SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 INDEX_NAME      = "basketball-index"
 CORPUS_FILE     = "corpus/basketball_corpus.json"
 
-# ============================================================================
-# PLEASE review — DRY: this file is a near-verbatim copy of create_index.py (only INDEX_NAME,
-# CORPUS_FILE and the test query differ). Two copies drift over time — parameterize one script.
-# EXAMPLE:
-#   # build_index.py
-#   def build(index_name, corpus_file, test_query): ...   # call for football + basketball
-# It also inherits create_index.py's issues: unvalidated env vars, cwd-relative CORPUS_FILE,
-# and upload_documents results never checked for per-document failures.
-# ============================================================================
 credential = AzureKeyCredential(SEARCH_API_KEY)
 
 # ── STEP 1: CREATE INDEX ─────────────────────────────────

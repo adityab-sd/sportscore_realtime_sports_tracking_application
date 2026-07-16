@@ -3,10 +3,18 @@ package org.Spring;
 import org.Spring.baseball.fetcher.CoreBaseballFetcher;
 import org.Spring.basketball.fetcher.CoreBasketballFetcher;
 import org.Spring.f1.fetcher.CoreF1Fetcher;
+import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.football.fetcher.CoreFootballFetcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Live pipeline orchestrator for ALL sports. Each sport runs on its own daemon
@@ -33,33 +41,25 @@ import org.springframework.stereotype.Component;
 //
 // WHY: a new sport becomes a new @Component with ZERO edits here. Injecting
 // List<Interface> to receive "all strategies" is idiomatic Spring.
+//    UPDATE:
+//    This issue has been resolved by adding a sportName() method in AbstractEspnFetcher class
 // ============================================================================
 @Component
 public class LivePipelineRunner implements ApplicationRunner {
 
     private static final long POLL_MS = 30_000;
 
-    private final CoreFootballFetcher     football;
-    private final CoreBasketballFetcher basketball;
-    private final CoreBaseballFetcher   baseball;
-    private final CoreF1Fetcher         f1;
+    private final List<AbstractEspnFetcher> fetchers;
 
-    public LivePipelineRunner(CoreFootballFetcher football,
-                                  CoreBasketballFetcher basketball,
-                                  CoreBaseballFetcher baseball,
-                                  CoreF1Fetcher f1) {
-        this.football   = football;
-        this.basketball = basketball;
-        this.baseball   = baseball;
-        this.f1         = f1;
+    public LivePipelineRunner(List<AbstractEspnFetcher> fetchers) {
+        this.fetchers = fetchers;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        startLoop("football",   football::fetchAndPublishLive);
-        startLoop("basketball", basketball::fetchAndPublishLive);
-        startLoop("baseball",   baseball::fetchAndPublishLive);
-        startLoop("f1",         f1::fetchAndPublishLive);
+        fetchers.forEach(fetcher ->
+                startLoop(fetcher.sportName(),
+                        fetcher::fetchAndPublishLive));
     }
 
     @FunctionalInterface
@@ -75,25 +75,27 @@ public class LivePipelineRunner implements ApplicationRunner {
     //   ScheduledExecutorService pool = Executors.newScheduledThreadPool(4);
     //   pool.scheduleWithFixedDelay(() -> safeRun(sport, task), 0, POLL_MS, MILLISECONDS);
     //   // and: log.info("Published live {} matches to Event Hub", sport);   // not System.out
+
+    // UPDATE:
+    // Refactored based on review: replaced raw Thread + while(true) + sleep()
+    // with a ScheduledExecutorService for managed, periodic execution.
     // ------------------------------------------------------------------------
+    private final ScheduledExecutorService scheduler =
+            Executors.newScheduledThreadPool(4);
+    private static final Logger log =
+            LoggerFactory.getLogger(LivePipelineRunner.class);
+
     private void startLoop(String sport, LiveTask task) {
-        Thread t = new Thread(() -> {
-            while (true) {
-                try {
-                    task.run();
-                    System.out.println("Published live " + sport + " matches to Event Hub");
-                } catch (Exception e) {
-                    System.err.println(sport + " fetch error: " + e.getMessage());
-                }
-                try {
-                    Thread.sleep(POLL_MS);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
+
+        scheduler.scheduleWithFixedDelay(() -> {
+
+            try {
+                task.run();
+                log.info("Published live {} matches", sport);
             }
-        }, sport + "-live-pipeline");
-        t.setDaemon(true);
-        t.start();
+            catch (Exception e) {
+                log.error("{} fetch error", sport, e);
+            }
+        }, 0, POLL_MS, TimeUnit.MILLISECONDS);
     }
 }

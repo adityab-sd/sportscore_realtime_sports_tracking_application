@@ -1,54 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTeam, getRoster, getTeamInjuries, getTeamSchedule, getTeamRecord, getTeamDepthChart } from "@/lib/api/basketball";
+import { getTeam, getRoster } from "@/lib/api/basketball";
 import { leagueName } from "@/types/basketball";
 import TeamLogo from "@/components/football/TeamLogo";
 import RosterList from "@/components/basketball/RosterList";
-import InjuryList from "@/components/basketball/InjuryList";
-import { TeamScheduleList, DepthChart, TeamRecordCard } from "@/components/basketball/TeamDetailCards";
-import ComingSoon from "@/components/basketball/ComingSoon";
 
 export const dynamic = "force-dynamic";
-
-interface Props {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ league?: string }>;
-}
+interface Props { params: Promise<{ id: string }>; searchParams: Promise<{ league?: string }> }
 
 export default async function TeamPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "nba" } = await searchParams;
-  // ============================================================================
-  // PLEASE review — validate route and query inputs before fetching
-  // ----------------------------------------------------------------------------
-  // Team id and league are trusted directly from the URL. Unsupported leagues or
-  // malformed ids fan out to every team endpoint before the page can notFound.
-  //
-  // EXAMPLE:
-  //   const safeLeague = LEAGUES.some((l) => l.slug === league) ? league : "nba";
-  //   if (!/^\d+$/.test(id)) return notFound();
-  // ============================================================================
-
-  // ============================================================================
-  // PLEASE review — optional team sections reject the entire page
-  // ----------------------------------------------------------------------------
-  // Only getTeam is required to decide whether the route exists. Roster, injuries,
-  // schedule, record and depth chart should degrade independently instead of
-  // making the team header fail.
-  //
-  // EXAMPLE:
-  //   const team = await getTeam(league, id);
-  //   const optional = await Promise.allSettled([getRoster(league, id), getTeamSchedule(league, id)]);
-  // ============================================================================
-  const [team, roster, injuries, scheduleRaw, recordRaw, depthRaw] = await Promise.all([
-    getTeam(league, id),
-    getRoster(league, id),
-    getTeamInjuries(league, id),
-    getTeamSchedule(league, id),
-    getTeamRecord(league, id),
-    getTeamDepthChart(league, id),
-  ]);
-
+  const [team, roster] = await Promise.all([getTeam(league, id), getRoster(league, id)]);
   if (!team) return notFound();
 
   return (
@@ -57,8 +20,7 @@ export default async function TeamPage({ params, searchParams }: Props) {
         ← {leagueName(league)}
       </Link>
 
-      {/* Team header */}
-      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 28, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, padding: "24px", marginBottom: 28, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
         <TeamLogo logo={team.logo} shortName={team.shortName} size={64} highlight />
         <div>
           <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>{team.name}</h1>
@@ -71,61 +33,8 @@ export default async function TeamPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      {/* Record breakdown */}
-      {recordRaw && (
-        <section style={{ marginBottom: 28 }}>
-          <SectionLabel text="Record" />
-          <TeamRecordCard data={recordRaw} />
-        </section>
-      )}
-
-      {/* Schedule */}
-      {scheduleRaw && (
-        <section style={{ marginBottom: 28 }}>
-          <SectionLabel text="Schedule" />
-          <TeamScheduleList data={scheduleRaw} league={league} />
-        </section>
-      )}
-
-      {/* Injuries */}
-      {injuries.length > 0 && (
-        <section style={{ marginBottom: 28 }}>
-          <SectionLabel text="Injuries" />
-          <InjuryList injuries={injuries} />
-        </section>
-      )}
-
-      {/* Depth chart */}
-      {depthRaw && (
-        <section style={{ marginBottom: 28 }}>
-          <SectionLabel text="Depth Chart" />
-          <DepthChart data={depthRaw} />
-        </section>
-      )}
-
-      {/* Team News placeholder */}
-      <section style={{ marginBottom: 28 }}>
-        <SectionLabel text="Team News" />
-        {/* PLEASE review — placeholder shipped as a production feature: team pages show "Team News" even though no data is wired. EXAMPLE: {teamNews.length > 0 ? <NewsGrid articles={teamNews} /> : null}. */}
-        <ComingSoon title="Team News" description="Team-specific news feed — backend endpoint in progress." />
-      </section>
-
-      {/* Team Stat Leaders placeholder */}
-      <section style={{ marginBottom: 28 }}>
-        <SectionLabel text="Team Stat Leaders" />
-        {/* PLEASE review — placeholder shipped as a production feature: stat leaders should be hidden or backed by real data. EXAMPLE: {leaders.length > 0 ? <StatLeaders leaders={leaders} leagueLabel={team.name} /> : null}. */}
-        <ComingSoon title="Team Leaders" description="Top performers by category — backend endpoint in progress." />
-      </section>
-
-      {/* Roster */}
-      <SectionLabel text="Roster" />
+      <h2 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>Roster</h2>
       <RosterList roster={roster} league={league} teamId={id} />
     </div>
-  );
-}
-
-function SectionLabel({ text }: { text: string }) {
-  return (
-    <h2 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>{text}</h2>
   );
 }

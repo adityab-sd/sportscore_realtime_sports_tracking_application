@@ -14,17 +14,6 @@ interface NewsCarouselProps {
 }
 
 function timeAgo(iso: string): string {
-  // ============================================================================
-  // PLEASE review — avoid Date.now() in render-derived text
-  // ----------------------------------------------------------------------------
-  // timeAgo is called during render, so the label can differ between hydration
-  // and later renders, then stay stale until carousel state changes. Pass a
-  // server-computed label or update a clock state on a cleaned-up interval.
-  //
-  // EXAMPLE:
-  //   const [now, setNow] = useState(() => Date.now());
-  //   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
-  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";
@@ -61,20 +50,6 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
   const next = useCallback(() => go(current === total - 1 ? 0 : current + 1), [current, total, go]);
   const prev_ = useCallback(() => go(current === 0 ? total - 1 : current - 1), [current, total, go]);
 
-  // ============================================================================
-  // PLEASE review — guard carousel timer when empty
-  // ----------------------------------------------------------------------------
-  // Hooks run even when the component returns null below, so an empty articles
-  // array still schedules next() and can move current to an invalid slide index.
-  // Keep the timer disabled unless there are slides to advance.
-  //
-  // EXAMPLE:
-  //   useEffect(() => {
-  //     if (paused || total === 0) return;
-  //     const id = setTimeout(next, 4000);
-  //     return () => clearTimeout(id);
-  //   }, [paused, total, next]);
-  // ============================================================================
   useEffect(() => {
     if (paused) return;
     timerRef.current = setTimeout(next, 4000);
@@ -87,7 +62,7 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
 
   return (
     <div
-      style={{ position: "relative", width: "100%", height: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
+      style={{ position: "relative", width: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -148,13 +123,11 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
 
       {/* Progress bar */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.1)", zIndex: 10 }}>
-        {/* PLEASE review — timer/progress mismatch: slides advance after 4000ms but the bar animates for 5s, so it resets before reaching 100%. EXAMPLE: <div style={{ animation: paused ? "none" : "carouselProgress 4s linear forwards" }} />. */}
         <div key={current} style={{ height: "100%", background: "var(--blue)", animation: paused ? "none" : "carouselProgress 5s linear forwards", width: paused ? "0%" : undefined }} />
       </div>
 
       {/* Dots */}
       <div style={{ position: "absolute", bottom: 16, right: 52, display: "flex", gap: 6, zIndex: 10 }}>
-        {/* PLEASE review — avoid index keys for controls: if stories are inserted or reordered, focus/state can move to the wrong dot. EXAMPLE: <button key={articles[i].id} ... />. */}
         {articles.map((_, i) => (
           <button key={i} onClick={e => { e.preventDefault(); e.stopPropagation(); go(i); }} aria-label={`Go to story ${i + 1}`}
             style={{ width: i === current ? 20 : 6, height: 6, borderRadius: 3, background: i === current ? "#fff" : "rgba(255,255,255,0.35)", border: "none", cursor: "pointer", padding: 0, transition: "width 300ms ease, background 300ms ease" }}

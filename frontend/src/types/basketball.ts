@@ -11,12 +11,8 @@ const espnLogo = (slug: string) =>
   `https://a.espncdn.com/i/teamlogos/leagues/500/${slug}.png`;
 
 export const LEAGUES: LeagueInfo[] = [
-  { slug: "nba",                       name: "NBA",                          short: "NBA",      logo: espnLogo("nba")  },
-  { slug: "wnba",                      name: "WNBA",                         short: "WNBA",     logo: espnLogo("wnba") },
-  { slug: "nba-summer-las-vegas",      name: "NBA Summer League",            short: "Summer",   logo: espnLogo("nba")  },
-  { slug: "mens-college-basketball",   name: "NCAA Men's Basketball",        short: "NCAAM",    logo: espnLogo("ncaa") },
-  { slug: "womens-college-basketball", name: "NCAA Women's Basketball",      short: "NCAAW",    logo: espnLogo("ncaa_wbball") },
-  { slug: "nba-development",           name: "NBA G League",                 short: "G-LG",     logo: espnLogo("nba")  },
+  { slug: "nba",  name: "NBA",  short: "NBA",  logo: espnLogo("nba")  },
+  { slug: "wnba", name: "WNBA", short: "WNBA", logo: espnLogo("wnba") },
 ];
 
 export const leagueName = (slug: string): string =>
@@ -30,16 +26,6 @@ export const leagueLogo = (slug: string): string =>
 
 export type GameState = "live" | "scheduled" | "finished";
 
-// ============================================================================
-// PLEASE review — ESPN statusState should be a closed union
-// ----------------------------------------------------------------------------
-// classifyStatus accepts any string, so typos or new ESPN values silently become
-// scheduled games. Type the raw status values and handle unknown values explicitly.
-//
-// EXAMPLE:
-//   type ESPNStatusState = "pre" | "in" | "post";
-//   function classifyStatus(statusState: ESPNStatusState): GameState { /* ... */ }
-// ============================================================================
 export function classifyStatus(statusState: string | null | undefined): GameState {
   if (statusState === "in")   return "live";
   if (statusState === "post") return "finished";
@@ -48,14 +34,8 @@ export function classifyStatus(statusState: string | null | undefined): GameStat
 
 export function periodLabel(period: number | null, league: string): string {
   if (period == null) return "";
-  // NCAA uses halves, everything else uses quarters
-  const isHalves = league.includes("college-basketball");
-  if (isHalves) {
-    if (period <= 2) return `H${period}`;
-    const otNum = period - 2;
-    return otNum === 1 ? "OT" : `${otNum}OT`;
-  }
-  const regulation = 4;
+  // NBA/WNBA use quarters. Overtime shown as "OT", "2OT", ...
+  const regulation = league === "wnba" ? 4 : 4; // both use 4 quarters
   if (period <= regulation) return `Q${period}`;
   const otNum = period - regulation;
   return otNum === 1 ? "OT" : `${otNum}OT`;

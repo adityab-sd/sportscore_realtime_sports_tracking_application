@@ -25,14 +25,6 @@ interface NewsCardProps {
    * Defaults to "football" so existing usages don't need updating.
    */
   sport?: "football" | "basketball";
-  /**
-   * Optional extra classes merged onto the outer <Link>. Purely additive —
-   * omit it and NewsCard behaves exactly as before. Used e.g. when stacking
-   * a few cards next to a taller sibling (like the home page's carousel)
-   * and you want them to divide that height evenly: pass "lg:flex-1 lg:min-h-0"
-   * from a `flex flex-col` parent.
-   */
-  className?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,17 +51,6 @@ const CAT_GRADIENTS: Record<string, string> = {
 };
 
 function timeAgo(iso: string): string {
-  // ============================================================================
-  // PLEASE review — avoid Date.now() in card render
-  // ----------------------------------------------------------------------------
-  // Relative time is computed during render and then suppressed for hydration,
-  // which can hide timezone/clock mismatches and leaves labels stale until some
-  // unrelated state change re-renders the card.
-  //
-  // EXAMPLE:
-  //   const publishedLabel = formatDistanceToNowStrict(new Date(article.published), { addSuffix: true });
-  //   <NewsCard article={{ ...article, publishedLabel }} />
-  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";
@@ -100,11 +81,11 @@ function ImageSlot({ src, category }: { src: string | null; category: string }) 
   );
 }
 
-export default function NewsCard({ article, sport = "football", className }: NewsCardProps) {
+export default function NewsCard({ article, sport = "football" }: NewsCardProps) {
   const href = `/${sport}/news/${article.id}`;
 
   return (
-    <Link href={href} className={className} style={{ textDecoration: "none" }}>
+    <Link href={href} style={{ textDecoration: "none" }}>
       <article className="news-card card-hover" style={{
         background: "var(--white)", border: "1px solid var(--border)",
         borderRadius: 12, height: "100%", display: "flex", flexDirection: "column",
