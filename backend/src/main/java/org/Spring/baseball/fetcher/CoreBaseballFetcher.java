@@ -1,17 +1,12 @@
 package org.Spring.baseball.fetcher;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.Spring.baseball.adapter.CoreBaseballAdapter;
-import org.Spring.f1.adapter.CoreF1Adapter;
 import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
@@ -22,20 +17,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.Spring.api.EspnHttpClient;
 
 // ============================================================================
-// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
-// ----------------------------------------------------------------------------
-// Same skeleton as the other sports; only the LEAGUES map (12 entries) and isLive()
-// differ. The subclass supplies just those pieces:
-//
-// EXAMPLE:
-//   @Component
-//   class BaseballFetcher extends LiveSportFetcher {
-//       protected String baseUrl() { return BASE; }
-//       protected Map<String,String> leagues() { return LEAGUES; }
-//       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
-//   }
-//    UPDATE:
-//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
+// UPDATE:
+// The duplicate skeleton has been removed and the code has been updated to use the base class properly
 // ============================================================================
 @Component
 public class CoreBaseballFetcher extends AbstractEspnFetcher {
@@ -96,12 +79,13 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
     }
 
     @Override
-    protected String sportName() {
+    public String sportName() {
         return "baseball";
     }
 
-
-    // Manual test for only me, not part of the production service.
+    // -------------------------------------------------------------------------
+    // Manual test only. Not used by Spring.
+    // -------------------------------------------------------------------------
 
     public static void main(String[] args) throws Exception {
         // Empty strings trigger the null-guard in EventHubProducer.send()
