@@ -40,9 +40,19 @@ public class FootballPipelineRunner implements ApplicationRunner {
             while (true) {
                 try {
                     task.run();
-                    System.out.println("Published live " + sport + " matches to Event Hub");
+                    // NOTE: this only confirms the fetch cycle completed
+                    // without throwing - it does NOT guarantee a message
+                    // was actually published (e.g. basketball skips sending
+                    // when there are zero live games right now). That's
+                    // expected and fine, just don't read this line as proof
+                    // the Event Hub connection itself was exercised.
+                    System.out.println(sport + " cycle completed (may have skipped send if no live matches)");
                 } catch (Exception e) {
-                    System.err.println(sport + " fetch error: " + e.getMessage());
+                    // Deliberately log only the exception's class + message,
+                    // never any raw config value, to avoid leaking secrets
+                    // into logs if a future bug reintroduces a bad value here.
+                    System.err.println(sport + " fetch error: " + e.getClass().getSimpleName()
+                            + " - " + e.getMessage());
                 }
                 try {
                     Thread.sleep(POLL_MS);

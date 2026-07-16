@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.Spring.model.Match;
-import org.Spring.producer.EventHubProducer;
+import org.Spring.Producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;

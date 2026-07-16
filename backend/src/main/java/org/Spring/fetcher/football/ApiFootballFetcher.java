@@ -2,7 +2,7 @@ package org.Spring.fetcher.football;
 
 import org.Spring.adapter.football.ApiFootballAdapter;
 import org.Spring.model.Match;
-import org.Spring.producer.EventHubProducer;
+import org.Spring.Producer.EventHubProducer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +23,7 @@ public class ApiFootballFetcher {
     private final EventHubProducer producer;
 
     public ApiFootballFetcher(
-            @Value("${apisports.key}") String apiKey,
+            @Value("${APISPORTS_KEY}") String apiKey,
             EventHubProducer producer) {
         this.apiKey = apiKey;
         this.producer = producer;
