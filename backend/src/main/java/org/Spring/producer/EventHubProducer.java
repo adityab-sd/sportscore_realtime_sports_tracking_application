@@ -1,4 +1,4 @@
-package org.Spring.producer;
+package org.Spring.Producer;
 
 import java.util.List;
 
@@ -13,10 +13,34 @@ public class EventHubProducer {
     private final String eventHubName;
 
     public EventHubProducer(
-            @org.springframework.beans.factory.annotation.Value("${eventhub.connection-string}") String connectionString,
-            @org.springframework.beans.factory.annotation.Value("${eventhub.name}") String eventHubName) {
+            @org.springframework.beans.factory.annotation.Value("${EVENTHUB_CONNECTION_STRING}") String connectionString,
+            @org.springframework.beans.factory.annotation.Value("${EVENTHUB_NAME}") String eventHubName) {
+
+        // FAIL-SAFE VALIDATION: a real Azure Event Hub connection string always
+        // starts with "Endpoint=sb://" and contains "SharedAccessKey=".
+        // If either is missing, something upstream passed the wrong value
+        // (e.g. a raw API key instead of the full connection string) -
+        // catch that HERE, at startup, with a clear message, instead of
+        // letting it fail later with a cryptic Azure SDK error that also
+        // leaks part of the bad value into the logs.
+        if (connectionString != null && !connectionString.isBlank()) {
+            boolean looksValid = connectionString.startsWith("Endpoint=sb://")
+                    && connectionString.contains("SharedAccessKey=");
+            if (!looksValid) {
+                throw new IllegalStateException(
+                    "EVENTHUB_CONNECTION_STRING does not look like a valid Azure Event Hub " +
+                    "connection string (expected it to start with 'Endpoint=sb://' and contain " +
+                    "'SharedAccessKey='). Check that no other value (like an API key) was " +
+                    "accidentally assigned to this property, and that .env has the FULL " +
+                    "connection string copied from the Azure Portal, not just the key."
+                    // Note: intentionally NOT including the bad value here,
+                    // so we don't leak a partial secret into the console/logs.
+                );
+            }
+        }
+
         this.connectionString = connectionString;
-        this.eventHubName     = eventHubName;
+        this.eventHubName = eventHubName;
     }
 
     public void send(String json) {
