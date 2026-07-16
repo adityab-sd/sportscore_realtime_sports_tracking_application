@@ -1,7 +1,17 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ESPNNews } from "@/lib/api/espn";
+import { NewsArticle } from "./NewsCard";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NewsCarousel — auto-advancing hero carousel used on the home page.
+// Accepts a `sport` prop so it can link to the correct news route.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NewsCarouselProps {
+  articles: NewsArticle[];
+  sport?: "football" | "basketball";
+}
 
 function timeAgo(iso: string): string {
   if (!iso) return "";
@@ -25,7 +35,7 @@ function SlideImage({ src, alt }: { src: string | null; alt: string }) {
   );
 }
 
-export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
+export default function NewsCarousel({ articles, sport = "football" }: NewsCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
@@ -42,11 +52,13 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
 
   useEffect(() => {
     if (paused) return;
-    timerRef.current = setTimeout(next, 5000);
+    timerRef.current = setTimeout(next, 4000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [current, paused, next]);
 
   if (!articles.length) return null;
+
+  const newsBase = `/${sport}/news`;
 
   return (
     <div
@@ -60,7 +72,7 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
         return (
           <Link
             key={a.id}
-            href={`/football/news/${a.id}`}
+            href={`${newsBase}/${a.id}`}
             style={{
               position: "absolute", inset: 0, textDecoration: "none",
               opacity: isActive ? 1 : 0,
@@ -95,13 +107,14 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
         );
       })}
 
-      {/* Arrows — stopPropagation so clicking doesn't trigger the Link */}
+      {/* Prev arrow */}
       <button onClick={e => { e.preventDefault(); e.stopPropagation(); prev_(); }} aria-label="Previous story"
         style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
         onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
       >‹</button>
 
+      {/* Next arrow */}
       <button onClick={e => { e.preventDefault(); e.stopPropagation(); next(); }} aria-label="Next story"
         style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}

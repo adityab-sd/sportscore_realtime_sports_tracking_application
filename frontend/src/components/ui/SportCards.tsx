@@ -10,6 +10,18 @@ function FootballIcon() {
     </svg>
   );
 }
+
+function BasketballIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M4.93 4.93c4.08 2.64 6.43 7.11 6.43 12.15" />
+      <path d="M19.07 4.93c-4.08 2.64-6.43 7.11-6.43 12.15" />
+      <path d="M2 12h20" />
+    </svg>
+  );
+}
+
 function CricketIcon() {
   return (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -20,16 +32,7 @@ function CricketIcon() {
     </svg>
   );
 }
-function RugbyIcon() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="12" rx="4.5" ry="9" transform="rotate(-40 12 12)" />
-      <line x1="9.5" y1="9.5" x2="14.5" y2="14.5" />
-      <line x1="7.5" y1="11.5" x2="11.5" y2="7.5" />
-      <line x1="12.5" y1="16.5" x2="16.5" y2="12.5" />
-    </svg>
-  );
-}
+
 function F1Icon() {
   return (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -43,10 +46,10 @@ function F1Icon() {
 }
 
 const sports = [
-  { key: "football", label: "Football", href: "/football", Icon: FootballIcon, desc: "Live scores, standings & match stats", live: true },
-  { key: "cricket",  label: "Cricket",  href: "/cricket",  Icon: CricketIcon,  desc: "Scorecards, NRR & player profiles",   soon: true },
-  { key: "rugby",    label: "Rugby",    href: "/rugby",    Icon: RugbyIcon,    desc: "Fixtures, tables & match reports",    soon: true },
-  { key: "f1",       label: "Formula 1",href: "/f1",       Icon: F1Icon,       desc: "Lap times, standings & race results", soon: true },
+  { key: "football",   label: "Football",   href: "/football",   Icon: FootballIcon,   desc: "Live scores, standings & match stats",    live: true },
+  { key: "basketball", label: "Basketball", href: "/basketball", Icon: BasketballIcon, desc: "NBA & WNBA scores, standings & rosters", live: true },
+  { key: "cricket",    label: "Cricket",    href: "/cricket",    Icon: CricketIcon,    desc: "Scorecards, NRR & player profiles",      soon: true },
+  { key: "f1",         label: "Formula 1",  href: "/f1",         Icon: F1Icon,         desc: "Lap times, standings & race results",    soon: true },
 ];
 
 export default function SportCards() {

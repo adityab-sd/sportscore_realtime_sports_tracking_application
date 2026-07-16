@@ -1,10 +1,3 @@
-/**
- * Reference data — now served by OUR backend (Hema) as clean JSON.
- * The backend owns all ESPN parsing; this file just fetches and returns.
- * Every interface below is unchanged, so no component needs editing.
- *
- * Live matches still arrive via SignalR (see useSignalR / config.ts).
- */
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081/api/football";
@@ -20,10 +13,6 @@ async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T>
   }
 }
 
-// ─────────────────────────────────────────────
-// TYPES  (unchanged — components rely on these)
-// ─────────────────────────────────────────────
-
 export interface ESPNTeamRef {
   id: string;
   name: string;
@@ -33,14 +22,15 @@ export interface ESPNTeamRef {
 
 export interface ESPNMatch {
   id: string;
-  status: string;          // "FT" | "HT" | "67'" | "Scheduled" | date string
-  statusState: string;     // "pre" | "in" | "post"
+  status: string;         
+  statusState: string;     
   kickoff: string | null;
   competition: string;
   homeTeam: ESPNTeamRef;
   awayTeam: ESPNTeamRef;
   homeScore: number | null;
   awayScore: number | null;
+  round?: string | null;
 }
 
 export type ESPNFixture = ESPNMatch;
@@ -59,7 +49,8 @@ export interface ESPNStandingRow {
   goalsAgainst: number;
   goalDiff: number;
   points: number;
-  note: string | null; // "Champions League" | "Relegation" etc
+  note: string | null; 
+  group?: string | null; 
 }
 
 export interface ESPNNews {
@@ -104,6 +95,22 @@ export interface ESPNLeader {
   displayValue: string;
 }
 
+export interface ESPNLineupPlayer {
+  id: string;
+  name: string;
+  jersey: string | null;
+  position: string | null;
+  starter: boolean;
+  teamId: string;
+}
+
+export interface ESPNTeamLineup {
+  teamId: string;
+  formation: string | null;
+  starters: ESPNLineupPlayer[];
+  bench: ESPNLineupPlayer[];
+}
+
 export interface ESPNMatchDetail {
   id: string;
   status: string;
@@ -124,13 +131,9 @@ export interface ESPNMatchDetail {
     assist: string | null;
     teamId: string;
   }[];
+  lineups: ESPNTeamLineup[];
 }
 
-// ─────────────────────────────────────────────
-// FETCHERS  (same names + return types, no parsing)
-// ─────────────────────────────────────────────
-
-/** Live + scheduled + recent results for a league. */
 export const getScoreboard = (league: string) =>
   apiGet<ESPNMatch[]>(`/${league}/scoreboard`, [], 30);
 

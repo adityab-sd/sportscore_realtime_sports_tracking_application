@@ -10,6 +10,11 @@
 # Environment
 .env
 .env.local
+frontend/.env.local
+
+# secrets — never commit
+backend/src/main/resources/application.properties
+application.properties
 
 # Maven
 .mvn/
@@ -19,3 +24,9 @@ mvnw.cmd
 # Compiled files
 *.class
 *.log
+
+# Misc
+.DS_Store
+local.settings.json
+functions/local.settings.json
+functions/test-client.html

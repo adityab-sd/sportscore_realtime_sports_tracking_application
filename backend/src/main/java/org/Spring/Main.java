@@ -7,7 +7,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// NOTE from teammate: a second @SpringBootApplication exists
+// (org.Security.Securityrunner) - two entry points make startup ambiguous.
+// TODO: confirm with team which one to keep and delete the other.
 @SpringBootApplication
+@org.springframework.retry.annotation.EnableRetry
 public class Main {
 
     private static final List<String> REQUIRED_KEYS = List.of(

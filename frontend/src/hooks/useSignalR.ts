@@ -36,8 +36,6 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
     async function connect() {
       try {
         setState("connecting");
-
-        // 1. Mint a short-lived token server-side
         const res = await fetch("/api/signalr-token");
         if (!res.ok) {
           console.error("[SignalR] Token fetch failed:", res.status, await res.text());
@@ -56,10 +54,6 @@ console.log("[SignalR] token:", token?.slice(0, 80));
 
         const signalR = await import("@microsoft/signalr");
 
-        // Azure SignalR Service in serverless mode requires skipNegotiation + WebSockets.
-        // This matches the working test-client.html exactly. Without skipNegotiation,
-        // the client attempts a /negotiate POST which serverless SignalR rejects
-        // with "Invalid value of 'hub'".
         const connection = new signalR.HubConnectionBuilder()
           .withUrl(url, {
             accessTokenFactory: () => token,

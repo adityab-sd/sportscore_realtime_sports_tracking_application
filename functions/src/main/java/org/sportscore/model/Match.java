@@ -7,12 +7,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Unified, multi-sport match model — mirrors org.Spring.model.Match in the
+ * Unified, multi-sport match model - mirrors org.Spring.model.Match in the
  * backend. The Event Hub payload carries football, basketball and cricket
  * matches in this single shape; the SignalR broadcast forwards it as-is.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+// PLEASE review — assumption: `id` is a primitive int, so a payload missing "id" silently
+// deserializes to 0 (a valid-looking id) instead of failing. If ids can be absent or
+// non-numeric, use Integer/String. EXAMPLE: @JsonProperty("id") String id
 public record Match(
         @JsonProperty("id") int id,
         @JsonProperty("sport") String sport,
