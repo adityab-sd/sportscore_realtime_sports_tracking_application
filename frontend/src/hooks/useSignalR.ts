@@ -48,9 +48,7 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setState("error");
           return;
         }
-console.log("[SignalR] url:", url);
-console.log("[SignalR] token:", token?.slice(0, 80));
-        console.log("[SignalR] Connecting to:", url);
+
 
         const signalR = await import("@microsoft/signalr");
 
