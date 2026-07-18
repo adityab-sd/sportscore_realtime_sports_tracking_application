@@ -96,7 +96,7 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
     }
 
     @Override
-    protected String sportName() {
+    public String sportName() {
         return "baseball";
     }
 

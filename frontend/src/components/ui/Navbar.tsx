@@ -1,14 +1,33 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useSignalR } from "@/hooks/useSignalR";
 import { classifyStatus, LEAGUES as FOOTBALL_LEAGUES } from "@/types/football";
 import { LEAGUES as BASKETBALL_LEAGUES } from "@/types/basketball";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Radio, Bot, Menu, X, ChevronDown, Newspaper, Home } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useMotionValueEvent,
+} from "motion/react";
+import {
+  Radio,
+  Bot,
+  Menu,
+  X,
+  ChevronDown,
+  Newspaper,
+  Home,
+} from "lucide-react";
 import AssistantSidebar from "@/components/assistant/AssistantSidebar";
 import RadioBar from "@/components/radio/RadioBar";
+
+/* ================================================================== */
+/* CONFIG                                                             */
+/* ================================================================== */
 
 interface DropdownConfig {
   newsHref: string;
@@ -22,7 +41,7 @@ const DROPDOWN_CONFIGS: Record<string, DropdownConfig> = {
     newsHref: "/football/news",
     newsLabel: "Football News",
     sportPath: "/football",
-    leagues: FOOTBALL_LEAGUES.filter(l => l.slug !== "fifa.friendly"),
+    leagues: FOOTBALL_LEAGUES.filter((l) => l.slug !== "fifa.friendly"),
   },
   basketball: {
     newsHref: "/basketball/news",
@@ -32,349 +51,557 @@ const DROPDOWN_CONFIGS: Record<string, DropdownConfig> = {
   },
 };
 
-const sports = [
-  { key: "football",   label: "Football",   href: "/football",   hasDropdown: true,  emoji: "⚽" },
-  { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: true,  emoji: "🏀" },
-  { key: "cricket",    label: "Cricket",    href: "/cricket",    hasDropdown: false, emoji: "🏏" },
-  { key: "f1",         label: "Formula 1",  href: "/f1",         hasDropdown: false, emoji: "🏎" },
+const SPORTS = [
+  { key: "football", label: "Football", href: "/football", hasDropdown: true, emoji: "⚽" },
+  { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: true, emoji: "🏀" },
+  { key: "cricket", label: "Cricket", href: "/cricket", hasDropdown: false, emoji: "🏏" },
+  { key: "f1", label: "Formula 1", href: "/f1", hasDropdown: false, emoji: "🏎" },
 ];
+
+/* ================================================================== */
+/* SMALL COMPONENTS                                                   */
+/* ================================================================== */
 
 function LeagueLogo({ src, name, dark = false }: { src: string; name: string; dark?: boolean }) {
   const [failed, setFailed] = useState(false);
   if (failed || !src) {
     return (
-      <div style={{ width: 22, height: 22, borderRadius: 4, flexShrink: 0, background: dark ? "var(--cloud)" : "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: dark ? "var(--text-muted)" : "rgba(255,255,255,0.5)" }}>
+      <div
+        className={cn(
+          "flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded text-[9px] font-bold",
+          dark ? "bg-gray-100 text-gray-400" : "bg-white/10 text-white/50"
+        )}
+      >
         {name.slice(0, 1)}
       </div>
     );
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={name} width={22} height={22} onError={() => setFailed(true)}
-      style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
+    <img
+      src={src}
+      alt={name}
+      width={22}
+      height={22}
+      onError={() => setFailed(true)}
+      className="h-[22px] w-[22px] shrink-0 object-contain"
+    />
   );
 }
 
-export default function Navbar() {
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [radioOpen,     setRadioOpen]     = useState(false);
-  const [menuOpen,      setMenuOpen]      = useState(false);
-  const [openDropdown,  setOpenDropdown]  = useState<string | null>(null);
-  const [activePanel,   setActivePanel]   = useState<string>("football");
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+function LiveDot() {
+  return <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-red-500 animate-pulse" />;
+}
 
-  const { matches } = useSignalR();
-  const liveCount   = matches.filter(m => classifyStatus(m.status) === "live").length;
-  const pathname    = usePathname();
-  const activeSport = sports.find(s => pathname.startsWith(s.href))?.key ?? null;
+/* ================================================================== */
+/* DESKTOP DROPDOWN                                                   */
+/* ================================================================== */
 
-  const handleMouseEnter = (key: string) => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpenDropdown(key);
-  };
-  const handleMouseLeave = () => {
-    closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
-  };
+function DesktopDropdown({
+  config,
+  onClose,
+  pathname,
+}: {
+  config: DropdownConfig;
+  onClose: () => void;
+  pathname: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -4, scale: 0.97 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="absolute left-0 top-[calc(100%+8px)] z-50 w-max min-w-[200px] max-w-[360px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:border-neutral-700 dark:bg-neutral-900"
+    >
+      <Link
+        href={config.newsHref}
+        onClick={onClose}
+        className="flex items-center gap-2.5 border-b border-gray-100 bg-gray-50 px-4 py-3 text-[13px] font-semibold text-gray-800 transition-colors hover:bg-gray-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200"
+      >
+        <Newspaper size={14} className="shrink-0 text-blue-600" />
+        {config.newsLabel}
+      </Link>
+      <div className="py-1.5">
+        <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+          Leagues
+        </div>
+        {config.leagues.map((l) => {
+          const leaguePath = `${config.sportPath}/league/${l.slug}`;
+          const isActive = pathname === leaguePath;
+          return (
+            <Link
+              key={l.slug}
+              href={leaguePath}
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition-colors",
+                isActive
+                  ? "border-l-[3px] border-blue-600 bg-blue-50 font-bold text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+                  : "border-l-[3px] border-transparent font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-neutral-800"
+              )}
+            >
+              <LeagueLogo src={l.logo} name={l.name} dark />
+              <span className="flex-1 truncate whitespace-nowrap">{l.name}</span>
+              {isActive && <LiveDot />}
+            </Link>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
 
-  const closeMenu = () => setMenuOpen(false);
+/* ================================================================== */
+/* MOBILE MENU                                                        */
+/* ================================================================== */
 
+function MobileMenu({
+  isOpen,
+  onClose,
+  liveCount,
+  onRadio,
+  onAssistant,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  liveCount: number;
+  onRadio: () => void;
+  onAssistant: () => void;
+}) {
+  const [activePanel, setActivePanel] = useState("football");
+  const pathname = usePathname();
   const panelConfig = DROPDOWN_CONFIGS[activePanel];
-  const panelSport  = sports.find(s => s.key === activePanel);
+  const panelSport = SPORTS.find((s) => s.key === activePanel);
 
   return (
-    <>
-      {/* Animations */}
-      <style>{`
-        @keyframes menuSlideIn {
-          from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes panelFade {
-          from { opacity: 0; transform: translateX(10px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes overlayFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes menuSheetIn {
-          from { opacity: 0; transform: translateY(-12px) scale(0.98); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .sport-tab { transition: background 150ms, color 150ms, border-color 150ms; }
-        .sport-tab:hover { background: rgba(0,0,0,0.06) !important; }
-        .league-row { transition: background 120ms, border-color 120ms; }
-        .league-row:hover { background: rgba(0,0,0,0.04) !important; }
-        .quick-link { transition: background 120ms; }
-        .quick-link:hover { background: rgba(0,0,0,0.06) !important; }
-      `}</style>
-
-      <header style={{ background: "var(--navy)", position: "sticky", top: 0, zIndex: 40, boxShadow: "0 1px 0 rgba(255,255,255,0.08)" }}>
-        <div style={{ maxWidth: "var(--container)", margin: "0 auto", padding: "0 var(--gap)", height: 60, display: "flex", alignItems: "center", gap: 8 }}>
-
-          <Link href="/" style={{ fontWeight: 800, fontSize: 20, color: "#fff", textDecoration: "none", letterSpacing: "-0.5px", flexShrink: 0, marginRight: 8 }}>
-            Sport<span style={{ color: "var(--color-accent)", fontWeight: 800 }}>Score</span>
-          </Link>
-
-          {/* Desktop nav */}
-          <nav style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }} className="desktop-only">
-            {sports.map(({ key, label, href, hasDropdown }) => {
-              const active = activeSport === key;
-              const isOpen = openDropdown === key;
-              const config = DROPDOWN_CONFIGS[key];
-
-              if (!hasDropdown || !config) {
-                return (
-                  <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 8, fontWeight: 500, fontSize: 14, textDecoration: "none", color: active ? "#fff" : "rgba(255,255,255,0.65)", background: active ? "rgba(255,255,255,0.14)" : "transparent", transition: "background 120ms, color 120ms" }}>
-                    {label}
-                  </Link>
-                );
-              }
-
-              return (
-                <div key={key} style={{ position: "relative" }}
-                  onMouseEnter={() => handleMouseEnter(key)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <Link href={href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 8, fontWeight: 500, fontSize: 14, textDecoration: "none", color: active ? "#fff" : "rgba(255,255,255,0.65)", background: (active || isOpen) ? "rgba(255,255,255,0.14)" : "transparent", transition: "background 120ms, color 120ms" }}>
-                    {label}
-                    {key === "football" && liveCount > 0 && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />}
-                    <ChevronDown size={12} style={{ opacity: 0.7, transition: "transform 150ms", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                  </Link>
-                  {isOpen && (
-                    <div onMouseEnter={() => handleMouseEnter(key)} onMouseLeave={handleMouseLeave}
-                      style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, minWidth: 240, boxShadow: "0 8px 32px rgba(0,0,0,0.14)", overflow: "hidden", zIndex: 50, animation: "fadeSlideUp 0.15s ease both" }}>
-                      <Link href={config.newsHref} onClick={() => setOpenDropdown(null)}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", textDecoration: "none", color: "var(--obsidian)", fontWeight: 600, fontSize: 13, borderBottom: "1px solid var(--border)", background: "var(--cloud)", transition: "background 100ms" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "var(--cloud-hover)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "var(--cloud)")}
-                      >
-                        <Newspaper size={14} style={{ color: "var(--navy)", flexShrink: 0 }} />
-                        {config.newsLabel}
-                      </Link>
-                      <div style={{ padding: "6px 0" }}>
-                        <div style={{ padding: "4px 16px 6px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px" }}>Leagues</div>
-                        {config.leagues.map(l => {
-                          const leaguePath = `${config.sportPath}/league/${l.slug}`;
-                          const isActive   = pathname === leaguePath;
-                          return (
-                            <Link key={l.slug} href={leaguePath} onClick={() => setOpenDropdown(null)}
-                              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", textDecoration: "none", color: isActive ? "var(--navy)" : "var(--obsidian)", fontWeight: isActive ? 700 : 500, fontSize: 13, background: isActive ? "var(--navy-light)" : "transparent", transition: "background 100ms" }}
-                              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--cloud)"; }}
-                              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-                            >
-                              <LeagueLogo src={l.logo} name={l.name} dark />
-                              <span style={{ flex: 1 }}>{l.name}</span>
-                              {isActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--navy)", flexShrink: 0 }} />}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-
-          <div style={{ flex: 1 }} className="mobile-only" />
-
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            {liveCount > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: 600, paddingRight: 4 }} className="desktop-only">
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />
-                {liveCount} Live
-              </div>
-            )}
-            <button onClick={() => setRadioOpen(!radioOpen)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${radioOpen ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.2)"}`, background: radioOpen ? "rgba(255,255,255,0.14)" : "transparent", color: "rgba(255,255,255,0.85)", fontWeight: 500, fontSize: 13, cursor: "pointer", transition: "all 120ms" }}>
-              <Radio size={15} /><span className="desktop-inline">Radio</span>
-            </button>
-            <button onClick={() => setAssistantOpen(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: "none", background: "var(--color-accent)", color: "var(--navy)", fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "opacity 120ms" }}>
-              <Bot size={15} /><span className="desktop-inline">Assistant</span>
-            </button>
-            <button onClick={() => { setMenuOpen(!menuOpen); }}
-              style={{ padding: "6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.85)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              className="mobile-only">
-              {menuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Mobile full-screen menu ─────────────────────────────────────────── */}
-      {menuOpen && (
-        <div className="mobile-only" style={{
-          position: "fixed", inset: 0, zIndex: 50,
-          display: "flex", flexDirection: "column",
-          background: "#fff",
-          animation: "menuSheetIn 0.22s cubic-bezier(0.16,1,0.3,1) both",
-        }}>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -12, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -12, scale: 0.98 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-0 z-50 flex flex-col bg-white lg:hidden dark:bg-neutral-950"
+        >
           {/* Top bar */}
-          <div style={{ height: 56, background: "var(--navy)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", flexShrink: 0, boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>
-            <span style={{ fontWeight: 800, fontSize: 18, color: "#fff", letterSpacing: "-0.5px" }}>
-              Sport<span style={{ color: "var(--color-accent)" }}>Score</span>
+          <div className="flex h-14 shrink-0 items-center justify-between bg-[var(--navy)] px-4 shadow-md">
+            <span className="text-lg font-extrabold tracking-tight text-white">
+              Sport<span className="text-[var(--color-accent)]">Score</span>
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="flex items-center gap-2.5">
               {liveCount > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "#ff9b9b" }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff4d4d" }} className="live-dot" />
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-red-300">
+                  <LiveDot />
                   {liveCount} live
                 </div>
               )}
-              <button onClick={closeMenu}
-                style={{ padding: "6px", background: "rgba(255,255,255,0.12)", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 120ms" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
+              <button
+                onClick={onClose}
+                className="flex items-center justify-center rounded-lg bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
               >
+                {/* PLEASE review — icon-only close button needs an accessible name. EXAMPLE: <button type="button" aria-label="Close navigation menu" onClick={onClose}>...</button>. */}
                 <X size={18} />
               </button>
             </div>
           </div>
 
           {/* Two-column body */}
-          <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-
-            {/* Left sidebar — white with subtle border */}
-            <div style={{ width: 90, background: "#f8f9fa", borderRight: "1px solid #e5e7eb", overflowY: "auto", flexShrink: 0 }}>
-
-              {/* Home tab */}
-              <Link href="/" onClick={closeMenu}
-                className="sport-tab"
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, padding: "16px 8px", textDecoration: "none", borderBottom: "1px solid #e5e7eb", color: "#6b7280", background: "transparent" }}>
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left sidebar */}
+            <div className="w-[90px] shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50">
+              <Link
+                href="/"
+                onClick={onClose}
+                className="flex flex-col items-center justify-center gap-1.5 border-b border-gray-200 p-4 text-gray-500 transition-colors hover:bg-gray-100"
+              >
                 <Home size={20} strokeWidth={1.8} />
-                <span style={{ fontSize: 10, fontWeight: 600, textAlign: "center" }}>Home</span>
+                <span className="text-[10px] font-semibold">Home</span>
               </Link>
-
-              {/* Sport tabs */}
-              {sports.map(({ key, label, emoji }) => {
+              {SPORTS.map(({ key, label, emoji }) => {
                 const isSelected = activePanel === key;
                 return (
-                  <button key={key}
+                  <button
+                    key={key}
                     onClick={() => setActivePanel(key)}
-                    className="sport-tab"
-                    style={{
-                      width: "100%", display: "flex", flexDirection: "column", alignItems: "center",
-                      justifyContent: "center", gap: 5, padding: "16px 8px",
-                      background: isSelected ? "#fff" : "transparent",
-                      border: "none",
-                      borderLeft: isSelected ? "3px solid var(--navy)" : "3px solid transparent",
-                      borderBottom: "1px solid #e5e7eb",
-                      cursor: "pointer",
-                      color: isSelected ? "var(--navy)" : "#6b7280",
-                      fontFamily: "inherit",
-                    }}>
-                    <span style={{ fontSize: 22, filter: isSelected ? "none" : "grayscale(0.3)" }}>{emoji}</span>
-                    <span style={{ fontSize: 10, fontWeight: isSelected ? 700 : 500, textAlign: "center", lineHeight: 1.2 }}>{label}</span>
+                    className={cn(
+                      "flex w-full flex-col items-center justify-center gap-1.5 border-b border-gray-200 p-4 font-inherit transition-colors",
+                      isSelected
+                        ? "border-l-[3px] border-l-[var(--navy)] bg-white font-bold text-[var(--navy)]"
+                        : "border-l-[3px] border-l-transparent bg-transparent text-gray-500 hover:bg-gray-100"
+                    )}
+                  >
+                    <span className={cn("text-[22px]", !isSelected && "grayscale-[0.3]")}>{emoji}</span>
+                    <span className="text-center text-[10px] leading-tight">{label}</span>
                   </button>
                 );
               })}
             </div>
 
             {/* Right panel */}
-            <div key={activePanel} style={{ flex: 1, overflowY: "auto", background: "#fff", animation: "panelFade 0.18s ease both" }}>
+            <motion.div
+              key={activePanel}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 overflow-y-auto bg-white"
+            >
               {panelSport && (
                 <>
-                  {/* Panel header */}
-                  <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #e5e7eb" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 10 }}>
+                  <div className="border-b border-gray-200 p-4">
+                    <div className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                       {panelSport.label}
                     </div>
-
-                    <Link href="/" onClick={closeMenu}
-                      className="quick-link"
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6, borderRadius: 8, textDecoration: "none", color: "var(--obsidian)", fontSize: 14, fontWeight: 500, background: "#f3f4f6" }}>
-                      <Home size={16} style={{ flexShrink: 0, color: "#6b7280" }} />
+                    <Link
+                      href="/"
+                      onClick={onClose}
+                      className="mb-1.5 flex items-center gap-2.5 rounded-lg bg-gray-100 px-3 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200"
+                    >
+                      <Home size={16} className="shrink-0 text-gray-500" />
                       Home
                     </Link>
-
-                    <Link href={panelSport.href} onClick={closeMenu}
-                      className="quick-link"
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6, borderRadius: 8, textDecoration: "none", color: "var(--obsidian)", fontSize: 14, fontWeight: 500, background: "#f3f4f6" }}>
-                      <span style={{ fontSize: 16 }}>{panelSport.emoji}</span>
+                    <Link
+                      href={panelSport.href}
+                      onClick={onClose}
+                      className="mb-1.5 flex items-center gap-2.5 rounded-lg bg-gray-100 px-3 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200"
+                    >
+                      <span className="text-base">{panelSport.emoji}</span>
                       {panelSport.label} Home
                     </Link>
-
                     {panelConfig && (
-                      <Link href={panelConfig.newsHref} onClick={closeMenu}
-                        className="quick-link"
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, textDecoration: "none", color: "var(--obsidian)", fontSize: 14, fontWeight: 500, background: "#f3f4f6" }}>
-                        <Newspaper size={16} style={{ flexShrink: 0, color: "#6b7280" }} />
+                      <Link
+                        href={panelConfig.newsHref}
+                        onClick={onClose}
+                        className="flex items-center gap-2.5 rounded-lg bg-gray-100 px-3 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200"
+                      >
+                        <Newspaper size={16} className="shrink-0 text-gray-500" />
                         {panelConfig.newsLabel}
                       </Link>
                     )}
                   </div>
 
-                  {/* Leagues */}
-                  {panelConfig && (
-                    <div style={{ padding: "8px 0" }}>
-                      <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+                  {panelConfig ? (
+                    <div className="py-2">
+                      <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                         Leagues
                       </div>
-                      {panelConfig.leagues.map(l => {
+                      {panelConfig.leagues.map((l) => {
                         const leaguePath = `${panelConfig.sportPath}/league/${l.slug}`;
-                        const isActive   = pathname === leaguePath;
+                        const isActive = pathname === leaguePath;
                         return (
-                          <Link key={l.slug} href={leaguePath} onClick={closeMenu}
-                            className="league-row"
-                            style={{
-                              display: "flex", alignItems: "center", gap: 12,
-                              padding: "11px 16px", textDecoration: "none",
-                              color: isActive ? "var(--navy)" : "var(--obsidian)",
-                              fontWeight: isActive ? 700 : 400, fontSize: 14,
-                              background: isActive ? "var(--navy-light)" : "transparent",
-                              borderLeft: isActive ? "3px solid var(--navy)" : "3px solid transparent",
-                            }}>
-                            <LeagueLogo src={l.logo} name={l.name} dark />
-                            <span style={{ flex: 1 }}>{l.name}</span>
-                            {isActive && (
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--navy)", flexShrink: 0 }} />
+                          <Link
+                            key={l.slug}
+                            href={leaguePath}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                              isActive
+                                ? "border-l-[3px] border-l-[var(--navy)] bg-blue-50 font-bold text-[var(--navy)]"
+                                : "border-l-[3px] border-l-transparent font-normal text-gray-800 hover:bg-gray-50"
                             )}
+                          >
+                            <LeagueLogo src={l.logo} name={l.name} dark />
+                            <span className="flex-1">{l.name}</span>
+                            {isActive && <LiveDot />}
                           </Link>
                         );
                       })}
                     </div>
-                  )}
-
-                  {/* Coming soon */}
-                  {!panelConfig && (
-                    <div style={{ padding: "48px 20px", textAlign: "center" }}>
-                      <div style={{ fontSize: 40, marginBottom: 14 }}>{panelSport.emoji}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: "var(--obsidian)", marginBottom: 8 }}>{panelSport.label}</div>
-                      <div style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.6, marginBottom: 24 }}>
+                  ) : (
+                    <div className="px-5 py-12 text-center">
+                      <div className="mb-3.5 text-[40px]">{panelSport.emoji}</div>
+                      <div className="mb-2 text-base font-bold text-gray-800">{panelSport.label}</div>
+                      <div className="mb-6 text-[13px] leading-relaxed text-gray-400">
                         Coming soon — live coverage is on the way.
                       </div>
-                      <Link href={panelSport.href} onClick={closeMenu}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 22px", background: "var(--navy)", borderRadius: 8, textDecoration: "none", color: "#fff", fontSize: 13, fontWeight: 600 }}>
+                      <Link
+                        href={panelSport.href}
+                        onClick={onClose}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[var(--navy)] px-5 py-2.5 text-[13px] font-semibold text-white"
+                      >
                         Go to {panelSport.label}
                       </Link>
                     </div>
                   )}
                 </>
               )}
-            </div>
+            </motion.div>
           </div>
 
           {/* Bottom bar */}
-          <div style={{ padding: "12px 16px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 10, flexShrink: 0, background: "#fff" }}>
-            <button onClick={() => { setRadioOpen(true); closeMenu(); }}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "var(--obsidian)", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "background 120ms", fontFamily: "inherit" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
-              onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
+          <div className="flex shrink-0 gap-2.5 border-t border-gray-200 bg-white p-3">
+            <button
+              onClick={() => { onRadio(); onClose(); }}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 text-[13px] font-semibold text-gray-800 transition-colors hover:bg-gray-50"
             >
               <Radio size={15} /> Radio
             </button>
-            <button onClick={() => { setAssistantOpen(true); closeMenu(); }}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px", borderRadius: 10, border: "none", background: "var(--color-accent)", color: "var(--navy)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "opacity 120ms" }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
-              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+            <button
+              onClick={() => { onAssistant(); onClose(); }}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] py-3 text-[13px] font-bold text-[var(--navy)] transition-opacity hover:opacity-90"
             >
               <Bot size={15} /> Assistant
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+    </AnimatePresence>
+  );
+}
+
+/* ================================================================== */
+/* MAIN NAVBAR                                                        */
+/* ================================================================== */
+
+export default function Navbar() {
+  // ============================================================================
+  // PLEASE review — split the navbar god-component
+  // ----------------------------------------------------------------------------
+  // Navbar owns live data, scroll animation, desktop dropdowns, mobile mega-menu,
+  // assistant state, and radio state in one file. That makes keyboard fixes and
+  // route changes risky because unrelated concerns re-render together.
+  //
+  // EXAMPLE:
+  //   <NavbarShell><DesktopNav config={SPORTS_NAV} /><MobileNav config={SPORTS_NAV} /></NavbarShell>
+  //   <AssistantSidebar open={assistantOpen} onClose={closeAssistant} />
+  // ============================================================================
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [radioOpen, setRadioOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { matches } = useSignalR();
+  const liveCount = matches.filter((m) => classifyStatus(m.status) === "live").length;
+  const pathname = usePathname();
+  const activeSport = SPORTS.find((s) => pathname.startsWith(s.href))?.key ?? null;
+
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 60));
+
+  const handleMouseEnter = useCallback((key: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenDropdown(key);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
+  }, []);
+
+  // ============================================================================
+  // PLEASE review — clear pending dropdown timer on unmount
+  // ----------------------------------------------------------------------------
+  // closeTimer can fire after the navbar unmounts during route transitions,
+  // calling setOpenDropdown on an unmounted component. Add a cleanup effect for
+  // the pending timeout.
+  //
+  // EXAMPLE:
+  //   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+  // ============================================================================
+  // ============================================================================
+  // PLEASE review — make desktop dropdowns keyboard operable
+  // ----------------------------------------------------------------------------
+  // League dropdowns open from onMouseEnter/onMouseLeave only. Keyboard and touch
+  // users do not get aria-expanded state, Enter/Space toggling, or Escape close
+  // behavior, so the league links can be unreachable.
+  //
+  // EXAMPLE:
+  //   <button aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle} onKeyDown={handleMenuKeyDown}>Football</button>
+  // ============================================================================
+  return (
+    <>
+      {/* ── Outer wrapper: FIXED ensures it stays perfectly anchored to viewport top ── */}
+      <div className="fixed inset-x-0 top-0 z-40 w-full transition-all">
+        {/* ── Desktop bar ── */}
+        <motion.div
+          animate={{
+            backdropFilter: scrolled ? "blur(12px)" : "none",
+            boxShadow: scrolled
+              ? "0 0 24px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.06) inset"
+              : "none",
+            width: scrolled ? "min(860px, 92%)" : "100%",
+            borderRadius: scrolled ? 9999 : 0,
+            y: scrolled ? 12 : 0,
+          }}
+          transition={{ type: "spring", stiffness: 220, damping: 50 }}
+          className={cn(
+            "relative z-[60] mx-auto hidden h-[56px] items-center justify-between px-5 lg:flex",
+            scrolled
+              ? "bg-[var(--navy)]/85 dark:bg-neutral-950/85"
+              : "bg-[var(--navy)] dark:bg-neutral-950"
+          )}
+          style={{
+            // Fallback — Tailwind opacity syntax on CSS vars can be flakey
+            background: scrolled ? "rgba(10, 15, 36, 0.88)" : "var(--navy)",
+          }}
+        >
+          {/* Logo */}
+          <Link href="/" className="relative z-20 mr-6 shrink-0 text-xl font-extrabold tracking-tight text-white no-underline">
+            Sport<span className="text-[var(--color-accent)]">Score</span>
+          </Link>
+
+          {/* Nav items — centered with hover highlight */}
+          <nav
+            className="flex flex-1 items-center justify-center gap-0.5"
+            onMouseLeave={() => setHovered(null)}
+          >
+            {SPORTS.map((sport, idx) => {
+              const active = activeSport === sport.key;
+              const isOpen = openDropdown === sport.key;
+              const config = DROPDOWN_CONFIGS[sport.key];
+
+              const link = (
+                <Link
+                  href={sport.href}
+                  onMouseEnter={() => {
+                    setHovered(idx);
+                    if (sport.hasDropdown && config) handleMouseEnter(sport.key);
+                  }}
+                  className={cn(
+                    "relative z-20 flex items-center gap-1.5 rounded-full px-4 py-2 text-[14px] font-medium transition-colors",
+                    active ? "text-white" : "text-white/65 hover:text-white"
+                  )}
+                >
+                  {hovered === idx && (
+                    <motion.div
+                      layoutId="nav-hover"
+                      className="absolute inset-0 rounded-full bg-white/[0.12]"
+                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                    />
+                  )}
+                  <span className="relative z-10">{sport.label}</span>
+                  {sport.key === "football" && liveCount > 0 && <LiveDot />}
+                  {sport.hasDropdown && config && (
+                    <ChevronDown
+                      size={12}
+                      className={cn(
+                        "relative z-10 opacity-60 transition-transform",
+                        isOpen && "rotate-180"
+                      )}
+                    />
+                  )}
+                </Link>
+              );
+
+              if (!sport.hasDropdown || !config) {
+                return <div key={sport.key}>{link}</div>;
+              }
+
+              return (
+                <div
+                  key={sport.key}
+                  className="relative"
+                  onMouseEnter={() => handleMouseEnter(sport.key)}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {link}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <DesktopDropdown
+                        config={config}
+                        onClose={() => setOpenDropdown(null)}
+                        pathname={pathname}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Right actions */}
+          <div className="relative z-20 flex shrink-0 items-center gap-2">
+            {liveCount > 0 && (
+              <div className="flex items-center gap-1.5 pr-1 text-xs font-semibold text-white/90">
+                <LiveDot />
+                {liveCount} Live
+              </div>
+            )}
+            <button
+              onClick={() => setRadioOpen(!radioOpen)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium text-white/85 transition-all",
+                radioOpen
+                  ? "border border-white/40 bg-white/15"
+                  : "border border-white/20 bg-transparent hover:bg-white/10"
+              )}
+            >
+              <Radio size={14} />
+              Radio
+            </button>
+            <button
+              onClick={() => setAssistantOpen(true)}
+              className="flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-[13px] font-bold text-[var(--navy)] transition-opacity hover:opacity-90"
+            >
+              <Bot size={14} />
+              Assistant
+            </button>
+          </div>
+        </motion.div>
+
+        {/* ── Mobile bar ── */}
+        <motion.div
+          animate={{
+            backdropFilter: scrolled ? "blur(12px)" : "none",
+            boxShadow: scrolled
+              ? "0 0 24px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.06) inset"
+              : "none",
+            width: scrolled ? "92%" : "100%",
+            borderRadius: scrolled ? 16 : 0,
+            y: scrolled ? 8 : 0,
+            paddingLeft: scrolled ? 16 : 0,
+            paddingRight: scrolled ? 16 : 0,
+          }}
+          transition={{ type: "spring", stiffness: 220, damping: 50 }}
+          className="relative z-[60] mx-auto flex h-[56px] items-center justify-between px-4 lg:hidden"
+          style={{ background: scrolled ? "rgba(10, 15, 36, 0.88)" : "var(--navy)" }}
+        >
+          <Link href="/" className="text-lg font-extrabold tracking-tight text-white no-underline">
+            Sport<span className="text-[var(--color-accent)]">Score</span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {liveCount > 0 && (
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-white/90">
+                <LiveDot />
+                {liveCount}
+              </div>
+            )}
+            <button
+              onClick={() => setRadioOpen(!radioOpen)}
+              className="flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-1.5 text-white/85"
+            >
+              {/* PLEASE review — mobile icon-only action needs an accessible name. EXAMPLE: <button type="button" aria-label="Open radio mode" onClick={toggleRadio}>...</button>. */}
+              <Radio size={16} />
+            </button>
+            <button
+              onClick={() => setAssistantOpen(true)}
+              className="flex items-center justify-center rounded-lg bg-[var(--color-accent)] p-1.5 text-[var(--navy)]"
+            >
+              {/* PLEASE review — mobile icon-only action needs an accessible name. EXAMPLE: <button type="button" aria-label="Open knowledge assistant" onClick={openAssistant}>...</button>. */}
+              <Bot size={16} />
+            </button>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-1.5 text-white/85"
+            >
+              {/* PLEASE review — mobile menu button needs an accessible name/state. EXAMPLE: <button type="button" aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={menuOpen}>...</button>. */}
+              {menuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── Mobile mega-menu ── */}
+      <MobileMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        liveCount={liveCount}
+        onRadio={() => setRadioOpen(true)}
+        onAssistant={() => setAssistantOpen(true)}
+      />
 
       <AssistantSidebar open={assistantOpen} onClose={() => setAssistantOpen(false)} />
       <RadioBar open={radioOpen} onClose={() => setRadioOpen(false)} />

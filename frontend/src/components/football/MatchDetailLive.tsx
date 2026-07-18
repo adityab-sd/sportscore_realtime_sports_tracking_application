@@ -5,6 +5,16 @@ import EventFeed from "./EventFeed";
 
 export default function MatchDetailLive({ id }: { id: number }) {
   const { matches, state, lastUpdate } = useSignalR();
+  // ============================================================================
+  // PLEASE review — missing live-empty UI
+  // ----------------------------------------------------------------------------
+  // Returning null when SignalR has no match removes the Live Updates card
+  // entirely, so users cannot tell whether the detail feed is loading, offline,
+  // or simply has no events yet. Render an explicit state instead.
+  //
+  // EXAMPLE:
+  //   if (!match) return <LiveUpdatesEmpty state={state} />;
+  // ============================================================================
   const match = matches.find(m => m.id === id);
   if (!match) return null;
 

@@ -3,6 +3,16 @@ import Link from "next/link";
 import { ESPNFixture } from "@/lib/api/espn";
 import TeamLogo from "./TeamLogo";
 
+// ============================================================================
+// PLEASE review — guarded Date parsing
+// ----------------------------------------------------------------------------
+// ESPN kickoff strings are external input; new Date("bad-value") produces an
+// Invalid Date whose getters return NaN, rendering labels like "NaN:NaN".
+// Check validity before formatting in both time and date-only helpers.
+//
+// EXAMPLE:
+//   const d = kickoff ? new Date(kickoff) : null; if (!d || Number.isNaN(d.getTime())) return "TBD";
+// ============================================================================
 function fmt(kickoff: string | null): string {
   if (!kickoff) return "";
   const d = new Date(kickoff);
@@ -27,6 +37,16 @@ function dateOnly(kickoff: string | null): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== today.getFullYear() ? "numeric" : undefined });
 }
 
+// ============================================================================
+// PLEASE review — league slug fallback
+// ----------------------------------------------------------------------------
+// Detail links silently default unknown fixture leagues to eng.1, so a World Cup
+// or Champions League fixture without _slug routes to the wrong league context.
+// Resolve the slug from fixture.competition or omit the query instead.
+//
+// EXAMPLE:
+//   const href = leagueSlug ? `/football/${fixture.id}?league=${leagueSlug}` : `/football/${fixture.id}`;
+// ============================================================================
 export default function FixtureCard({ fixture, leagueSlug }: { fixture: ESPNFixture; leagueSlug?: string }) {
   const isPost = fixture.statusState === "post";
   const isPre  = fixture.statusState === "pre";

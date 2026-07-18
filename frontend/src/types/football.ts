@@ -7,6 +7,15 @@ export interface Team {
   logo: string | null;
 }
 
+// ============================================================================
+// PLEASE review — Event type union is defeated by string
+// ----------------------------------------------------------------------------
+// Adding `| string` makes every value valid, so UI exhaustiveness checks cannot
+// catch unsupported event icons or labels. Use an explicit unknown bucket instead.
+//
+// EXAMPLE:
+//   export type MatchEventType = "goal" | "card" | "subst" | "unknown";
+// ============================================================================
 export type MatchEventType = "goal" | "card" | "subst" | string;
 
 export interface MatchEvent {
