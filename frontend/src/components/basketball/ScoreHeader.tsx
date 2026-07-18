@@ -9,6 +9,7 @@ function StatusLabel({ game, league }: { game: BBGame; league: string }) {
   if (state === "scheduled") {
     let label = game.status ?? "Scheduled";
     if (game.tipoff) {
+      // PLEASE review — invalid tipoff not guarded: toLocaleString on an invalid Date can render "Invalid Date" in the header. EXAMPLE: const t = Date.parse(game.tipoff); if (Number.isFinite(t)) label = new Date(t).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
       const d = new Date(game.tipoff);
       label = d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
     }
@@ -27,6 +28,7 @@ function StatusLabel({ game, league }: { game: BBGame; league: string }) {
 }
 
 export default function ScoreHeader({ game, league }: { game: BBGame; league: string }) {
+  // PLEASE review — nested team fields assumed present: game.homeTeam.id/name access will crash for partial game payloads. EXAMPLE: if (!game.homeTeam?.id || !game.awayTeam?.id) return null;
   const homeWin = game.homeScore != null && game.awayScore != null && game.homeScore > game.awayScore;
   const awayWin = game.homeScore != null && game.awayScore != null && game.awayScore > game.homeScore;
   return (

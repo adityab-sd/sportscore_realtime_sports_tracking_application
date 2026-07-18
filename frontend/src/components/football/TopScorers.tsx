@@ -11,6 +11,8 @@ export default function TopScorers({ leaders, leagueLabel }: { leaders: ESPNLead
         {leagueLabel && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{leagueLabel}</span>}
       </div>
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+        {/* PLEASE review — leaderboard row identity: using the slice index as key can remount rows when live leader ordering changes. EXAMPLE: {leaders.slice(0, 10).map(l => <div key={`${l.player}-${l.team}`} />)}. */}
+        {/* PLEASE review — sliced list border math: i < 9 leaves a bottom border on the final row when fewer than ten scorers exist. EXAMPLE: borderBottom: i < Math.min(leaders.length, 10) - 1 ? "1px solid var(--border)" : "none". */}
         {leaders.slice(0, 10).map((l, i) => (
           <div
             key={i}

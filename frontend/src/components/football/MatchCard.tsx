@@ -3,6 +3,16 @@ import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
 
+// ============================================================================
+// PLEASE review — guarded Date parsing
+// ----------------------------------------------------------------------------
+// Match kickoff comes from external feed data; an invalid date renders "Invalid
+// Date" or NaN-based UTC time in cards. Guard before formatting scheduled match
+// labels so bad payloads degrade to TBD.
+//
+// EXAMPLE:
+//   const d = match.kickoff ? new Date(match.kickoff) : null; if (!d || Number.isNaN(d.getTime())) return <span>TBD</span>;
+// ============================================================================
 /** Short date label: "Today", "Tomorrow", or "Mon, Jun 30". */
 function dateLabel(kickoff: string | null): string {
   if (!kickoff) return "";
@@ -94,6 +104,16 @@ export default function MatchCard({ match }: { match: Match }) {
   );
 }
 
+// ============================================================================
+// PLEASE review — duplicated league mapping
+// ----------------------------------------------------------------------------
+// This hard-coded reverse map must stay in sync with the league registry and a
+// Java backend map, which is brittle for live feeds adding competitions. Prefer
+// one shared resolver and avoid defaulting unknown leagues to Premier League.
+//
+// EXAMPLE:
+//   const slug = leagueByName(name)?.slug ?? "football";
+// ============================================================================
 // reverse-map a competition name to a league slug for detail links
 function slugFromCompetition(name: string): string {
   // Must stay in sync with LEAGUES map in CoreSportsFetcher.java.

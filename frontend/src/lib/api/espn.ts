@@ -1,8 +1,31 @@
 
+import type { BracketMatch } from "@/types/worldcup";
+
+// ============================================================================
+// PLEASE review — API base URL is duplicated and environment-specific
+// ----------------------------------------------------------------------------
+// The data layer hard-codes a localhost fallback and repeats URL assembly in
+// multiple sports modules, which can drift between environments. Centralize the
+// base URL and fail closed when it is not configured.
+//
+// EXAMPLE:
+//   const API_BASE = getRequiredPublicEndpoint("NEXT_PUBLIC_SPORTS_API_BASE");
+// ============================================================================
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081/api/football";
 
 /** Fetch from our backend. Returns fallback on any failure — never throws. */
+// ============================================================================
+// PLEASE review — Fetch responses are cast without runtime validation
+// ----------------------------------------------------------------------------
+// res.ok is checked, but fetch has no timeout and res.json() is trusted as T.
+// A backend or ESPN shape change can silently poison UI props with invalid data.
+// Validate the payload before returning it and abort slow requests.
+//
+// EXAMPLE:
+//   const parsed = ScoreboardSchema.safeParse(await res.json());
+//   return parsed.success ? parsed.data : fallback;
+// ============================================================================
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
@@ -162,3 +185,16 @@ export const getLeaders = (league: string) =>
 
 export const getMatchDetail = (league: string, eventId: string) =>
   apiGet<ESPNMatchDetail | null>(`/${league}/match/${eventId}`, null, 30);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// World Cup bracket — same apiGet pattern as everything above: this calls
+// OUR backend (${API_BASE}/worldcup/bracket), not ESPN directly. The backend
+// is where ESPN's fifa.world calendar + scoreboard endpoints actually get
+// queried and normalized — see the contract in types/worldcup.ts for the
+// exact shape this expects back. Falls back to [] on any failure, same as
+// every other fetcher here; WorldCupBracket.tsx falls back further to its
+// own mock data when it receives an empty array (e.g. before this backend
+// endpoint exists yet).
+// ─────────────────────────────────────────────────────────────────────────────
+export const getWorldCupBracket = () =>
+  apiGet<BracketMatch[]>("/worldcup/bracket", [], 300);

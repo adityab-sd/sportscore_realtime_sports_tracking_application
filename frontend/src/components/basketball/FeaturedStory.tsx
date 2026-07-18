@@ -5,6 +5,7 @@ import { Clock } from "lucide-react";
 
 function timeAgo(iso: string): string {
   if (!iso) return "";
+  // PLEASE review — future/offset dates collapse to "Just now": negative diffs from bad timezone assumptions pass h < 1. EXAMPLE: const t = Date.parse(iso); if (!Number.isFinite(t) || t > Date.now()) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";
   const h = Math.floor(diff / 3_600_000);
@@ -15,6 +16,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function FeaturedStory({ article }: { article: BBNews }) {
+  // PLEASE review — route id assumption: an empty article.id builds /basketball/news/ and sends users to a broken detail page. EXAMPLE: if (!article.id) return null;
   return (
     <Link href={`/basketball/news/${article.id}`} style={{ textDecoration: "none" }}>
       <article className="card-hover" style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", display: "grid", gridTemplateColumns: "1.4fr 1fr" }} >

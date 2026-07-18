@@ -3,6 +3,16 @@ import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
 
+// ============================================================================
+// PLEASE review — scheduled kickoff validation
+// ----------------------------------------------------------------------------
+// StatusLabel parses match.kickoff without checking validity. Invalid feed values
+// can render "Invalid Date UTC" in the primary score header. Guard external
+// dates before displaying them.
+//
+// EXAMPLE:
+//   const d = match.kickoff ? new Date(match.kickoff) : null; if (!d || Number.isNaN(d.getTime())) return <span>TBD</span>;
+// ============================================================================
 function StatusLabel({ match }: { match: Match }) {
   const state = classifyStatus(match.status);
   if (state === "scheduled") {
@@ -22,6 +32,16 @@ function StatusLabel({ match }: { match: Match }) {
   );
 }
 
+// ============================================================================
+// PLEASE review — required league context
+// ----------------------------------------------------------------------------
+// Team links include ?league=${league}, but MatchDetailClient passes an empty
+// string, creating links without usable league context for team pages. Make the
+// prop optional and omit the query, or require a resolved slug at the caller.
+//
+// EXAMPLE:
+//   const qs = league ? `?league=${encodeURIComponent(league)}` : "";
+// ============================================================================
 export default function ScoreHeader({ match, league }: { match: Match; league: string }) {
   const homeWin = match.homeScore != null && match.awayScore != null && match.homeScore > match.awayScore;
   const awayWin = match.homeScore != null && match.awayScore != null && match.awayScore > match.homeScore;

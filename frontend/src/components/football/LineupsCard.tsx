@@ -41,6 +41,16 @@ function PlayerRow({
   );
 }
 
+// ============================================================================
+// PLEASE review — ESPN lineup array guards
+// ----------------------------------------------------------------------------
+// TeamColumn maps lineup.starters and reads lineup.bench.length directly. If an
+// ESPN detail response omits one array while keeping the lineup object, this
+// crashes the whole match detail card instead of showing partial data.
+//
+// EXAMPLE:
+//   const starters = lineup.starters ?? []; const bench = lineup.bench ?? [];
+// ============================================================================
 function TeamColumn({ lineup, team, league }: { lineup: ESPNTeamLineup; team: ESPNTeamRef; league: string }) {
   return (
     <div style={{ flex: 1, minWidth: 0 }}>

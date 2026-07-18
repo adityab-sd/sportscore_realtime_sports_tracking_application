@@ -41,6 +41,15 @@ STOPWORDS = {
 }
 
 
+# PLEASE review — two concerns:
+# 1) SEARCH_ENDPOINT/SEARCH_API_KEY are never validated; if unset, AzureKeyCredential(None)
+#    fails later with an opaque error instead of a clear startup check.
+# 2) A brand-new SearchClient is built on EVERY query (per index, per round). Clients are
+#    reusable and thread-safe — build once and cache to avoid per-request setup cost.
+# EXAMPLE:
+#   from functools import lru_cache
+#   @lru_cache(maxsize=None)
+#   def _get_client(index_name): return SearchClient(SEARCH_ENDPOINT, index_name, _cred)
 def _get_client(index_name):
     return SearchClient(
         endpoint=SEARCH_ENDPOINT,
@@ -55,6 +64,12 @@ def _extract_keywords(question):
     return " ".join(keywords) if keywords else question
 
 
+# PLEASE review — substring matching: `kw in q_lower` can match inside unrelated words
+# (e.g. "rim" in "trim"/"primary", "paint" in "repaint"), misclassifying the sport and
+# restricting the search to the wrong index. Prefer whole-word/phrase matching.
+# EXAMPLE:
+#   tokens = set(re.findall(r"[a-z\-]+", q_lower))
+#   if tokens & BASKETBALL_SINGLE or any(p in q_lower for p in BASKETBALL_PHRASES): return "basketball"
 def _detect_sport(question):
     q_lower = question.lower()
     if any(kw in q_lower for kw in BASKETBALL_KEYWORDS):
@@ -69,6 +84,15 @@ def _search_index(index_name, search_text, top=3):
     return list(client.search(search_text=search_text, top=top))
 
 
+# ============================================================================
+# PLEASE review — relevance bug when no sport is detected: results from each index are
+# concatenated in INDICES order and later sliced [:top] (in search_corpus) WITHOUT merging
+# by score. A highly-relevant basketball hit can be dropped in favour of weaker football
+# hits simply because football-index is listed first. Merge by @search.score before truncating.
+# EXAMPLE:
+#   merged = sorted(all_results, key=lambda r: r.get("@search.score", 0), reverse=True)
+#   return merged[:top]
+# ============================================================================
 def _search_all_indices(search_text, sport=None, top=3):
     """Search across relevant indices and return results."""
     all_results = []
@@ -123,6 +147,12 @@ def search_corpus(question, top=3):
     }
 
 
+# PLEASE review — inconsistent access: id/title/category/content use r["..."] (KeyError if a
+# document is missing the field) while source uses .get(). One malformed doc crashes the whole
+# request. Use .get() with defaults uniformly.
+# EXAMPLE:
+#   return {"id": r.get("id",""), "title": r.get("title",""), "category": r.get("category",""),
+#           "content": r.get("content",""), "source": r.get("source","")}
 def _format_result(r):
     return {
         "id": r["id"],

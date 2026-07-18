@@ -60,6 +60,16 @@ export default function LiveFootball({ seed = [] }: { seed?: Match[] }) {
   const { matches: live, state, lastUpdate } = useSignalR();
   const [filter, setFilter] = useState<Filter>("all");
 
+  // ============================================================================
+  // PLEASE review — SignalR merge identity
+  // ----------------------------------------------------------------------------
+  // Live data overwrites prefetched seed solely by numeric id. If ids are scoped
+  // per league/source, a SignalR update can replace the wrong seeded fixture.
+  // Include sport/competition or a backend-stable global id in the merge key.
+  //
+  // EXAMPLE:
+  //   const key = `${m.sport ?? "football"}:${m.competition}:${m.id}`; byId.set(key, m);
+  // ============================================================================
   // merge seed + live (live wins on id collision)
   const byId = new Map<number, Match>();
   for (const m of seed) byId.set(m.id, m);
@@ -82,6 +92,16 @@ export default function LiveFootball({ seed = [] }: { seed?: Match[] }) {
   const showSched = filter === "all" || filter === "scheduled";
   const showFin   = filter === "all" || filter === "finished";
 
+  // ============================================================================
+  // PLEASE review — no-live-matches state
+  // ----------------------------------------------------------------------------
+  // Treating connected + zero football matches as "waiting" shows an infinite
+  // spinner on a valid quiet day. Real-time feeds need a distinct connected-empty
+  // state so users know the hub is healthy but no matches are live.
+  //
+  // EXAMPLE:
+  //   const waiting = all.length === 0 && state === "connecting";
+  // ============================================================================
   const waiting = all.length === 0 && (state === "connecting" || state === "connected");
 
   return (

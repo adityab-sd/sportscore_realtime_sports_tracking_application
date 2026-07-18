@@ -3,6 +3,9 @@ import json
 import time
 
 # ── CONFIG ──────────────────────────────────────────────
+# PLEASE review — SECURITY (high): a live API-Sports key is hard-coded and committed to Git
+# history. Rotate it now and load from the environment. EXAMPLE:
+#   API_KEY = os.environ["APISPORTS_KEY"]   # never a literal; add to .env / a secret store
 API_KEY = "3c4567049053d8e049d531f872a2a107"
 BASE_URL = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY}
@@ -17,6 +20,21 @@ SEASON = 2024
 corpus = []  # this list will hold all our entries
 
 # ── HELPER: make API call ────────────────────────────────
+# ============================================================================
+# PLEASE review — several issues in this helper:
+# 1) Mutable default argument `params={}` is a Python footgun (one dict shared across calls);
+#    use None and assign inside.
+# 2) No status check / timeout: a 4xx/5xx or rate-limit (api-sports returns errors in the JSON
+#    body) is treated as success, response.json() throws on a non-JSON body, and requests will
+#    hang forever without a timeout.
+# EXAMPLE:
+#   def call_api(endpoint, params=None):
+#       r = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params or {}, timeout=15)
+#       r.raise_for_status()
+#       body = r.json()
+#       if body.get("errors"): raise RuntimeError(body["errors"])
+#       return body.get("response", [])
+# ============================================================================
 def call_api(endpoint, params={}):
     url = f"{BASE_URL}/{endpoint}"
     response = requests.get(url, headers=HEADERS, params=params)
@@ -31,6 +49,9 @@ players = call_api("players/topscorers", {"league": LEAGUE_ID, "season": SEASON}
 
 for item in players:
     p = item.get("player", {})
+    # PLEASE review — assumption: if "statistics" is present but an EMPTY list, [0] raises
+    # IndexError (the [{}] default only covers a MISSING key). Guard the empty case.
+    # EXAMPLE: stats = (item.get("statistics") or [{}])[0]
     stats = item.get("statistics", [{}])[0]
 
     player_id   = p.get("id", "")
@@ -252,6 +273,12 @@ corpus.extend(competition_entries)
 print(f"  Added {len(competition_entries)} competition entries")
 
 # ── SAVE TO FILE ─────────────────────────────────────────
+# ── SAVE TO FILE ─────────────────────────────────────────
+# PLEASE review — OUTPUT_FILE is cwd-relative, so this only writes to the right place when run
+# from backend/rag/, and the "corpus/" directory must already exist (open won't create it).
+# EXAMPLE:
+#   out = os.path.join(os.path.dirname(__file__), "corpus", "football_corpus.json")
+#   os.makedirs(os.path.dirname(out), exist_ok=True)
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     json.dump(corpus, f, indent=2, ensure_ascii=False)
 

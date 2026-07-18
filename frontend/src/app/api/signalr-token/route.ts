@@ -8,6 +8,8 @@ export async function GET() {
   const hub      = process.env.SIGNALR_HUB;
   const key      = process.env.SIGNALR_ACCESS_KEY;
 
+  // [already correct — keep this] SIGNALR_ACCESS_KEY is read from server-only env, not a NEXT_PUBLIC_ variable.
+
   if (!endpoint || !hub || !key) {
     const missing = [
       !endpoint && "SIGNALR_ENDPOINT",
@@ -23,8 +25,29 @@ export async function GET() {
 
   const aud       = `${endpoint}/client/?hub=${hub}`;
   const clientUrl = aud.replace(/^https:\/\//, "wss://");
+  // ============================================================================
+  // PLEASE review — Token lifetime is fixed and lacks issued/not-before claims
+  // ----------------------------------------------------------------------------
+  // A hard-coded one-hour token is broad for a browser client, and the JWT omits
+  // iat/nbf so consumers cannot reject tokens minted too far in the past/future.
+  // Prefer a short, configurable TTL with explicit clock-skew handling.
+  //
+  // EXAMPLE:
+  //   const now = Math.floor(Date.now() / 1000);
+  //   const exp = now + 300;
+  //   const payload = b64url(JSON.stringify({ aud, iat: now, nbf: now - 5, exp }));
+  // ============================================================================
   const exp       = Math.floor(Date.now() / 1000) + 3600;
 
+  // ============================================================================
+  // PLEASE review — SignalR audience and hub leak through logs
+  // ----------------------------------------------------------------------------
+  // Logging aud and hub exposes the service hostname and hub naming convention in
+  // production telemetry. Keep only non-sensitive success/failure diagnostics.
+  //
+  // EXAMPLE:
+  //   if (process.env.NODE_ENV !== "production") console.debug("[signalr-token] issued SignalR token");
+  // ============================================================================
   console.log("[signalr-token] aud:", aud);
   console.log("[signalr-token] hub:", hub);
 
