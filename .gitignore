@@ -1,15 +1,33 @@
+# IDE Settings
+.idea/
+.vscode/
+
+# Build folders
+**/target/
+**/bin/
+/backend/maven-bin/
+
+# Environment
+.env
+.env.local
+frontend/.env.local
 
 # secrets — never commit
 backend/src/main/resources/application.properties
-frontend/.env.local
-
-# build output
-target/
-.DS_Store
 application.properties
 
-local.settings.json
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
 
+# Compiled files
+*.class
+*.log
+
+# Misc
+.DS_Store
+local.settings.json
 functions/local.settings.json
 functions/test-client.html
 
