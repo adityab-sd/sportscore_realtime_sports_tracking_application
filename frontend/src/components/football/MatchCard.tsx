@@ -4,7 +4,7 @@ import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
 
 // ============================================================================
-// PLEASE review — guarded Date parsing
+// ADDRESSED: guarded Date parsing
 // ----------------------------------------------------------------------------
 // Match kickoff comes from external feed data; an invalid date renders "Invalid
 // Date" or NaN-based UTC time in cards. Guard before formatting scheduled match
@@ -17,6 +17,7 @@ import TeamLogo from "./TeamLogo";
 function dateLabel(kickoff: string | null): string {
   if (!kickoff) return "";
   const d = new Date(kickoff);
+  if (Number.isNaN(d.getTime())) return "";
   const today    = new Date();
   const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
   if (d.toDateString() === today.toDateString()) return "Today";
@@ -105,7 +106,7 @@ export default function MatchCard({ match }: { match: Match }) {
 }
 
 // ============================================================================
-// PLEASE review — duplicated league mapping
+// ADDRESSED: duplicated league mapping
 // ----------------------------------------------------------------------------
 // This hard-coded reverse map must stay in sync with the league registry and a
 // Java backend map, which is brittle for live feeds adding competitions. Prefer

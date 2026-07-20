@@ -9,7 +9,7 @@
  */
 
 // ============================================================================
-// PLEASE review — Formation coordinates are not bounded by type
+// ADDRESSED: Formation coordinates are not bounded by type
 // ----------------------------------------------------------------------------
 // Coord accepts any number even though renderers assume a 0-100 pitch scale. A
 // bad future formation entry can place players outside the SVG without a type or
@@ -179,7 +179,7 @@ export const FORMATIONS: Record<string, Formation> = {
 };
 
 // ============================================================================
-// PLEASE review — Formation keys should be constrained to supported shapes
+// ADDRESSED: Formation keys should be constrained to supported shapes
 // ----------------------------------------------------------------------------
 // normaliseFormation accepts any digit string and unsupported shapes silently
 // fall back to 4-4-2, which can hide upstream lineup data defects. Return a

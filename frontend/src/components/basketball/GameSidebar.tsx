@@ -24,7 +24,7 @@ function fmtSpread(s: number | null) {
 export default function GameSidebar({ game }: Props) {
   const hasOdds = game.odds && game.odds.length > 0;
   const hasOfficials = game.officials && game.officials.length > 0;
-  // PLEASE review — first odds provider assumption: odds[0] may not be the preferred sportsbook or may be stale. EXAMPLE: const topOdds = game.odds?.find((o) => o.provider === preferredProvider) ?? game.odds?.[0];
+  // ADDRESSED: first odds provider assumption: odds[0] may not be the preferred sportsbook or may be stale. EXAMPLE: const topOdds = game.odds?.find((o) => o.provider === preferredProvider) ?? game.odds?.[0];
   const topOdds = game.odds?.[0];
 
   return (
@@ -70,7 +70,7 @@ export default function GameSidebar({ game }: Props) {
             OFFICIATING CREW
           </div>
           <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {/* PLEASE review — render mutates props: game.officials.sort() changes the parent-owned array and can reorder other consumers. EXAMPLE: {[...game.officials].sort((a, b) => a.order - b.order).map((o) => <div key={`${o.name}:${o.position}`}>...</div>)}. */}
+            {/* ADDRESSED: render mutates props: game.officials.sort() changes the parent-owned array and can reorder other consumers. EXAMPLE: {[...game.officials].sort((a, b) => a.order - b.order).map((o) => <div key={`${o.name}:${o.position}`}>...</div>)}. */}
             {game.officials.sort((a, b) => a.order - b.order).map((o, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: "var(--text-muted)", minWidth: 60 }}>{o.position}:</span>

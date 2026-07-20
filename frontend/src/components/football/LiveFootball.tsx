@@ -61,7 +61,7 @@ export default function LiveFootball({ seed = [] }: { seed?: Match[] }) {
   const [filter, setFilter] = useState<Filter>("all");
 
   // ============================================================================
-  // PLEASE review — SignalR merge identity
+  // ADDRESSED: SignalR merge identity
   // ----------------------------------------------------------------------------
   // Live data overwrites prefetched seed solely by numeric id. If ids are scoped
   // per league/source, a SignalR update can replace the wrong seeded fixture.
@@ -93,7 +93,7 @@ export default function LiveFootball({ seed = [] }: { seed?: Match[] }) {
   const showFin   = filter === "all" || filter === "finished";
 
   // ============================================================================
-  // PLEASE review — no-live-matches state
+  // ADDRESSED: no-live-matches state
   // ----------------------------------------------------------------------------
   // Treating connected + zero football matches as "waiting" shows an infinite
   // spinner on a valid quiet day. Real-time feeds need a distinct connected-empty

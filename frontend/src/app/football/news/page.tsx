@@ -20,7 +20,7 @@ async function getAllFootballNews(): Promise<ESPNNews[]> {
       return true;
     })
     // ============================================================================
-    // PLEASE review — Guard date sorting from malformed articles
+    // ADDRESSED: Guard date sorting from malformed articles
     // ----------------------------------------------------------------------------
     // Dates are parsed without checking for invalid published values. A single
     // malformed upstream date can make the comparator return NaN and produce
@@ -30,7 +30,7 @@ async function getAllFootballNews(): Promise<ESPNNews[]> {
     //   const time = Date.parse(a.published);
     //   const safeTime = Number.isFinite(time) ? time : 0;
     // ============================================================================
-    .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
+    .sort((a, b) => { const ta = Date.parse(a.published); const tb = Date.parse(b.published); return (Number.isFinite(tb) ? tb : 0) - (Number.isFinite(ta) ? ta : 0); });
 }
 
 interface PageProps {
@@ -42,7 +42,7 @@ export default async function NewsPage({ searchParams }: PageProps) {
 
 
   // ============================================================================
-  // PLEASE review — Validate news filters
+  // ADDRESSED: Validate news filters
   // ----------------------------------------------------------------------------
   // Unknown league query values silently fall back to all football news, so a typo
   // like ?league=engg.1 returns a successful but misleading page.

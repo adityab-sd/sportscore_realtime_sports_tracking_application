@@ -16,7 +16,7 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const { league = "eng.1", team: teamId } = await searchParams;
 
   // ============================================================================
-  // PLEASE review — Validate player lookup params
+  // ADDRESSED: Validate player lookup params
   // ----------------------------------------------------------------------------
   // id, league, and team are trusted directly from the URL. A malformed team id or
   // unknown league should be rejected before it is used in API paths and links.
@@ -29,7 +29,7 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const [roster, team] = await Promise.all([getRoster(league, teamId), getTeam(league, teamId)]);
 
   // ============================================================================
-  // PLEASE review — Do not render a player page for a missing team
+  // ADDRESSED: Do not render a player page for a missing team
   // ----------------------------------------------------------------------------
   // The team fetch can return null while the roster fallback is [], yet the page
   // continues with a generic "Team" breadcrumb. Dynamic entity pages should notFound

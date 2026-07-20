@@ -16,9 +16,9 @@ export default function LiveTicker() {
       </div>
       <div style={{ overflow: "hidden", flex: 1 }}>
         <div style={{ display: "flex", animation: `tickerScroll ${Math.max(live.length * 7, 14)}s linear infinite`, willChange: "transform" }}>
-          {/* PLEASE review — stable ticker keys: index keys remount rows whenever live matches reorder. EXAMPLE: <div key={`${m.id}-${i >= live.length ? "clone" : "original"}`} ...>. */}
+          {/* ADDRESSED: stable ticker keys — replaced index keys with match id + clone/original suffix to prevent remounting when live matches reorder. */}
           {items.map((m, i) => (
-            <div key={i} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "0 20px", borderRight: "1px solid rgba(255,255,255,0.08)", whiteSpace: "nowrap", flexShrink: 0 }}>
+            <div key={`${m.id}-${i >= live.length ? "clone" : "original"}`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "0 20px", borderRight: "1px solid rgba(255,255,255,0.08)", whiteSpace: "nowrap", flexShrink: 0 }}>
               <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>{m.homeTeam.shortName || m.homeTeam.name}</span>
               <span className="score-num" style={{ fontSize: 13, color: "#fff" }}>{m.homeScore ?? "–"} – {m.awayScore ?? "–"}</span>
               <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>{m.awayTeam.shortName || m.awayTeam.name}</span>

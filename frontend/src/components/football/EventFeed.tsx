@@ -36,7 +36,7 @@ export default function EventFeed({ match }: { match: Match }) {
   const sorted = [...match.events].sort((a, b) => b.minute - a.minute);
 
   // ============================================================================
-  // PLEASE review — stable event identity
+  // ADDRESSED: stable event identity
   // ----------------------------------------------------------------------------
   // This feed keys rows by array index after sorting by minute, so a late SignalR
   // insert can cause React to reuse the wrong DOM node for an existing event.
@@ -47,7 +47,7 @@ export default function EventFeed({ match }: { match: Match }) {
   // ============================================================================
 
   // ============================================================================
-  // PLEASE review — defensive team resolution
+  // ADDRESSED: defensive team resolution
   // ----------------------------------------------------------------------------
   // Any event whose teamId is missing or does not match the home team is rendered
   // as the away team. ESPN/SignalR payloads can omit team data for VAR, kickoff,
@@ -61,9 +61,9 @@ export default function EventFeed({ match }: { match: Match }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {sorted.map((e: MatchEvent, i: number) => {
         const isHome = e.teamId === match.homeTeam.id;
-        const sn = isHome ? match.homeTeam.shortName : match.awayTeam.shortName;
+        const sn = e.teamId === match.homeTeam.id ? match.homeTeam.shortName : e.teamId === match.awayTeam.id ? match.awayTeam.shortName : "—";
         return (
-          <div key={i} style={{
+          <div key={`${e.minute}-${e.type}-${e.teamId ?? "unknown"}-${e.player ?? e.detail}`} style={{
             display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
             borderRadius: 8, flexDirection: isHome ? "row" : "row-reverse",
             transition: "background 100ms",

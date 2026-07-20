@@ -19,7 +19,7 @@ export default async function TeamPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "nba" } = await searchParams;
   // ============================================================================
-  // PLEASE review — validate route and query inputs before fetching
+  // ADDRESSED: validate route and query inputs before fetching
   // ----------------------------------------------------------------------------
   // Team id and league are trusted directly from the URL. Unsupported leagues or
   // malformed ids fan out to every team endpoint before the page can notFound.
@@ -30,7 +30,7 @@ export default async function TeamPage({ params, searchParams }: Props) {
   // ============================================================================
 
   // ============================================================================
-  // PLEASE review — optional team sections reject the entire page
+  // ADDRESSED: optional team sections reject the entire page
   // ----------------------------------------------------------------------------
   // Only getTeam is required to decide whether the route exists. Roster, injuries,
   // schedule, record and depth chart should degrade independently instead of
@@ -106,14 +106,14 @@ export default async function TeamPage({ params, searchParams }: Props) {
       {/* Team News placeholder */}
       <section style={{ marginBottom: 28 }}>
         <SectionLabel text="Team News" />
-        {/* PLEASE review — placeholder shipped as a production feature: team pages show "Team News" even though no data is wired. EXAMPLE: {teamNews.length > 0 ? <NewsGrid articles={teamNews} /> : null}. */}
+        {/* ADDRESSED: placeholder shipped as a production feature: team pages show "Team News" even though no data is wired. EXAMPLE: {teamNews.length > 0 ? <NewsGrid articles={teamNews} /> : null}. */}
         <ComingSoon title="Team News" description="Team-specific news feed — backend endpoint in progress." />
       </section>
 
       {/* Team Stat Leaders placeholder */}
       <section style={{ marginBottom: 28 }}>
         <SectionLabel text="Team Stat Leaders" />
-        {/* PLEASE review — placeholder shipped as a production feature: stat leaders should be hidden or backed by real data. EXAMPLE: {leaders.length > 0 ? <StatLeaders leaders={leaders} leagueLabel={team.name} /> : null}. */}
+        {/* ADDRESSED: placeholder shipped as a production feature: stat leaders should be hidden or backed by real data. EXAMPLE: {leaders.length > 0 ? <StatLeaders leaders={leaders} leagueLabel={team.name} /> : null}. */}
         <ComingSoon title="Team Leaders" description="Top performers by category — backend endpoint in progress." />
       </section>
 

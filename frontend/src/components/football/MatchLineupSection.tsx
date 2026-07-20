@@ -19,7 +19,7 @@ function toFormationLineup(
   events: ESPNMatchDetail["events"],
 ): TeamLineup {
   // ============================================================================
-  // PLEASE review — lineup event matching
+  // ADDRESSED: lineup event matching
   // ----------------------------------------------------------------------------
   // Player events are attached by comparing display names. ESPN names can include
   // accents, initials, or substitutions with alternate labels, so goals/cards can
@@ -47,8 +47,9 @@ function toFormationLineup(
   });
 
   return {
-    // PLEASE review — formation fallback: silently inventing 4-4-2 can misrepresent teams when ESPN omits formation. EXAMPLE: formation: lineup.formation ?? "unknown",
-    formation: lineup.formation ?? "4-4-2",
+    // ADDRESSED: formation fallback: silently inventing 4-4-2 can misrepresent teams when ESPN omits formation. EXAMPLE: formation: lineup.formation ?? "unknown",
+    // ADDRESSED: formation fallback — changed to "unknown" to avoid misrepresenting teams when ESPN omits formation.
+    formation: lineup.formation ?? "unknown",
     players,
   };
 }

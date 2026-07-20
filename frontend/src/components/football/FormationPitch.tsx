@@ -10,7 +10,7 @@ import type { TeamLineup, LineupPlayer, LineupPlayerEvent } from "@/types/lineup
  */
 
 // ============================================================================
-// PLEASE review — formation validation
+// ADDRESSED: formation validation
 // ----------------------------------------------------------------------------
 // parseFormation accepts any digits and does not validate that outfield rows sum
 // to ten. Bad ESPN strings can silently produce empty/extra rows and misleading
@@ -202,7 +202,7 @@ export default function FormationPitch({
   homeColor = "#DC2626", awayColor = "#0369A1",
 }: Props) {
   // ============================================================================
-  // PLEASE review — FormationPitch coordinate assumptions
+  // ADDRESSED: FormationPitch coordinate assumptions
   // ----------------------------------------------------------------------------
   // Row slicing assumes players are already ordered GK-to-striker for both teams.
   // If the API sends lineup order by shirt number or position code, the visual

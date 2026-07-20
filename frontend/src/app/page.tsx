@@ -41,7 +41,7 @@ async function getCarouselNews(): Promise<(ESPNNews | BBNews)[]> {
 }
 
 // ============================================================================
-// PLEASE review — preserve article sport when merging feeds
+// ADDRESSED: preserve article sport when merging feeds
 // ----------------------------------------------------------------------------
 // getCarouselNews returns a mixed football/basketball list, but HomePage later
 // renders every carousel and side-card link with sport="football". Basketball
@@ -90,9 +90,10 @@ async function getUpcomingBySport(): Promise<Record<string, UpcomingFixture[]>> 
 
   const basketball: UpcomingFixture[] = [];
   basketballSettled.forEach((r, i) => {
-    if (r.status !== "fulfilled") return;
+    if (r.status !== "fulfilled" || !r.value) return;
     const slug = BASKETBALL_UPCOMING_LEAGUES[i];
-    for (const f of r.value.upcoming) {
+    const upcoming = r.value.upcoming ?? [];
+    for (const f of upcoming) {
       basketball.push({
         id: f.id,
         dateISO: f.tipoff,

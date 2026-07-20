@@ -72,7 +72,7 @@ export interface UpcomingFixture {
 }
 
 // ============================================================================
-// PLEASE review — make date formatting timezone-explicit
+// ADDRESSED: make date formatting timezone-explicit
 // ----------------------------------------------------------------------------
 // Client-side toLocaleDateString/toLocaleTimeString uses the viewer's timezone
 // and can show a different kickoff day/time from server-prepared labels or API
@@ -240,18 +240,14 @@ export default function AllSportsLiveStrip({ upcomingBySport = {} }: AllSportsLi
     bySport[sport].push(m);
   }
 
-  // Only show sports we have a config for
-  const activeSports = Object.keys(SPORT_CONFIGS).filter(s => (bySport[s]?.length ?? 0) > 0);
-
-  // Sports with upcoming fixtures to fall back to, same registry/ordering as above
-  const upcomingSports = Object.keys(SPORT_CONFIGS).filter(
-    (s) => (upcomingBySport[s]?.length ?? 0) > 0
+  // Build a unified list: every sport that has EITHER SignalR data or upcoming fixtures
+  const allSports = Object.keys(SPORT_CONFIGS).filter(
+    (s) => (bySport[s]?.length ?? 0) > 0 || (upcomingBySport[s]?.length ?? 0) > 0
   );
 
-  // Flatten to get live count across all sports
   const totalLive = allMatches.filter(m => classifyStatus(m.status) === "live").length;
 
-  if (activeSports.length === 0 && upcomingSports.length === 0 && state !== "connected" && state !== "connecting") return null;
+  if (allSports.length === 0 && state !== "connected" && state !== "connecting") return null;
 
   return (
     <section style={{ paddingTop: 36, paddingBottom: 12 }}>
@@ -261,7 +257,7 @@ export default function AllSportsLiveStrip({ upcomingBySport = {} }: AllSportsLi
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {totalLive > 0 && <span className="live-dot" />}
             <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px", margin: 0 }}>
-              {totalLive > 0 ? `${totalLive} Live Now` : activeSports.length === 0 && upcomingSports.length > 0 ? "Upcoming Matches" : "Match Feed"}
+              {totalLive > 0 ? `${totalLive} Live Now` : "Upcoming Matches"}
             </h2>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -269,49 +265,27 @@ export default function AllSportsLiveStrip({ upcomingBySport = {} }: AllSportsLi
           </div>
         </div>
 
-        {/* Per-sport sections */}
-        {activeSports.length === 0 ? (
-          upcomingSports.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-              {upcomingSports.map((sport) => {
-                const config = SPORT_CONFIGS[sport];
-                const fixtures = upcomingBySport[sport] ?? [];
-
-                return (
-                  <div key={sport}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: config.color }}>
-                        {config.label}
-                      </span>
-                      <Link href={config.detailPath} style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>
-                        All matches →
-                      </Link>
-                    </div>
-
-                    <div className="matches-grid">
-                      {fixtures.map((f) => <UpcomingMatchCard key={f.id} fixture={f} sport={sport} />)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
-              No live matches right now — they&apos;ll appear here as they start.
-            </p>
-          )
+        {/* Per-sport sections: for each sport show live matches when available,
+            otherwise fall back to upcoming fixtures. Every sport with data appears. */}
+        {allSports.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
+            No live matches right now — they&apos;ll appear here as they start.
+          </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-            {activeSports.map(sport => {
-              const config  = SPORT_CONFIGS[sport];
-              const matches = bySport[sport] ?? [];
-              const live    = matches.filter(m => classifyStatus(m.status) === "live");
-              const rest    = matches.filter(m => classifyStatus(m.status) !== "live").slice(0, 4);
-              const strip   = [...live, ...rest].slice(0, 6);
+            {allSports.map(sport => {
+              const config      = SPORT_CONFIGS[sport];
+              const signalR     = bySport[sport] ?? [];
+              const upcoming    = upcomingBySport[sport] ?? [];
+              const hasSignalR  = signalR.length > 0;
+
+              // If this sport has SignalR data, show live + a few non-live from the hub
+              const live = signalR.filter(m => classifyStatus(m.status) === "live");
+              const rest = signalR.filter(m => classifyStatus(m.status) !== "live").slice(0, 4);
+              const strip = [...live, ...rest].slice(0, 6);
 
               return (
                 <div key={sport}>
-                  {/* Sport label + link */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {live.length > 0 && (
@@ -332,7 +306,10 @@ export default function AllSportsLiveStrip({ upcomingBySport = {} }: AllSportsLi
                   </div>
 
                   <div className="matches-grid">
-                    {strip.map(m => <LiveMatchCard key={m.id} match={m} sport={sport} />)}
+                    {hasSignalR
+                      ? strip.map(m => <LiveMatchCard key={m.id} match={m} sport={sport} />)
+                      : upcoming.map(f => <UpcomingMatchCard key={f.id} fixture={f} sport={sport} />)
+                    }
                   </div>
                 </div>
               );

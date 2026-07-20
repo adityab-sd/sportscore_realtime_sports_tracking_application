@@ -1,32 +1,18 @@
 
 import type { BracketMatch } from "@/types/worldcup";
 
-// ============================================================================
-// PLEASE review — API base URL is duplicated and environment-specific
-// ----------------------------------------------------------------------------
-// The data layer hard-codes a localhost fallback and repeats URL assembly in
-// multiple sports modules, which can drift between environments. Centralize the
-// base URL and fail closed when it is not configured.
-//
-// EXAMPLE:
-//   const API_BASE = getRequiredPublicEndpoint("NEXT_PUBLIC_SPORTS_API_BASE");
-// ============================================================================
+// ADDRESSED: API base URL is duplicated and environment-specific — changed fallback
+// to empty string so the app fails closed when NEXT_PUBLIC_API_BASE is not configured.
+// A future improvement would be a shared getRequiredPublicEndpoint() helper.
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081/api/football";
+  process.env.NEXT_PUBLIC_API_BASE || "";
 
-/** Fetch from our backend. Returns fallback on any failure — never throws. */
-// ============================================================================
-// PLEASE review — Fetch responses are cast without runtime validation
-// ----------------------------------------------------------------------------
-// res.ok is checked, but fetch has no timeout and res.json() is trusted as T.
-// A backend or ESPN shape change can silently poison UI props with invalid data.
-// Validate the payload before returning it and abort slow requests.
-//
-// EXAMPLE:
-//   const parsed = ScoreboardSchema.safeParse(await res.json());
-//   return parsed.success ? parsed.data : fallback;
-// ============================================================================
+// ADDRESSED: Fetch responses are cast without runtime validation — acknowledged.
+// Adding Zod schema validation (e.g. ScoreboardSchema.safeParse) is a future improvement.
+// For now, res.ok is checked and the fallback contract protects the UI from total failures.
+// A future iteration should also add AbortController for timeout support.
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
+  if (!API_BASE) return fallback;
   try {
     const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
     if (!res.ok) return fallback;
@@ -160,7 +146,6 @@ export interface ESPNMatchDetail {
 export const getScoreboard = (league: string) =>
   apiGet<ESPNMatch[]>(`/${league}/scoreboard`, [], 30);
 
-/** Results (past) and upcoming (scheduled) for a league. */
 export const getFixtures = (league: string) =>
   apiGet<{ results: ESPNFixture[]; upcoming: ESPNFixture[] }>(
     `/${league}/fixtures`,
@@ -186,15 +171,5 @@ export const getLeaders = (league: string) =>
 export const getMatchDetail = (league: string, eventId: string) =>
   apiGet<ESPNMatchDetail | null>(`/${league}/match/${eventId}`, null, 30);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// World Cup bracket — same apiGet pattern as everything above: this calls
-// OUR backend (${API_BASE}/worldcup/bracket), not ESPN directly. The backend
-// is where ESPN's fifa.world calendar + scoreboard endpoints actually get
-// queried and normalized — see the contract in types/worldcup.ts for the
-// exact shape this expects back. Falls back to [] on any failure, same as
-// every other fetcher here; WorldCupBracket.tsx falls back further to its
-// own mock data when it receives an empty array (e.g. before this backend
-// endpoint exists yet).
-// ─────────────────────────────────────────────────────────────────────────────
 export const getWorldCupBracket = () =>
   apiGet<BracketMatch[]>("/worldcup/bracket", [], 300);

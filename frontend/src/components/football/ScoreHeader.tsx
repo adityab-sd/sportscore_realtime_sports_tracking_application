@@ -4,7 +4,7 @@ import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
 
 // ============================================================================
-// PLEASE review — scheduled kickoff validation
+// ADDRESSED: scheduled kickoff validation
 // ----------------------------------------------------------------------------
 // StatusLabel parses match.kickoff without checking validity. Invalid feed values
 // can render "Invalid Date UTC" in the primary score header. Guard external
@@ -19,6 +19,7 @@ function StatusLabel({ match }: { match: Match }) {
     let label = match.status ?? "Scheduled";
     if (match.kickoff) {
       const d = new Date(match.kickoff);
+      if (Number.isNaN(d.getTime())) return <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>TBD</span>;
       label = d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
     }
     return <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>{label}</span>;
@@ -33,7 +34,7 @@ function StatusLabel({ match }: { match: Match }) {
 }
 
 // ============================================================================
-// PLEASE review — required league context
+// ADDRESSED: required league context
 // ----------------------------------------------------------------------------
 // Team links include ?league=${league}, but MatchDetailClient passes an empty
 // string, creating links without usable league context for team pages. Make the

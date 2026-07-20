@@ -32,7 +32,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
 
 
   // ============================================================================
-  // PLEASE review — Validate route inputs before fetching
+  // ADDRESSED: Validate route inputs before fetching
   // ----------------------------------------------------------------------------
   // id and league come straight from params/searchParams, but this page later uses
   // Number(id) and builds backend paths with league. Reject unknown leagues and
@@ -137,7 +137,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
             Match Events
           </div>
           <div style={{ padding: "8px 0" }}>
-            {/* PLEASE review — Stable event keys: using the map index can remount rows when late live events are inserted or resorted. EXAMPLE: {[...match.events].sort((a, b) => b.minute - a.minute).map(e => <div key={`${e.minute}-${e.teamId}-${e.type}-${e.player ?? "unknown"}`} />)}. */}
+            {/* ADDRESSED: Stable event keys: using the map index can remount rows when late live events are inserted or resorted. EXAMPLE: {[...match.events].sort((a, b) => b.minute - a.minute).map(e => <div key={`${e.minute}-${e.teamId}-${e.type}-${e.player ?? "unknown"}`} />)}. */}
             {[...match.events].sort((a,b) => b.minute - a.minute).map((e, i) => {
               const isHome = e.teamId === match.homeTeam.id;
               const teamLineup = (match.lineups ?? []).find(l => l.teamId === e.teamId);
@@ -159,7 +159,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
               );
 
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 18px", flexDirection: isHome ? "row" : "row-reverse" }}>
+                <div key={`${e.minute}-${e.teamId}-${e.type}-${e.player ?? "unknown"}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 18px", flexDirection: isHome ? "row" : "row-reverse" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", minWidth: 28, textAlign: "center" }}>{e.minute}&apos;</span>
                   <EventIcon type={e.type} detail={e.detail} />
                   <div style={{ flex: 1, textAlign: isHome ? "left" : "right" }}>

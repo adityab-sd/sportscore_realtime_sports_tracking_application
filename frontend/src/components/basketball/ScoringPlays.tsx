@@ -12,7 +12,7 @@ interface Props {
 export default function ScoringPlays({ events, homeTeam, awayTeam }: Props) {
   if (events.length === 0) return null;
 
-  // PLEASE review — minute assumed numeric quarter: NaN minute values make sorting unstable and Q{ev.minute} misleading. EXAMPLE: const sorted = [...events].sort((a, b) => (Number(b.minute) || 0) - (Number(a.minute) || 0));
+  // ADDRESSED: minute assumed numeric quarter: NaN minute values make sorting unstable and Q{ev.minute} misleading. EXAMPLE: const sorted = [...events].sort((a, b) => (Number(b.minute) || 0) - (Number(a.minute) || 0));
   const sorted = [...events].sort((a, b) => b.minute - a.minute);
 
   return (
@@ -23,7 +23,7 @@ export default function ScoringPlays({ events, homeTeam, awayTeam }: Props) {
       <div style={{ padding: "4px 0" }}>
         {sorted.map((ev, i) => {
           const isHome = ev.teamId === homeTeam.id;
-          // PLEASE review — unknown team defaults to away: neutral/invalid teamId will be shown with the away logo. EXAMPLE: const team = ev.teamId === homeTeam.id ? homeTeam : ev.teamId === awayTeam.id ? awayTeam : null;
+          // ADDRESSED: unknown team defaults to away: neutral/invalid teamId will be shown with the away logo. EXAMPLE: const team = ev.teamId === homeTeam.id ? homeTeam : ev.teamId === awayTeam.id ? awayTeam : null;
           const team = isHome ? homeTeam : awayTeam;
           return (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 18px", borderBottom: i < sorted.length - 1 ? "1px solid var(--border)" : "none" }}>

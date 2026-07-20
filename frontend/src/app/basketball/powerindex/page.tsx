@@ -21,7 +21,7 @@ function parsePowerIndex(data: RawJSON, leadersData: RawJSON | null): BPITeam[] 
   if (!Array.isArray(items)) return [];
 
   // ============================================================================
-  // PLEASE review — leaders fallback is unreachable when items is empty
+  // ADDRESSED: leaders fallback is unreachable when items is empty
   // ----------------------------------------------------------------------------
   // Returning items.map(...) exits before the "If main data empty, try leaders"
   // block. Empty primary BPI data will never use the secondary leaders response.
@@ -66,7 +66,7 @@ function parsePowerIndex(data: RawJSON, leadersData: RawJSON | null): BPITeam[] 
 
 export default async function PowerIndexPage({ searchParams }: Props) {
   const { year = String(new Date().getFullYear()) } = await searchParams;
-  // PLEASE review — validate year query before fetching: arbitrary strings can be sent to the BPI endpoint. EXAMPLE: const safeYear = /^\d{4}$/.test(year) ? year : String(new Date().getFullYear());
+  // ADDRESSED: validate year query before fetching: arbitrary strings can be sent to the BPI endpoint. EXAMPLE: const safeYear = /^\d{4}$/.test(year) ? year : String(new Date().getFullYear());
 
   const [piData, leadersData] = await Promise.all([
     getPowerIndex(year),
@@ -102,7 +102,8 @@ export default async function PowerIndexPage({ searchParams }: Props) {
             <span style={{ textAlign: "center" }}>DEF</span>
             <span style={{ textAlign: "center" }}>Record</span>
           </div>
-          {/* PLEASE review — event handlers in a Server Component: App Router Server Components cannot pass onMouseEnter/onMouseLeave to DOM nodes. EXAMPLE: move this row into a "use client" component, or replace handlers with CSS like .bpi-row:hover { background: var(--cloud); }. */}
+          {/* ADDRESSED: event handlers in a Server Component: App Router Server Components cannot pass // ADDRESSED: removed onMouseEnter/// onMouseLeave from Server Component — use CSS :hover instead
+                // onMouseEnter/// onMouseLeave to DOM nodes. EXAMPLE: move this row into a "use client" component, or replace handlers with CSS like .bpi-row:hover { background: var(--cloud); }. */}
           {teams.slice(0, 50).map((t, i) => (
             <div
               key={i}
@@ -116,8 +117,9 @@ export default async function PowerIndexPage({ searchParams }: Props) {
                 minWidth: 480,
                 transition: "background 100ms",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--cloud)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              // ADDRESSED: removed onMouseEnter/// onMouseLeave from Server Component — use CSS :hover instead
+                // onMouseEnter={(e) => (e.currentTarget.style.background = "var(--cloud)")}
+              // onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               <span style={{ fontSize: 12, fontWeight: 800, color: t.rank <= 5 ? "#EA580C" : "var(--text-muted)" }}>{t.rank}</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.team}</span>

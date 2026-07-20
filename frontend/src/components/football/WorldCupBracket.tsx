@@ -164,7 +164,7 @@ function SlotRow({
 
 function MatchCard({ match }: { match: BracketMatch }) {
   // ============================================================================
-  // PLEASE review — completed score validation
+  // ADDRESSED: completed score validation
   // ----------------------------------------------------------------------------
   // Missing completed scores default to 0, so an incomplete backend payload can be
   // treated as a valid 0-0 draw and hide winner styling without surfacing bad data.
@@ -173,8 +173,10 @@ function MatchCard({ match }: { match: BracketMatch }) {
   // EXAMPLE:
   //   const hasScore = match.homeScore != null && match.awayScore != null; const homeWins = hasScore && match.homeScore > match.awayScore;
   // ============================================================================
-  const homeWins = match.status === "completed" && (match.homeScore ?? 0) > (match.awayScore ?? 0);
-  const awayWins = match.status === "completed" && (match.awayScore ?? 0) > (match.homeScore ?? 0);
+  const hasScore = match.status === "completed" && match.homeScore != null && match.awayScore != null;
+  // ADDRESSED: completed score validation — require both scores before computing winners.
+  const homeWins = hasScore && (match.homeScore ?? 0) > (match.awayScore ?? 0);
+  const awayWins = hasScore && (match.awayScore ?? 0) > (match.homeScore ?? 0);
   // Penalty-shootout wins flip a 1-1-style scoreline into a decided winner.
   const penHome = match.penalties && match.penalties.home > match.penalties.away;
   const penAway = match.penalties && match.penalties.away > match.penalties.home;
@@ -244,7 +246,7 @@ export default function WorldCupBracket({ matches }: WorldCupBracketProps) {
     R32: [], R16: [], QF: [], SF: [], "3RD": [], F: [],
   };
   // ============================================================================
-  // PLEASE review — backend round validation
+  // ADDRESSED: backend round validation
   // ----------------------------------------------------------------------------
   // Real bracket data is trusted to contain only known Round values. If the API
   // sends "R64" or a typo, byRound[m.round] is undefined and the whole bracket
@@ -253,7 +255,13 @@ export default function WorldCupBracket({ matches }: WorldCupBracketProps) {
   // EXAMPLE:
   //   if (m.round in byRound) byRound[m.round as Round].push(m);
   // ============================================================================
-  for (const m of source) byRound[m.round].push(m);
+  for (const m of source) {
+    if (m.round in byRound) {
+      byRound[m.round as Round].push(m);
+    }
+    // ADDRESSED: backend round validation — unsupported rounds are now silently skipped
+    // instead of crashing the bracket.
+  }
 
   // Tallest column sets the shared row height — every other column's height
   // gets stretched to match it (see the justify-around note on RoundColumn).

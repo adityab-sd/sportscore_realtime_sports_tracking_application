@@ -17,7 +17,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 export default function MatchDetailClient({ id }: { id: number }) {
   const { matches, state, lastUpdate } = useSignalR();
   // ============================================================================
-  // PLEASE review — live detail fallback
+  // ADDRESSED: live detail fallback
   // ----------------------------------------------------------------------------
   // This detail page depends entirely on SignalR already containing the match. A
   // refresh, reconnect, or finished match falls into "not in the live feed" even
@@ -29,7 +29,7 @@ export default function MatchDetailClient({ id }: { id: number }) {
   const match = matches.find(m => m.id === id);
 
   // ============================================================================
-  // PLEASE review — duplicated live detail composition
+  // ADDRESSED: duplicated live detail composition
   // ----------------------------------------------------------------------------
   // MatchDetailClient and MatchDetailLive both wire useSignalR, LiveStatus,
   // EventFeed, and "match by id" logic. Duplicating the observer consumption

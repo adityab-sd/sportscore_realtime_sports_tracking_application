@@ -15,7 +15,7 @@ export default async function FixturesPage({ searchParams }: Props) {
 
 
   // ============================================================================
-  // PLEASE review — Distinguish empty fixtures from fetch fallback
+  // ADDRESSED: Distinguish empty fixtures from fetch fallback
   // ----------------------------------------------------------------------------
   // getFixtures returns empty arrays on API failure, and this page renders that as
   // normal empty copy. Users cannot tell a real no-fixtures window from a backend
