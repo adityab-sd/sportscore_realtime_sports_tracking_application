@@ -3,7 +3,7 @@ app.py — Flask API for the SportScore Knowledge Assistant
 """
 
 from flask import Flask, request, jsonify
-from search import search_corpus
+from search import search_corpus, search_live_corpus, search_fallback_anything
 from prompts import build_prompt
 from openai import AzureOpenAI
 from dotenv import load_dotenv
@@ -11,9 +11,14 @@ import os
 
 load_dotenv()
 
+required_vars = ["AZURE_OPENAI_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT",
+                  "AZURE_SEARCH_ENDPOINT", "AZURE_SEARCH_KEY"]
+missing = [v for v in required_vars if not os.getenv(v)]
+if missing:
+    raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
+
 app = Flask(__name__)
 
-# ── Azure OpenAI client ───────────────────────────────────
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_KEY"),
     api_version="2024-02-01",
@@ -21,17 +26,93 @@ client = AzureOpenAI(
 )
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
-# ── LIVE DATA KEYWORDS ───────────────────────────────────
-LIVE_DATA_KEYWORDS = {
-    "score", "scores", "result", "results", "today", "yesterday",
-    "tonight", "now", "live", "playing", "currently", "latest",
-    "fixture", "fixtures", "standings", "table", "who won", "did they win",
-    "match today", "game today", "kick off", "kickoff", "qualify", "qualified"
-}
 
-def is_live_data_question(question):
-    q = question.lower()
-    return any(keyword in q for keyword in LIVE_DATA_KEYWORDS)
+def classify_question(question):
+    classification_prompt = f"""Classify the following sports question into exactly one category.
+
+Reply with ONLY one word: "live" or "knowledge"
+
+- "live" = ANY question asking about the outcome, result, score, or status of a specific match or tournament — including "who won X", "what was the score of X", "did X win", standings, fixtures, qualifiers, rankings, recent news, transfers. If the question asks about a real event, match, or competition result (even a past one, even a named tournament like "the World Cup 2026" or "the Premier League"), it is "live", NOT "knowledge".
+- "knowledge" = ONLY questions about rules, formations, strategies, definitions, or how something works in general — with no reference to a specific match, team result, or tournament outcome.
+
+Examples:
+"Who won the World Cup 2026?" -> live
+"What is the format of the World Cup?" -> knowledge
+"What is offside?" -> knowledge
+"Did Portugal win their last match?" -> live
+
+Question: {question}
+
+Category:"""
+
+    try:
+        response = client.chat.completions.create(
+            model=DEPLOYMENT,
+            messages=[{"role": "user", "content": classification_prompt}],
+            max_completion_tokens=150
+        )
+        answer = response.choices[0].message.content.strip().lower()
+        return "live" if "live" in answer else "knowledge"
+    except Exception:
+        app.logger.exception("Classification call failed or was blocked by content filter")
+        return "knowledge"  
+
+
+def _generate_answer(context, question):
+    """Shared helper: builds the prompt and calls gpt-5-mini."""
+    prompt = build_prompt(context, question)
+    try:
+        response = client.chat.completions.create(
+            model=DEPLOYMENT,
+            messages=[{"role": "user", "content": prompt}],
+            max_completion_tokens=1500,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        app.logger.exception("OpenAI call failed")
+        return "Sorry, the assistant is temporarily unavailable. Please try again shortly."
+
+
+def _relevant_sources(results, answer):
+    """Keep only sources whose team names appear in the answer text."""
+    answer_lower = answer.lower()
+    filtered = []
+    for r in results:
+        title = r["title"]
+        match_part = title.split("—")[0]
+        words = [w.strip(".,") for w in match_part.split() if len(w.strip(".,")) > 3]
+        if any(word.lower() in answer_lower for word in words):
+            filtered.append(r)
+    if not filtered and results:
+        filtered = [results[0]]
+    return [{"title": r["title"], "category": r["category"]} for r in filtered]
+
+
+def get_context_and_meta(question, category):
+    """
+    Chained fallback so the assistant almost never comes up empty:
+      1. Try the classified index first (live or knowledge)
+      2. If nothing found, try the OTHER index
+      3. If still nothing, grab whatever is available from any index
+         (absolute last resort — should rarely trigger)
+    """
+    if category == "live":
+        primary = search_live_corpus(question)
+        if primary["found"]:
+            return primary["results"], primary["round_used"], "live_data"
+        secondary = search_corpus(question)
+        if secondary["found"]:
+            return secondary["results"], secondary["round_used"], "knowledge_base"
+    else:
+        primary = search_corpus(question)
+        if primary["found"]:
+            return primary["results"], primary["round_used"], "knowledge_base"
+        secondary = search_live_corpus(question)
+        if secondary["found"]:
+            return secondary["results"], secondary["round_used"], "live_data"
+
+    fallback = search_fallback_anything()
+    return fallback["results"], fallback["round_used"], "fallback"
 
 
 # ── MAIN ENDPOINT ────────────────────────────────────────
@@ -43,54 +124,27 @@ def ask():
     if not question:
         return jsonify({"error": "Missing 'question' field in request body"}), 400
 
-    # Step 1: Route live data questions away
-    if is_live_data_question(question):
-        return jsonify({
-            "question": question,
-            "answer": "This question requires live match data. Please check the live scores section of SportScore.",
-            "grounded": False,
-            "routed_to": "live_data_layer"
-        })
+    category = classify_question(question)
+    results, round_used, source_type = get_context_and_meta(question, category)
 
-    # Step 2: Search corpus
-    result = search_corpus(question)
-
-    if not result["found"]:
-        return jsonify({
-            "question": question,
-            "answer": "I don't have information about that in the sports knowledge base.",
-            "grounded": False,
-            "sources": []
-        })
-
-    # Step 3: Build prompt and call OpenAI
-    context = "\n\n".join(r["content"] for r in result["results"])
-    prompt = build_prompt(context, question)
-
-    response = client.chat.completions.create(
-        model=DEPLOYMENT,
-        messages=[{"role": "user", "content": prompt}],
-        max_completion_tokens=500,
-    )
-    answer = response.choices[0].message.content.strip()
+    context = "\n\n".join(r["content"] for r in results)
+    answer = _generate_answer(context, question)
 
     return jsonify({
         "question": question,
         "answer": answer,
         "grounded": True,
-        "round_used": result["round_used"],
-        "sources": [
-            {"title": r["title"], "category": r["category"]}
-            for r in result["results"]
-        ]
+        "round_used": round_used,
+        "source_type": source_type,
+        "sources": _relevant_sources(results, answer)
     })
 
 
-# ── HEALTH CHECK ─────────────────────────────────────────
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "service": "sportscore-rag"})
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")), debug=debug_mode)
