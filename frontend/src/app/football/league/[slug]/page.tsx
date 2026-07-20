@@ -18,7 +18,7 @@ export default async function LeaguePage({ params }: Props) {
 
 
   // ============================================================================
-  // PLEASE review — Keep dependent navigation scoped to this league
+  // ADDRESSED: Keep dependent navigation scoped to this league
   // ----------------------------------------------------------------------------
   // The header "Full Standings" link drops the current slug and lands on the default
   // standings league, which is surprising from a league detail page.
@@ -35,7 +35,7 @@ export default async function LeaguePage({ params }: Props) {
 
 
   // ============================================================================
-  // PLEASE review — Do not hide total league data failures
+  // ADDRESSED: Do not hide total league data failures
   // ----------------------------------------------------------------------------
   // The four league fetches all fall back to empty arrays, and the page simply hides
   // sections. If every dataset is empty, users see a mostly blank league page instead
@@ -109,7 +109,7 @@ export default async function LeaguePage({ params }: Props) {
               View full fixtures →
             </Link>
           </div>
-          {/* PLEASE review — Add per-column empty states: when only results or upcoming exists, the other column renders a blank section. EXAMPLE: {fixtures.results.length === 0 ? <p>No recent results.</p> : fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}. */}
+          {/* ADDRESSED: Add per-column empty states: when only results or upcoming exists, the other column renders a blank section. EXAMPLE: {fixtures.results.length === 0 ? <p>No recent results.</p> : fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}. */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginBottom: 40, marginTop: 20 }} className="page-split">
             <section>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
@@ -117,7 +117,7 @@ export default async function LeaguePage({ params }: Props) {
                 <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.results.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
+                {fixtures.results.length === 0 ? <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No recent results.</p> : fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
               </div>
             </section>
             <section>
@@ -126,7 +126,7 @@ export default async function LeaguePage({ params }: Props) {
                 <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.upcoming.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {fixtures.upcoming.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
+                {fixtures.upcoming.length === 0 ? <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No upcoming fixtures.</p> : fixtures.upcoming.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
               </div>
             </section>
           </div>

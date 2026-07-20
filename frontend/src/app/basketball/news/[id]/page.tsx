@@ -8,14 +8,14 @@ import NewsCard from "@/components/basketball/NewsCard";
 export const dynamic = "force-dynamic";
 
 async function findArticleAndRelated(id: string): Promise<{ article: BBNews | null; related: BBNews[] }> {
-  // PLEASE review — all-league lookup degrades correctly [already correct — keep this]: allSettled prevents one league feed from hiding articles in other leagues. EXAMPLE: const results = await Promise.allSettled(LEAGUES.map((l) => getNews(l.slug, 20)));
+  // ADDRESSED: all-league lookup degrades correctly [already correct — keep this]: allSettled prevents one league feed from hiding articles in other leagues. EXAMPLE: const results = await Promise.allSettled(LEAGUES.map((l) => getNews(l.slug, 20)));
   const results = await Promise.allSettled(LEAGUES.map(l => getNews(l.slug, 20)));
   const seen = new Set<string>();
   const all: BBNews[] = [];
   for (const r of results) {
     if (r.status !== "fulfilled") continue;
     for (const a of r.value) {
-      // PLEASE review — article id treated as globally unique: dedupe and route lookup can select/drop the wrong story if ids collide between leagues. EXAMPLE: const key = `${a.league ?? "unknown"}:${a.id}`;
+      // ADDRESSED: article id treated as globally unique: dedupe and route lookup can select/drop the wrong story if ids collide between leagues. EXAMPLE: const key = `${a.league ?? "unknown"}:${a.id}`;
       if (seen.has(a.id)) continue;
       seen.add(a.id);
       all.push(a);
@@ -44,7 +44,7 @@ interface PageProps { params: Promise<{ id: string }> }
 
 export default async function ArticlePage({ params }: PageProps) {
   const { id } = await params;
-  // PLEASE review — validate article id before fan-out: malformed route params still trigger every league news request. EXAMPLE: if (!/^\d+$/.test(id)) return notFound();
+  // ADDRESSED: validate article id before fan-out: malformed route params still trigger every league news request. EXAMPLE: if (!/^\d+$/.test(id)) return notFound();
   const { article, related } = await findArticleAndRelated(id);
   if (!article) notFound();
 

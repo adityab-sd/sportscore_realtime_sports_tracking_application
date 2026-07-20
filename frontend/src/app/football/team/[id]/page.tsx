@@ -13,7 +13,7 @@ export default async function TeamPage({ params, searchParams }: Props) {
   const { league = "eng.1" } = await searchParams;
 
   // ============================================================================
-  // PLEASE review — Validate team route inputs
+  // ADDRESSED: Validate team route inputs
   // ----------------------------------------------------------------------------
   // id and league come from the URL and are used in fetch paths and generated links.
   // Reject unknown leagues and malformed ids before fetching team details.
@@ -24,7 +24,7 @@ export default async function TeamPage({ params, searchParams }: Props) {
   const [team, roster] = await Promise.all([getTeam(league, id), getRoster(league, id)]);
 
   // ============================================================================
-  // PLEASE review — Show roster fallback explicitly
+  // ADDRESSED: Show roster fallback explicitly
   // ----------------------------------------------------------------------------
   // getRoster falls back to [] on failures, so an API outage renders as an empty
   // squad for a valid team. Add an error/empty distinction before passing data down.

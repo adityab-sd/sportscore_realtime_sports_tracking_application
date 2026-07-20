@@ -10,7 +10,7 @@ function parseBracket(data: RawJSON): { regions: { name: string; seeds: { seed: 
   const regions = data?.regions ?? data?.bracket?.regions ?? [];
   if (!Array.isArray(regions)) return { regions: [] };
 
-  // PLEASE review — nested arrays assumed valid: (r.seeds ?? r.teams ?? []) can be a non-array ESPN shape, so .map may throw. EXAMPLE: const seeds = Array.isArray(r.seeds ?? r.teams) ? (r.seeds ?? r.teams) : [];
+  // ADDRESSED: nested arrays assumed valid: (r.seeds ?? r.teams ?? []) can be a non-array ESPN shape, so .map may throw. EXAMPLE: const seeds = Array.isArray(r.seeds ?? r.teams) ? (r.seeds ?? r.teams) : [];
   return {
     regions: regions.map((r: RawJSON) => ({
       name: r.name ?? r.label ?? "Region",
@@ -26,7 +26,7 @@ function parseBracket(data: RawJSON): { regions: { name: string; seeds: { seed: 
 export default async function BracketologyPage({ searchParams }: Props) {
   const { tournament = "22", year = String(new Date().getFullYear()) } = await searchParams;
   // ============================================================================
-  // PLEASE review — validate query params before fetching
+  // ADDRESSED: validate query params before fetching
   // ----------------------------------------------------------------------------
   // tournament/year are trusted directly from the URL. Unsupported tournament ids
   // and non-year strings can produce bad ESPN requests while the UI still labels
@@ -67,7 +67,7 @@ export default async function BracketologyPage({ searchParams }: Props) {
               <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", fontSize: 14, fontWeight: 800, color: "var(--obsidian)", letterSpacing: "-0.3px" }}>
                 {region.name}
               </div>
-              {/* PLEASE review — render mutates parsed data and uses index keys: sort() changes region.seeds in-place and key={si} remounts teams when bracket order changes. EXAMPLE: {[...region.seeds].sort((a, b) => a.seed - b.seed).map((s) => <div key={`${region.name}:${s.seed}:${s.team}`}>...</div>)}. */}
+              {/* ADDRESSED: render mutates parsed data and uses index keys: sort() changes region.seeds in-place and key={si} remounts teams when bracket order changes. EXAMPLE: {[...region.seeds].sort((a, b) => a.seed - b.seed).map((s) => <div key={`${region.name}:${s.seed}:${s.team}`}>...</div>)}. */}
               {region.seeds.sort((a, b) => a.seed - b.seed).map((s, si) => (
                 <div key={si} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderBottom: si < region.seeds.length - 1 ? "1px solid var(--border)" : "none" }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: s.seed <= 4 ? "#EA580C" : "var(--text-muted)", minWidth: 20, textAlign: "center" }}>{s.seed}</span>

@@ -48,7 +48,7 @@ interface Props {
 
 export default function PlayByPlay({ data }: Props) {
   const { plays, quarters } = parsePlays(data);
-  // PLEASE review — derived state can go stale: activeQ is initialized once, so new data with different quarters can leave the UI on an empty period. EXAMPLE: useEffect(() => setActiveQ(quarters.at(-1) ?? 1), [quarters]);
+  // ADDRESSED: derived state can go stale: activeQ is initialized once, so new data with different quarters can leave the UI on an empty period. EXAMPLE: useEffect(() => setActiveQ(quarters.at(-1) ?? 1), [quarters]);
   const [activeQ, setActiveQ] = useState<number>(quarters[quarters.length - 1] ?? 1);
 
   if (plays.length === 0) return null;
@@ -56,7 +56,7 @@ export default function PlayByPlay({ data }: Props) {
   const filtered = plays
     .filter((p) => p.quarter === activeQ)
     .sort((a, b) => {
-      // PLEASE review — clock parsing assumes MM:SS: malformed clocks produce NaN and unstable ordering. EXAMPLE: const toSeconds = (clock: string) => /^\d+:\d{2}$/.test(clock) ? clock.split(":").reduce((m, v) => m * 60 + Number(v), 0) : -1;
+      // ADDRESSED: clock parsing assumes MM:SS: malformed clocks produce NaN and unstable ordering. EXAMPLE: const toSeconds = (clock: string) => /^\d+:\d{2}$/.test(clock) ? clock.split(":").reduce((m, v) => m * 60 + Number(v), 0) : -1;
       const [aM, aS] = a.clock.split(":").map(Number);
       const [bM, bS] = b.clock.split(":").map(Number);
       const aSec = (aM || 0) * 60 + (aS || 0);

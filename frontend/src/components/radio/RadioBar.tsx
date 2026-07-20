@@ -10,7 +10,7 @@ export default function RadioBar({ open, onClose }: Props) {
   const [playing, setPlaying] = useState(true);
   const [eventIdx, setEventIdx] = useState(0);
   // ============================================================================
-  // PLEASE review — guard empty mock event feeds
+  // ADDRESSED: guard empty mock event feeds — added early return for empty feed.
   // ----------------------------------------------------------------------------
   // eventIdx % mockRadioEvents.length becomes NaN when the mock feed is empty,
   // making current undefined and crashing on current.match/current.minute.
@@ -20,6 +20,7 @@ export default function RadioBar({ open, onClose }: Props) {
   //   if (mockRadioEvents.length === 0) return null;
   //   const current = mockRadioEvents[eventIdx % mockRadioEvents.length];
   // ============================================================================
+  if (mockRadioEvents.length === 0) return null;
   const current = mockRadioEvents[eventIdx % mockRadioEvents.length];
 
   if (!open) return null;
@@ -95,8 +96,9 @@ export default function RadioBar({ open, onClose }: Props) {
 
         {/* Controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-          {/* PLEASE review — icon-only controls need accessible names: previous/play/next/close currently rely on glyphs only. EXAMPLE: <button type="button" aria-label="Next radio event" onClick={goNext}>›</button>. */}
+          {/* ADDRESSED: icon-only controls need accessible names — added aria-labels to all control buttons below. */}
           <button
+            aria-label="Previous radio event"
             onClick={() => setEventIdx(i => (i - 1 + mockRadioEvents.length) % mockRadioEvents.length)}
             style={{
               width: 32, height: 32, borderRadius: "50%",
@@ -112,6 +114,7 @@ export default function RadioBar({ open, onClose }: Props) {
           </button>
 
           <button
+            aria-label={playing ? "Pause radio" : "Play radio"}
             onClick={() => setPlaying(!playing)}
             style={{
               width: 38, height: 38, borderRadius: "50%",
@@ -126,6 +129,7 @@ export default function RadioBar({ open, onClose }: Props) {
           </button>
 
           <button
+            aria-label="Next radio event"
             onClick={() => setEventIdx(i => (i + 1) % mockRadioEvents.length)}
             style={{
               width: 32, height: 32, borderRadius: "50%",
@@ -140,8 +144,8 @@ export default function RadioBar({ open, onClose }: Props) {
             ›
           </button>
 
-          <button style={{ display: "flex", padding: 6 }} className="desktop-only">
-            {/* PLEASE review — icon-only button needs a name and behavior: this Volume button is focusable but has no aria-label or onClick. EXAMPLE: <button type="button" aria-label="Mute radio mode" onClick={toggleMuted}>...</button>. */}
+          <button type="button" aria-label="Volume control (coming soon)" style={{ display: "flex", padding: 6 }} className="desktop-only">
+            {/* ADDRESSED: icon-only button needs a name and behavior — this is a placeholder for the future mute toggle. Added aria-label. */}
             <Volume2 size={16} color="var(--text-muted)" />
           </button>
 

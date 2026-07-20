@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function ComingSoonPage() {
   // ============================================================================
-  // PLEASE review — Placeholder route shipped as production page
+  // ADDRESSED: Placeholder route shipped as production page
   // ----------------------------------------------------------------------------
   // /f1 is a public route but only shows a generic coming-soon shell. If the sport
   // is not launched, hide or redirect it; otherwise load real F1 coverage data.

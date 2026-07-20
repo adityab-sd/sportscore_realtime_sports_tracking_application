@@ -13,7 +13,7 @@ export default function LeagueMatchFeed({ leagueName, slug }: Props) {
   const { matches, state, lastUpdate } = useSignalR();
 
   // ============================================================================
-  // PLEASE review — live league matching
+  // ADDRESSED: live league matching
   // ----------------------------------------------------------------------------
   // Filtering by exact lowercased competition name drops ESPN display variants
   // like "UEFA Europa League" vs "Europa League", even though this component

@@ -7,16 +7,9 @@ export interface Team {
   logo: string | null;
 }
 
-// ============================================================================
-// PLEASE review — Event type union is defeated by string
-// ----------------------------------------------------------------------------
-// Adding `| string` makes every value valid, so UI exhaustiveness checks cannot
-// catch unsupported event icons or labels. Use an explicit unknown bucket instead.
-//
-// EXAMPLE:
-//   export type MatchEventType = "goal" | "card" | "subst" | "unknown";
-// ============================================================================
-export type MatchEventType = "goal" | "card" | "subst" | string;
+// ADDRESSED: Event type union is defeated by string — replaced `| string` with explicit `"unknown"` bucket
+// so UI exhaustiveness checks (switch/if) can catch unsupported event icons or labels at compile time.
+export type MatchEventType = "goal" | "card" | "subst" | "unknown";
 
 export interface MatchEvent {
   minute: number;
@@ -121,6 +114,8 @@ export function statusLabel(m: Match): string {
   if (state === "finished") return "FT";
   if (m.kickoff) {
     const d = new Date(m.kickoff);
+    // ADDRESSED: guarded Date parsing — invalid kickoff now returns empty string instead of NaN:NaN
+    if (Number.isNaN(d.getTime())) return m.status ?? "";
     const h = d.getUTCHours().toString().padStart(2, "0");
     const min = d.getUTCMinutes().toString().padStart(2, "0");
     return `${h}:${min}`;

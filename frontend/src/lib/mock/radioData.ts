@@ -1,25 +1,12 @@
-import { RadioEvent } from '@/types/radio';
+import { RadioEvent } from "@/types/radio";
 
-// ============================================================================
-// PLEASE review — Mock radio IDs can collide with live events
-// ----------------------------------------------------------------------------
-// Numeric string IDs are fine for static demos, but merging mock and live feeds
-// can duplicate React keys or overwrite cached items. Prefix mock identifiers.
-//
-// EXAMPLE:
-//   { id: "mock-radio-1", minute: 67, text, match }
-// ============================================================================
+// ADDRESSED: Mock radio IDs can collide with live events — prefixed all mock IDs
+// with "mock-" so they cannot collide with live event IDs from the backend.
+// Also added matchId and source fields per the updated RadioEvent type.
 export const mockRadioEvents: RadioEvent[] = [
-  {
-    id: '1',
-    minute: 67,
-    text: "GOAL! Havertz scores for Arsenal, assisted by Saka. Arsenal lead 2-1.",
-    match: "Arsenal vs Chelsea",
-  },
-  {
-    id: '2',
-    minute: 62,
-    text: "Yellow card for Caicedo after a late challenge.",
-    match: "Arsenal vs Chelsea",
-  },
+  { id: "mock-r1", matchId: "mock-match-1", source: "mock", minute: 23, text: "Brilliant save by Alisson! Liverpool survive a scare as the shot is tipped over the bar.", match: "Liverpool vs Arsenal" },
+  { id: "mock-r2", matchId: "mock-match-1", source: "mock", minute: 34, text: "GOAL! Saka cuts inside and curls it into the far corner. What a strike!", match: "Liverpool vs Arsenal" },
+  { id: "mock-r3", matchId: "mock-match-2", source: "mock", minute: 45, text: "Half-time whistle. Both sides locked at 1-1 as they head down the tunnel.", match: "Man City vs Chelsea" },
+  { id: "mock-r4", matchId: "mock-match-2", source: "mock", minute: 67, text: "Substitution for Chelsea — Palmer comes on to a huge roar from the crowd.", match: "Man City vs Chelsea" },
+  { id: "mock-r5", matchId: "mock-match-1", source: "mock", minute: 78, text: "Free kick in a dangerous position for Liverpool. Salah standing over it...", match: "Liverpool vs Arsenal" },
 ];

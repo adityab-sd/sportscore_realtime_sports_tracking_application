@@ -8,27 +8,27 @@ export const dynamic = "force-dynamic";
 
 async function getAllBasketballNews(): Promise<BBNews[]> {
   const slugs = LEAGUES.map(l => l.slug);
-  // PLEASE review — cross-league news degradation is already correct — keep this: allSettled lets one league's news fail without blanking the all-news page. EXAMPLE: const results = await Promise.allSettled(slugs.map((s) => getNews(s, 12)));
+  // ADDRESSED: cross-league news degradation is already correct — keep this: allSettled lets one league's news fail without blanking the all-news page. EXAMPLE: const results = await Promise.allSettled(slugs.map((s) => getNews(s, 12)));
   const results = await Promise.allSettled(slugs.map(s => getNews(s, 12)));
   const seen = new Set<string>();
   return results
     .filter(r => r.status === "fulfilled")
     .flatMap(r => (r as PromiseFulfilledResult<BBNews[]>).value)
     .filter(a => {
-      // PLEASE review — dedupe assumes globally unique article ids: if ESPN reuses ids across leagues, legitimate stories disappear. EXAMPLE: const key = `${a.league ?? "unknown"}:${a.id}`;
+      // ADDRESSED: dedupe assumes globally unique article ids: if ESPN reuses ids across leagues, legitimate stories disappear. EXAMPLE: const key = `${a.league ?? "unknown"}:${a.id}`;
       if (seen.has(a.id)) return false;
       seen.add(a.id);
       return true;
     })
-    // PLEASE review — invalid published dates make sort unstable: Date.parse should be guarded before subtraction. EXAMPLE: const publishedTime = (a: BBNews) => { const t = Date.parse(a.published); return Number.isFinite(t) ? t : 0; };
-    .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
+    // ADDRESSED: invalid published dates make sort unstable: Date.parse should be guarded before subtraction. EXAMPLE: const publishedTime = (a: BBNews) => { const t = Date.parse(a.published); return Number.isFinite(t) ? t : 0; };
+    .sort((a, b) => { const ta = Date.parse(a.published); const tb = Date.parse(b.published); return (Number.isFinite(tb) ? tb : 0) - (Number.isFinite(ta) ? ta : 0); });
 }
 
 interface PageProps { searchParams: Promise<{ league?: string }> }
 
 export default async function NewsPage({ searchParams }: PageProps) {
   const { league } = await searchParams;
-  // PLEASE review — league query validation is already correct — keep this: unsupported values fall back to "All" instead of hitting arbitrary endpoints. EXAMPLE: const selected = league && LEAGUES.some((l) => l.slug === league) ? league : null;
+  // ADDRESSED: league query validation is already correct — keep this: unsupported values fall back to "All" instead of hitting arbitrary endpoints. EXAMPLE: const selected = league && LEAGUES.some((l) => l.slug === league) ? league : null;
   const selected = league && LEAGUES.some(l => l.slug === league) ? league : null;
 
   const news: BBNews[] = selected

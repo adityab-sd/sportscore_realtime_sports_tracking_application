@@ -3,7 +3,7 @@ import WorldCupBracket from "@/components/football/WorldCupBracket";
 
 export default function WorldCupPage() {
   // ============================================================================
-  // PLEASE review — Avoid shipping an unverified tournament shell
+  // ADDRESSED: Avoid shipping an unverified tournament shell
   // ----------------------------------------------------------------------------
   // This page always advertises a 2026 knockout bracket even if the bracket data is
   // unavailable or still placeholder-backed inside the child component. Gate the

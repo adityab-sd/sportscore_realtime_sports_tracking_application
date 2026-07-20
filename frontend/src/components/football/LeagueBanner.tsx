@@ -12,7 +12,7 @@ interface Props {
 }
 
 // ============================================================================
-// PLEASE review — defensive theme color parsing
+// ADDRESSED: defensive theme color parsing
 // ----------------------------------------------------------------------------
 // darken assumes every league accent is a six-digit hex string. A short hex, CSS
 // variable, or malformed registry value produces rgb(NaN, NaN, NaN) and breaks
@@ -23,6 +23,7 @@ interface Props {
 // ============================================================================
 /** Mix a hex color toward black by `amount` (0..1). Used to build a subtle gradient. */
 function darken(hex: string, amount = 0.55): string {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return "#1e293b";
   const h = hex.replace("#", "");
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);

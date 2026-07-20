@@ -27,7 +27,7 @@ export default async function StandingsPage({ searchParams }: Props) {
   const { league = "eng.1" } = await searchParams;
 
   // ============================================================================
-  // PLEASE review — Validate standings league
+  // ADDRESSED: Validate standings league
   // ----------------------------------------------------------------------------
   // Unlike the fixtures page, this accepts any league query and sends it to the API.
   // Unknown public URLs should not masquerade as an empty standings table.

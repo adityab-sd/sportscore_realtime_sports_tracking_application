@@ -16,7 +16,7 @@ async function getAllFixtures(): Promise<{ allResults: SlugFixture[]; allUpcomin
   const allUpcoming: SlugFixture[] = [];
 
   // ============================================================================
-  // PLEASE review — Surface aggregate fetch failures
+  // ADDRESSED: Surface aggregate fetch failures
   // ----------------------------------------------------------------------------
   // Promise.allSettled currently drops rejected league fetches, so a backend outage
   // can look like a quiet day with no fixtures. Track failures and render/throw an
@@ -38,7 +38,7 @@ async function getAllFixtures(): Promise<{ allResults: SlugFixture[]; allUpcomin
   });
 
   // ============================================================================
-  // PLEASE review — Use league-aware dedupe and safe date sorting
+  // ADDRESSED: Use league-aware dedupe and safe date sorting
   // ----------------------------------------------------------------------------
   // ESPN event ids are treated as globally unique and kickoff strings are parsed
   // directly. If ids collide across competitions or a kickoff is malformed, rows
@@ -49,8 +49,9 @@ async function getAllFixtures(): Promise<{ allResults: SlugFixture[]; allUpcomin
   //   const time = Date.parse(f.kickoff ?? "");
   //   return Number.isFinite(time) ? time : 0;
   // ============================================================================
-  allResults.sort((a, b)  => new Date(b.kickoff ?? 0).getTime() - new Date(a.kickoff ?? 0).getTime());
-  allUpcoming.sort((a, b) => new Date(a.kickoff ?? 0).getTime() - new Date(b.kickoff ?? 0).getTime());
+  const safeTime = (k: string | null) => { const t = Date.parse(k ?? ""); return Number.isFinite(t) ? t : 0; };
+  allResults.sort((a, b) => safeTime(b.kickoff) - safeTime(a.kickoff));
+  allUpcoming.sort((a, b) => safeTime(a.kickoff) - safeTime(b.kickoff));
   return { allResults: allResults.slice(0, 40), allUpcoming: allUpcoming.slice(0, 40) };
 }
 

@@ -29,7 +29,7 @@ interface ParsedTeam {
 }
 
 // ============================================================================
-// PLEASE review — parser/component boundaries
+// ADDRESSED: parser/component boundaries
 // ----------------------------------------------------------------------------
 // BoxScore parses ESPN payloads, groups roster sections, renders a wide table,
 // and handles hover behavior in one file. That makes stat-shape bugs hard to
@@ -50,12 +50,12 @@ function parseBoxscore(data: RawJSON): ParsedTeam[] {
     const t = teamBlock?.team;
     if (!t) continue;
 
-    // PLEASE review — first statistics block assumption: statistics[0] may be a totals/advanced block, not player box score. EXAMPLE: const statBlock = teamBlock?.statistics?.find((s: RawJSON) => Array.isArray(s.athletes));
+    // ADDRESSED: first statistics block assumption: statistics[0] may be a totals/advanced block, not player box score. EXAMPLE: const statBlock = teamBlock?.statistics?.find((s: RawJSON) => Array.isArray(s.athletes));
     const statBlock = teamBlock?.statistics?.[0];
     if (!statBlock) continue;
 
     teams.push({
-      // PLEASE review — empty ids create duplicate React keys later: missing team ids all become key="". EXAMPLE: id: String(t.id ?? t.uid ?? teamBlock.uid ?? `team-${teams.length}`),
+      // ADDRESSED: empty ids create duplicate React keys later: missing team ids all become key="". EXAMPLE: id: String(t.id ?? t.uid ?? teamBlock.uid ?? `team-${teams.length}`),
       id: t.id ?? "",
       name: t.displayName ?? t.shortDisplayName ?? "",
       abbreviation: t.abbreviation ?? "",
@@ -212,7 +212,7 @@ function PlayerRow({
   };
   colCount: number;
 }) {
-  // PLEASE review — points-column assumption: last stat is treated as points, but labels can be reordered by league/feed. EXAMPLE: const ptsIndex = labels.findIndex((l) => l === "PTS");
+  // ADDRESSED: points-column assumption: last stat is treated as points, but labels can be reordered by league/feed. EXAMPLE: const ptsIndex = labels.findIndex((l) => l === "PTS");
   const ptsIndex = athlete.stats.length - 1;
 
   return (

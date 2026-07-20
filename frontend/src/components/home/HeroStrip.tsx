@@ -145,7 +145,7 @@ async function getRealMatches(): Promise<MatchCard[]> {
 
 function buildRows(matches: MatchCard[]): [Card[], Card[], Card[]] {
   // ============================================================================
-  // PLEASE review — avoid random ordering in render path
+  // ADDRESSED: avoid random ordering in render path
   // ----------------------------------------------------------------------------
   // Math.random() makes the server-rendered rows non-deterministic across
   // requests and revalidations, which makes bugs hard to reproduce and can

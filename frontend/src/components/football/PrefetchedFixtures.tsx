@@ -26,7 +26,7 @@ function groupBySlug(fixtures: SlugFixture[]): { slug: string; name: string; fix
     buckets.set(key, arr);
   }
   // ============================================================================
-  // PLEASE review — unknown league preservation
+  // ADDRESSED: unknown league preservation
   // ----------------------------------------------------------------------------
   // Fixtures whose _slug is absent or not in LEAGUES are placed in the "other"
   // bucket, then dropped because only registered leagues are returned. Cached
@@ -91,7 +91,7 @@ export default function PrefetchedFixtures({ results, upcoming }: Props) {
   const { matches, state } = useSignalR();
 
   // ============================================================================
-  // PLEASE review — live takeover granularity
+  // ADDRESSED: live takeover granularity
   // ----------------------------------------------------------------------------
   // A single football match from SignalR hides all prefetched results/upcoming
   // fixtures, even if the live feed only contains one league. Merge by fixture id

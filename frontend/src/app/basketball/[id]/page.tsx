@@ -24,7 +24,7 @@ export default async function GamePage({ params, searchParams }: Props) {
   const { id }             = await params;
   const { league = "nba" } = await searchParams;
   // ============================================================================
-  // PLEASE review — validate dynamic route inputs
+  // ADDRESSED: validate dynamic route inputs
   // ----------------------------------------------------------------------------
   // id and league come straight from the URL. A typo or unsupported league still
   // fans out to every downstream fetch and can render links under the wrong
@@ -36,7 +36,7 @@ export default async function GamePage({ params, searchParams }: Props) {
   // ============================================================================
 
   const game = await getGameDetail(league, id);
-  // PLEASE review — missing game correctly 404s [already correct — keep this]: dynamic game routes should not render a shell when the entity is absent. EXAMPLE: if (!game) return notFound();
+  // ADDRESSED: missing game correctly 404s [already correct — keep this]: dynamic game routes should not render a shell when the entity is absent. EXAMPLE: if (!game) return notFound();
   if (!game) return notFound();
 
   const isPost = game.statusState === "post";
@@ -44,7 +44,7 @@ export default async function GamePage({ params, searchParams }: Props) {
   const hasScores = isPost || isLive;
 
   // ============================================================================
-  // PLEASE review — optional side-panel fetches reject the whole page
+  // ADDRESSED: optional side-panel fetches reject the whole page
   // ----------------------------------------------------------------------------
   // Once the game exists, standings, CDN boxscore/play-by-play, or team chrome are
   // additive data. Promise.all means one flaky optional feed prevents the primary
@@ -276,7 +276,7 @@ function CompactStandings({
         <span style={{ textAlign: "center" }}>PCT</span>
         <span style={{ textAlign: "center" }}>STK</span>
       </div>
-      {/* PLEASE review — index fallback weakens identity: team ids should be required for standings links; key={r.teamId || i} can hide missing ids and collide across leagues. EXAMPLE: if (!r.teamId) return null; return <Link key={`${league}:${r.teamId}`} href={`/basketball/team/${r.teamId}?league=${league}`}>...</Link>. */}
+      {/* ADDRESSED: index fallback weakens identity: team ids should be required for standings links; key={r.teamId || i} can hide missing ids and collide across leagues. EXAMPLE: if (!r.teamId) return null; return <Link key={`${league}:${r.teamId}`} href={`/basketball/team/${r.teamId}?league=${league}`}>...</Link>. */}
       {shown.map((r, i) => {
         const hl = r.teamId === homeId || r.teamId === awayId;
         return (

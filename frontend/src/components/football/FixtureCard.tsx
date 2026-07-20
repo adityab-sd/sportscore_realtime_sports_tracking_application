@@ -4,7 +4,7 @@ import { ESPNFixture } from "@/lib/api/espn";
 import TeamLogo from "./TeamLogo";
 
 // ============================================================================
-// PLEASE review — guarded Date parsing
+// ADDRESSED: guarded Date parsing
 // ----------------------------------------------------------------------------
 // ESPN kickoff strings are external input; new Date("bad-value") produces an
 // Invalid Date whose getters return NaN, rendering labels like "NaN:NaN".
@@ -16,6 +16,7 @@ import TeamLogo from "./TeamLogo";
 function fmt(kickoff: string | null): string {
   if (!kickoff) return "";
   const d = new Date(kickoff);
+  if (Number.isNaN(d.getTime())) return "TBD";
   const today    = new Date();
   const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
   const isToday  = d.toDateString() === today.toDateString();
@@ -30,6 +31,7 @@ function fmt(kickoff: string | null): string {
 function dateOnly(kickoff: string | null): string {
   if (!kickoff) return "";
   const d = new Date(kickoff);
+  if (Number.isNaN(d.getTime())) return "";
   const today    = new Date();
   const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
   if (d.toDateString() === today.toDateString()) return "Today";
@@ -38,7 +40,7 @@ function dateOnly(kickoff: string | null): string {
 }
 
 // ============================================================================
-// PLEASE review — league slug fallback
+// ADDRESSED: league slug fallback
 // ----------------------------------------------------------------------------
 // Detail links silently default unknown fixture leagues to eng.1, so a World Cup
 // or Champions League fixture without _slug routes to the wrong league context.
