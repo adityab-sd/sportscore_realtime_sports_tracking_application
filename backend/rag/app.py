@@ -55,7 +55,7 @@ Category:"""
         return "live" if "live" in answer else "knowledge"
     except Exception:
         app.logger.exception("Classification call failed or was blocked by content filter")
-        return "knowledge"  
+        return "knowledge"
 
 
 def _generate_answer(context, question):

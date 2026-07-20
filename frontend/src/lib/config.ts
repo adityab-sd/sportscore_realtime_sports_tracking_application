@@ -1,15 +1,15 @@
-/**
- * Central configuration for all data sources.
- *
- * LIVE MATCHES     → Azure SignalR push (real-time, from the team's backend)
- * REFERENCE DATA   → ESPN public API, called server-side from Next.js routes
- *                    (no key required, no CORS issues, confirmed by Aditya)
- *
- * The SignalR access key is server-only (never NEXT_PUBLIC).
- * ESPN is called only from server components / route handlers - never from the browser.
- */
 
 // ── SignalR ──
+// ============================================================================
+// PLEASE review — Real SignalR endpoint is committed as a fallback
+// ----------------------------------------------------------------------------
+// NEXT_PUBLIC_ values are bundled into the browser, which is acceptable for a
+// public endpoint but never for secrets. The committed fallback still exposes
+// real infrastructure when env configuration is missing.
+//
+// EXAMPLE:
+//   export const SIGNALR_ENDPOINT = process.env.NEXT_PUBLIC_SIGNALR_ENDPOINT ?? "";
+// ============================================================================
 export const SIGNALR_ENDPOINT =
   process.env.NEXT_PUBLIC_SIGNALR_ENDPOINT || "https://sportsscore-sr.service.signalr.net";
 
@@ -24,6 +24,17 @@ export const ESPN_CORE = "https://sports.core.api.espn.com/v2/sports/soccer/leag
 
 export const HAS_REST_BACKEND = true;
 
+// ============================================================================
+// PLEASE review — Null-on-error contract must be enforced at callers
+// ----------------------------------------------------------------------------
+// Swallowing ESPN failures is intentional for graceful degradation, but every
+// caller must branch on null before dereferencing the response. Also consider an
+// AbortController so slow upstream requests do not hang the page render.
+//
+// EXAMPLE:
+//   const data = await espnGet<Scoreboard>(url);
+//   if (!data) return <EmptyState title="Scores unavailable" />;
+// ============================================================================
 /** Fetch from ESPN server-side. Returns null on any failure - never throws. */
 export async function espnGet<T>(url: string, revalidate = 300): Promise<T | null> {
   try {

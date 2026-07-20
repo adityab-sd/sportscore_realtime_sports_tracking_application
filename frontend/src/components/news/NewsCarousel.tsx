@@ -1,9 +1,30 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ESPNNews } from "@/lib/api/espn";
+import { NewsArticle } from "./NewsCard";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NewsCarousel — auto-advancing hero carousel used on the home page.
+// Accepts a `sport` prop so it can link to the correct news route.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NewsCarouselProps {
+  articles: NewsArticle[];
+  sport?: "football" | "basketball";
+}
 
 function timeAgo(iso: string): string {
+  // ============================================================================
+  // PLEASE review — avoid Date.now() in render-derived text
+  // ----------------------------------------------------------------------------
+  // timeAgo is called during render, so the label can differ between hydration
+  // and later renders, then stay stale until carousel state changes. Pass a
+  // server-computed label or update a clock state on a cleaned-up interval.
+  //
+  // EXAMPLE:
+  //   const [now, setNow] = useState(() => Date.now());
+  //   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
+  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";
@@ -25,7 +46,7 @@ function SlideImage({ src, alt }: { src: string | null; alt: string }) {
   );
 }
 
-export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
+export default function NewsCarousel({ articles, sport = "football" }: NewsCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
@@ -40,17 +61,33 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
   const next = useCallback(() => go(current === total - 1 ? 0 : current + 1), [current, total, go]);
   const prev_ = useCallback(() => go(current === 0 ? total - 1 : current - 1), [current, total, go]);
 
+  // ============================================================================
+  // PLEASE review — guard carousel timer when empty
+  // ----------------------------------------------------------------------------
+  // Hooks run even when the component returns null below, so an empty articles
+  // array still schedules next() and can move current to an invalid slide index.
+  // Keep the timer disabled unless there are slides to advance.
+  //
+  // EXAMPLE:
+  //   useEffect(() => {
+  //     if (paused || total === 0) return;
+  //     const id = setTimeout(next, 4000);
+  //     return () => clearTimeout(id);
+  //   }, [paused, total, next]);
+  // ============================================================================
   useEffect(() => {
     if (paused) return;
-    timerRef.current = setTimeout(next, 5000);
+    timerRef.current = setTimeout(next, 4000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [current, paused, next]);
 
   if (!articles.length) return null;
 
+  const newsBase = `/${sport}/news`;
+
   return (
     <div
-      style={{ position: "relative", width: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
+      style={{ position: "relative", width: "100%", height: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -60,7 +97,7 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
         return (
           <Link
             key={a.id}
-            href={`/football/news/${a.id}`}
+            href={`${newsBase}/${a.id}`}
             style={{
               position: "absolute", inset: 0, textDecoration: "none",
               opacity: isActive ? 1 : 0,
@@ -95,13 +132,14 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
         );
       })}
 
-      {/* Arrows — stopPropagation so clicking doesn't trigger the Link */}
+      {/* Prev arrow */}
       <button onClick={e => { e.preventDefault(); e.stopPropagation(); prev_(); }} aria-label="Previous story"
         style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
         onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
       >‹</button>
 
+      {/* Next arrow */}
       <button onClick={e => { e.preventDefault(); e.stopPropagation(); next(); }} aria-label="Next story"
         style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
@@ -110,11 +148,13 @@ export default function NewsCarousel({ articles }: { articles: ESPNNews[] }) {
 
       {/* Progress bar */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.1)", zIndex: 10 }}>
+        {/* PLEASE review — timer/progress mismatch: slides advance after 4000ms but the bar animates for 5s, so it resets before reaching 100%. EXAMPLE: <div style={{ animation: paused ? "none" : "carouselProgress 4s linear forwards" }} />. */}
         <div key={current} style={{ height: "100%", background: "var(--blue)", animation: paused ? "none" : "carouselProgress 5s linear forwards", width: paused ? "0%" : undefined }} />
       </div>
 
       {/* Dots */}
       <div style={{ position: "absolute", bottom: 16, right: 52, display: "flex", gap: 6, zIndex: 10 }}>
+        {/* PLEASE review — avoid index keys for controls: if stories are inserted or reordered, focus/state can move to the wrong dot. EXAMPLE: <button key={articles[i].id} ... />. */}
         {articles.map((_, i) => (
           <button key={i} onClick={e => { e.preventDefault(); e.stopPropagation(); go(i); }} aria-label={`Go to story ${i + 1}`}
             style={{ width: i === current ? 20 : 6, height: 6, borderRadius: 3, background: i === current ? "#fff" : "rgba(255,255,255,0.35)", border: "none", cursor: "pointer", padding: 0, transition: "width 300ms ease, background 300ms ease" }}

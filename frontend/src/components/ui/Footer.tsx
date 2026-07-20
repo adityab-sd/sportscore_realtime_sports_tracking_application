@@ -1,6 +1,16 @@
 import Link from "next/link";
 
 const columns = [
+  // ============================================================================
+  // PLEASE review — avoid hard-coded footer routes
+  // ----------------------------------------------------------------------------
+  // Footer links are maintained separately from the Navbar/SportCards configs, so
+  // unavailable sports or renamed routes can drift and produce dead navigation.
+  // Generate this from the same sport registry used by the primary navigation.
+  //
+  // EXAMPLE:
+  //   const columns = buildFooterColumns(SPORTS_NAV.filter((sport) => sport.enabled));
+  // ============================================================================
   {
     title: "Sports",
     links: [
@@ -34,7 +44,7 @@ const legal = ["Terms of Use", "Privacy Policy", "Cookie Policy", "Accessibility
 
 export default function Footer() {
   return (
-    <footer style={{ background: "var(--navy)", color: "#fff", marginTop: 48 }}>
+    <footer style={{ background: "var(--navy)", color: "#fff" }}>
       <div className="container" style={{ paddingTop: 48, paddingBottom: 32 }}>
         <div className="footer-cols">
           {/* Brand column */}
@@ -93,7 +103,7 @@ export default function Footer() {
             ))}
           </div>
           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-            © 2026 SportScore · Built for COMP47250
+            ©️ 2026 SportScore · Built for COMP47250
           </span>
         </div>
       </div> */}

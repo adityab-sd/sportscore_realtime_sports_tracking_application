@@ -68,10 +68,10 @@ def _detect_sport(question):
     tokens = set(re.findall(r"[a-z\-]+", q_lower))
 
     for kw in BASKETBALL_KEYWORDS:
-        if " " in kw:  # multi-word phrase
+        if " " in kw:
             if kw in q_lower:
                 return "basketball"
-        elif kw in tokens:  # single word — whole word only
+        elif kw in tokens:
             return "basketball"
 
     for kw in FOOTBALL_KEYWORDS:
@@ -101,7 +101,7 @@ def _search_index(index_name, search_text, top=3):
         fuzzy_query = _make_fuzzy_query(search_text)
         return list(client.search(
             search_text=fuzzy_query,
-            query_type="full",  # enables Lucene syntax, required for fuzzy (~) matching
+            query_type="full",
             top=top
         ))
     except Exception:
@@ -112,7 +112,6 @@ def _search_all_indices(search_text, sport=None, top=3):
     """Search across relevant indices and return results, merged by relevance score."""
     all_results = []
     for index_name in INDICES:
-        # If sport detected, only search the relevant index
         if sport == "basketball" and index_name != "basketball-index":
             continue
         if sport == "football" and index_name != "football-index":
@@ -120,17 +119,8 @@ def _search_all_indices(search_text, sport=None, top=3):
         results = _search_index(index_name, search_text, top=top)
         all_results.extend(results)
 
-    # Merge by Azure's own relevance score instead of index order,
-    # so a strong match from a later index isn't dropped in favour
-    # of weaker matches from an earlier one.
     all_results.sort(key=lambda r: r.get("@search.score", 0), reverse=True)
 
-    # If no sport was explicitly detected in the question (e.g. due to a
-    # typo like "basektball"), results may come from BOTH indices mixed
-    # together, which can surface an irrelevant sport's entry alongside
-    # the real answer. As a safety net, once we have at least one result,
-    # infer the sport from the top-scoring hit and drop any results from
-    # the other sport, rather than mixing unrelated categories.
     if sport is None and all_results:
         top_sport = all_results[0].get("sport")
         if top_sport:
@@ -143,17 +133,9 @@ def search_corpus(question, top=3):
     """
     Runs the two-round search strategy across football and basketball
     KNOWLEDGE indices (rules, formations, strategies, competitions).
-
-    Returns:
-      {
-        "found": True/False,
-        "round_used": 1 or 2 or None,
-        "results": [ {id, title, category, content, source}, ... ]
-      }
     """
     sport = _detect_sport(question)
 
-    # ── ROUND 1: exact search with the full question ──
     round1_results = _search_all_indices(question, sport=sport, top=top)
     if round1_results:
         return {
@@ -162,7 +144,6 @@ def search_corpus(question, top=3):
             "results": [_format_result(r) for r in round1_results[:top]]
         }
 
-    # ── ROUND 2: broader search using extracted key words ──
     keywords = _extract_keywords(question)
     round2_results = _search_all_indices(keywords, sport=sport, top=top)
     if round2_results:
@@ -172,12 +153,12 @@ def search_corpus(question, top=3):
             "results": [_format_result(r) for r in round2_results[:top]]
         }
 
-    # ── Nothing found in either round ──
     return {
         "found": False,
         "round_used": None,
         "results": []
     }
+
 
 def _extract_match_date(content):
     """Pulls the ISO date (YYYY-MM-DD) out of a live match content string
@@ -186,15 +167,12 @@ def _extract_match_date(content):
     match = re.search(r"(\d{4}-\d{2}-\d{2})T", content)
     return match.group(1) if match else ""
 
+
 def search_live_corpus(question, top=6):
     """
     Fetches ALL current documents from the live index and ranks them
     locally by relevance + recency, instead of relying on Azure's
-    keyword-based relevance search. The live index is refreshed every
-    30 seconds and isn't large, so it's cheap to fetch everything and
-    score it ourselves — this avoids Azure's relevance ranking picking
-    an arbitrary subset when many documents share the same vocabulary
-    (e.g. every World Cup match contains "World Cup 2026").
+    keyword-based relevance search.
     """
     all_results = _search_index(LIVE_INDEX, "*", top=300)
     if not all_results:
@@ -207,8 +185,6 @@ def search_live_corpus(question, top=6):
         text_words = set(re.findall(r"[a-z']+", text))
         return len(q_words & text_words)
 
-    # Rank by (1) how many meaningful question words appear in the
-    # document, then (2) most recent match date as a tie-breaker.
     scored = [
         (relevance(r), _extract_match_date(r.get("content", "")), r)
         for r in all_results
@@ -223,6 +199,7 @@ def search_live_corpus(question, top=6):
         "results": [_format_result(r) for r in top_results]
     }
 
+
 def _format_result(r):
     return {
         "id": r.get("id", ""),
@@ -232,12 +209,12 @@ def _format_result(r):
         "source": r.get("source", "")
     }
 
+
 def search_fallback_anything(top=3):
     """
     Absolute last resort — grabs a handful of documents from ANY index
     (both knowledge bases + the live index) so the assistant always has
-    something to reason over, instead of returning zero context. Only
-    used when every targeted search has already failed.
+    something to reason over, instead of returning zero context.
     """
     all_results = []
     for index_name in INDICES + [LIVE_INDEX]:
@@ -251,6 +228,7 @@ def search_fallback_anything(top=3):
         "round_used": "fallback",
         "results": [_format_result(r) for r in all_results[:top]]
     }
+
 
 # ── Quick test when running directly ──
 if __name__ == "__main__":

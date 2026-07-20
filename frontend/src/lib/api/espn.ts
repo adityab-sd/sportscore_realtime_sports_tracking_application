@@ -1,15 +1,31 @@
-/**
- * Reference data — now served by OUR backend (Hema) as clean JSON.
- * The backend owns all ESPN parsing; this file just fetches and returns.
- * Every interface below is unchanged, so no component needs editing.
- *
- * Live matches still arrive via SignalR (see useSignalR / config.ts).
- */
 
+import type { BracketMatch } from "@/types/worldcup";
+
+// ============================================================================
+// PLEASE review — API base URL is duplicated and environment-specific
+// ----------------------------------------------------------------------------
+// The data layer hard-codes a localhost fallback and repeats URL assembly in
+// multiple sports modules, which can drift between environments. Centralize the
+// base URL and fail closed when it is not configured.
+//
+// EXAMPLE:
+//   const API_BASE = getRequiredPublicEndpoint("NEXT_PUBLIC_SPORTS_API_BASE");
+// ============================================================================
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081/api/football";
 
 /** Fetch from our backend. Returns fallback on any failure — never throws. */
+// ============================================================================
+// PLEASE review — Fetch responses are cast without runtime validation
+// ----------------------------------------------------------------------------
+// res.ok is checked, but fetch has no timeout and res.json() is trusted as T.
+// A backend or ESPN shape change can silently poison UI props with invalid data.
+// Validate the payload before returning it and abort slow requests.
+//
+// EXAMPLE:
+//   const parsed = ScoreboardSchema.safeParse(await res.json());
+//   return parsed.success ? parsed.data : fallback;
+// ============================================================================
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
@@ -20,10 +36,6 @@ async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T>
   }
 }
 
-// ─────────────────────────────────────────────
-// TYPES  (unchanged — components rely on these)
-// ─────────────────────────────────────────────
-
 export interface ESPNTeamRef {
   id: string;
   name: string;
@@ -33,14 +45,15 @@ export interface ESPNTeamRef {
 
 export interface ESPNMatch {
   id: string;
-  status: string;          // "FT" | "HT" | "67'" | "Scheduled" | date string
-  statusState: string;     // "pre" | "in" | "post"
+  status: string;         
+  statusState: string;     
   kickoff: string | null;
   competition: string;
   homeTeam: ESPNTeamRef;
   awayTeam: ESPNTeamRef;
   homeScore: number | null;
   awayScore: number | null;
+  round?: string | null;
 }
 
 export type ESPNFixture = ESPNMatch;
@@ -59,7 +72,8 @@ export interface ESPNStandingRow {
   goalsAgainst: number;
   goalDiff: number;
   points: number;
-  note: string | null; // "Champions League" | "Relegation" etc
+  note: string | null; 
+  group?: string | null; 
 }
 
 export interface ESPNNews {
@@ -104,6 +118,22 @@ export interface ESPNLeader {
   displayValue: string;
 }
 
+export interface ESPNLineupPlayer {
+  id: string;
+  name: string;
+  jersey: string | null;
+  position: string | null;
+  starter: boolean;
+  teamId: string;
+}
+
+export interface ESPNTeamLineup {
+  teamId: string;
+  formation: string | null;
+  starters: ESPNLineupPlayer[];
+  bench: ESPNLineupPlayer[];
+}
+
 export interface ESPNMatchDetail {
   id: string;
   status: string;
@@ -124,13 +154,9 @@ export interface ESPNMatchDetail {
     assist: string | null;
     teamId: string;
   }[];
+  lineups: ESPNTeamLineup[];
 }
 
-// ─────────────────────────────────────────────
-// FETCHERS  (same names + return types, no parsing)
-// ─────────────────────────────────────────────
-
-/** Live + scheduled + recent results for a league. */
 export const getScoreboard = (league: string) =>
   apiGet<ESPNMatch[]>(`/${league}/scoreboard`, [], 30);
 
@@ -159,3 +185,16 @@ export const getLeaders = (league: string) =>
 
 export const getMatchDetail = (league: string, eventId: string) =>
   apiGet<ESPNMatchDetail | null>(`/${league}/match/${eventId}`, null, 30);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// World Cup bracket — same apiGet pattern as everything above: this calls
+// OUR backend (${API_BASE}/worldcup/bracket), not ESPN directly. The backend
+// is where ESPN's fifa.world calendar + scoreboard endpoints actually get
+// queried and normalized — see the contract in types/worldcup.ts for the
+// exact shape this expects back. Falls back to [] on any failure, same as
+// every other fetcher here; WorldCupBracket.tsx falls back further to its
+// own mock data when it receives an empty array (e.g. before this backend
+// endpoint exists yet).
+// ─────────────────────────────────────────────────────────────────────────────
+export const getWorldCupBracket = () =>
+  apiGet<BracketMatch[]>("/worldcup/bracket", [], 300);

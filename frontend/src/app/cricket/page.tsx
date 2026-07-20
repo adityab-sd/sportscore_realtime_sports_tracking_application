@@ -1,6 +1,17 @@
 import Link from "next/link";
 
 export default function ComingSoonPage() {
+// ============================================================================
+// PLEASE review — Placeholder page needs production states
+// ----------------------------------------------------------------------------
+// This route currently ships a static placeholder instead of the cricket data
+// experience. When the feature is enabled, the Server Component should handle
+// loading failures and empty results explicitly rather than rendering stale copy.
+//
+// EXAMPLE:
+//   const matches = await getCricketScoreboard();
+//   if (!matches.length) return <EmptyState title="No cricket matches today" />;
+// ============================================================================
   return (
     <div style={{ maxWidth: 520, margin: "80px auto", padding: "0 var(--gap)", textAlign: "center" }}>
       <div style={{

@@ -14,9 +14,30 @@ const posFull: Record<string, string> = {
 export default async function PlayerPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "eng.1", team: teamId } = await searchParams;
+
+  // ============================================================================
+  // PLEASE review — Validate player lookup params
+  // ----------------------------------------------------------------------------
+  // id, league, and team are trusted directly from the URL. A malformed team id or
+  // unknown league should be rejected before it is used in API paths and links.
+  //
+  // EXAMPLE:
+  //   if (!teamId || !/^\d+$/.test(id) || !LEAGUES.some(l => l.slug === league)) return notFound();
+  // ============================================================================
   if (!teamId) return notFound();
 
   const [roster, team] = await Promise.all([getRoster(league, teamId), getTeam(league, teamId)]);
+
+  // ============================================================================
+  // PLEASE review — Do not render a player page for a missing team
+  // ----------------------------------------------------------------------------
+  // The team fetch can return null while the roster fallback is [], yet the page
+  // continues with a generic "Team" breadcrumb. Dynamic entity pages should notFound
+  // when the parent team is missing.
+  //
+  // EXAMPLE:
+  //   if (!team) return notFound();
+  // ============================================================================
   const player = roster.find(p => p.id === id);
   if (!player) return notFound();
 
@@ -26,7 +47,6 @@ export default async function PlayerPage({ params, searchParams }: Props) {
 
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 14, padding: "36px 24px", textAlign: "center" }}>
         {player.headshot ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={player.headshot} alt={player.name} width={96} height={96} style={{ width: 96, height: 96, borderRadius: "50%", objectFit: "cover", background: "var(--cloud)", margin: "0 auto 16px", display: "block" }} />
         ) : (
           <div style={{ width: 96, height: 96, borderRadius: "50%", background: "var(--navy-light)", color: "var(--navy)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>

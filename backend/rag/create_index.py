@@ -20,6 +20,9 @@ SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 INDEX_NAME      = "football-index"
 CORPUS_FILE     = "corpus/football_corpus.json"
 
+# PLEASE review — SEARCH_ENDPOINT/SEARCH_API_KEY are not validated; if unset this fails later
+# with an opaque error. Fail fast. EXAMPLE:
+#   if not SEARCH_ENDPOINT or not SEARCH_API_KEY: sys.exit("Missing AZURE_SEARCH_* env vars")
 credential = AzureKeyCredential(SEARCH_API_KEY)
 
 # ── STEP 1: CREATE INDEX ─────────────────────────────────
@@ -45,10 +48,18 @@ print(f" Index '{result.name}' created successfully")
 # ── STEP 2: UPLOAD CORPUS ───────────────────────────────
 print("Uploading corpus...")
 
+# PLEASE review — fragile path + no error handling: CORPUS_FILE is relative to the current
+# working directory, so this only works when run from backend/rag/. Resolve it relative to
+# this file, and handle a missing/malformed corpus with a clear message.
+# EXAMPLE:
+#   path = os.path.join(os.path.dirname(__file__), "corpus", "football_corpus.json")
+#   try:
+#       with open(path, encoding="utf-8") as f: documents = json.load(f)
+#   except (FileNotFoundError, json.JSONDecodeError) as e: sys.exit(f"Corpus load failed: {e}")
 with open(CORPUS_FILE, "r", encoding="utf-8") as f:
     documents = json.load(f)
 
-# Clean documents — remove fields not in index schema
+# Clean documents - remove fields not in index schema
 # and make sure id has no special characters
 clean_docs = []
 for doc in documents:
@@ -74,7 +85,13 @@ batch_size = 50
 for i in range(0, len(clean_docs), batch_size):
     batch = clean_docs[i:i+batch_size]
     result = search_client.upload_documents(documents=batch)
-    print(f" Uploaded batch {i//batch_size + 1} — {len(batch)} documents")
+    # PLEASE review — missing case: upload_documents returns a per-document result list, but
+    # success is assumed and never checked. Partial failures (throttling, bad key) are silently
+    # lost, so the index ends up incomplete while the script prints "uploaded".
+    # EXAMPLE:
+    #   failed = [x.key for x in result if not x.succeeded]
+    #   if failed: print(f"  WARNING: {len(failed)} docs failed: {failed}")
+    print(f" Uploaded batch {i//batch_size + 1} - {len(batch)} documents")
 
 print(f"\n Done! {len(clean_docs)} documents uploaded to '{INDEX_NAME}'")
 

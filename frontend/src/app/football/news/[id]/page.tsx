@@ -8,6 +8,15 @@ import NewsCard from "@/components/news/NewsCard";
 export const dynamic = "force-dynamic";
 
 async function findArticleAndRelated(id: string): Promise<{ article: ESPNNews | null; related: ESPNNews[] }> {
+  // ============================================================================
+  // PLEASE review — Separate article misses from upstream failures
+  // ----------------------------------------------------------------------------
+  // Rejected league news fetches are ignored, so an ESPN/backend outage can become
+  // a 404 for a valid article. Track all-failed or partial-failed fetches separately.
+  //
+  // EXAMPLE:
+  //   if (results.every(r => r.status === "rejected")) throw new Error("Unable to load article");
+  // ============================================================================
   const results = await Promise.allSettled(
     LEAGUES.map(l => getNews(l.slug, 20))
   );
@@ -46,18 +55,27 @@ interface PageProps {
 
 export default async function ArticlePage({ params }: PageProps) {
   const { id } = await params;
+
+  // ============================================================================
+  // PLEASE review — Validate article id shape
+  // ----------------------------------------------------------------------------
+  // The dynamic id is used as a lookup key without any shape check. Reject obviously
+  // invalid ids before fan-out fetching every league.
+  //
+  // EXAMPLE:
+  //   if (!/^\d+$/.test(id)) return notFound();
+  // ============================================================================
   const { article, related } = await findArticleAndRelated(id);
   if (!article) notFound();
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--white)" }}>
 
-      {/* Hero — full width with all overlays inside */}
+      {/* Hero - full width with all overlays inside */}
       <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", overflow: "hidden", background: "var(--obsidian)" }}>
 
         {/* Image */}
         {article.image && (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={article.image}
             alt={article.headline}
@@ -68,7 +86,7 @@ export default async function ArticlePage({ params }: PageProps) {
         {/* Dark overlay so text is readable */}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.0) 60%, rgba(255,255,255,0.95) 100%)" }} />
 
-        {/* Back bar — top of image */}
+        {/* Back bar - top of image */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
           <div className="container" style={{ height: 48, display: "flex", alignItems: "center", gap: 16 }}>
             <Link href="/football/news" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.9)", textDecoration: "none", background: "rgba(0,0,0,0.25)", padding: "5px 12px", borderRadius: 20, backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.15)" }}>
@@ -78,7 +96,7 @@ export default async function ArticlePage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Category + time — bottom of image, above white fade */}
+        {/* Category + time - bottom of image, above white fade */}
         <div style={{ position: "absolute", bottom: "4%", left: 0, right: 0, zIndex: 10 }}>
           <div className="container" style={{ maxWidth: 760 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", padding: "5px 12px 5px 5px", borderRadius: 20 }}>

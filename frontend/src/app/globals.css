@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/*
+ * Dark mode is pinned to an explicit `.dark` class instead of the OS's
+ * prefers-color-scheme. Nothing in this app ever adds that class, so every
+ * `dark:` utility across the codebase is inert until a real theme toggle is
+ * built — this avoids surprising, half-applied dark styling (mismatched
+ * dark:/light: pairs) for anyone whose system happens to be in dark mode.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Base */
   --white:          #FFFFFF;
@@ -296,8 +305,6 @@ img, svg, video { max-width: 100%; height: auto; }
 /* Link hover underline */
 .hl:hover { color: var(--blue) !important; }
 
-/* ── Responsive show/hide (replaces unreliable Tailwind sm: utilities) ── */
-/* Desktop-only: visible by default, hidden on mobile */
 .desktop-only { display: flex; }
 .desktop-inline { display: inline; }
 .mobile-only { display: none !important; }
@@ -306,4 +313,9 @@ img, svg, video { max-width: 100%; height: auto; }
   .desktop-only { display: none !important; }
   .desktop-inline { display: none !important; }
   .mobile-only { display: flex !important; }
+}
+
+@keyframes heroScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-50% - 6px)); }
 }

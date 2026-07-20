@@ -12,8 +12,19 @@ interface Props {
 export default function LeagueMatchFeed({ leagueName, slug }: Props) {
   const { matches, state, lastUpdate } = useSignalR();
 
-  // Filter by competition name (what CoreSportsAdapter sets from league.name)
+  // ============================================================================
+  // PLEASE review — live league matching
+  // ----------------------------------------------------------------------------
+  // Filtering by exact lowercased competition name drops ESPN display variants
+  // like "UEFA Europa League" vs "Europa League", even though this component
+  // already receives the canonical slug. Match on resolved slug or aliases.
+  //
+  // EXAMPLE:
+  //   const leagueMatches = matches.filter(m => (!m.sport || m.sport === "football") && leagueByName(m.competition)?.slug === slug);
+  // ============================================================================
+  // Filter by sport=football AND competition name (basketball can share competition names like "Premier League"; double-guard).
   const leagueMatches = matches.filter(m =>
+    (!m.sport || m.sport === "football") &&
     m.competition?.toLowerCase() === leagueName.toLowerCase()
   );
 
@@ -43,8 +54,8 @@ export default function LeagueMatchFeed({ leagueName, slug }: Props) {
           <p style={{ fontSize: 14, margin: "0 0 6px", fontWeight: 600, color: "var(--text-secondary)" }}>No matches in the feed</p>
           <p style={{ fontSize: 13, margin: 0 }}>
             {state === "connected"
-              ? "No matches for this league are currently being pushed via SignalR."
-              : "SignalR is offline - check the backend is running."}
+              ? "No matches for this league are currently being played."
+              : "network offline."}
           </p>
         </div>
       )}

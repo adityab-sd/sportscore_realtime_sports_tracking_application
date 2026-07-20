@@ -14,9 +14,10 @@ interface Props {
   rows: ESPNStandingRow[];
   league: string;
   limit?: number;
+  highlightTeamIds?: string[];
 }
 
-export default function StandingsTable({ rows, league, limit }: Props) {
+export default function StandingsTable({ rows, league, limit, highlightTeamIds = [] }: Props) {
   const shown = limit ? rows.slice(0, limit) : rows;
 
   return (
@@ -32,18 +33,21 @@ export default function StandingsTable({ rows, league, limit }: Props) {
         <span style={{ textAlign: "center" }}>Pts</span>
       </div>
 
+      {/* PLEASE review — competition qualification assumptions: cl = i < 4 marks the top four as Champions League for every table, including leagues with different qualification/relegation rules. EXAMPLE: const cl = r.note?.includes("Champions League") === true; */}
       {shown.map((r, i) => {
         const cl = i < 4;
         const noteColor = r.note
           ? (Object.entries(noteColors).find(([k]) => r.note?.includes(k))?.[1] ?? null)
           : null;
+        const highlighted = highlightTeamIds.includes(r.teamId);
 
+        // PLEASE review — stable standing key: falling back to the row index can remount rows when live standings reorder. EXAMPLE: key={`${league}-${r.rank}-${r.team}`}.
         return (
           <div
             key={r.teamId || i}
-            style={{ display: "grid", gridTemplateColumns: "36px 1fr 40px 40px 40px 40px 48px 48px", padding: "11px 16px", borderBottom: i < shown.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", gap: 4, minWidth: 480, transition: "background 100ms", cursor: "default" }}
+            style={{ display: "grid", gridTemplateColumns: "36px 1fr 40px 40px 40px 40px 48px 48px", padding: "11px 16px", borderBottom: i < shown.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", gap: 4, minWidth: 480, transition: "background 100ms", cursor: "default", background: highlighted ? "rgba(59,130,246,0.08)" : "transparent" }}
             onMouseEnter={e => (e.currentTarget.style.background = "var(--cloud)")}
-            onMouseLeave={e => (e.currentTarget.style.background = cl ? "rgba(0,63,136,0.025)" : "transparent")}
+            onMouseLeave={e => (e.currentTarget.style.background = highlighted ? "rgba(59,130,246,0.08)" : cl ? "rgba(0,63,136,0.025)" : "transparent")}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
               {noteColor && <div style={{ width: 3, height: 20, borderRadius: 2, background: noteColor, flexShrink: 0 }} />}
@@ -52,7 +56,7 @@ export default function StandingsTable({ rows, league, limit }: Props) {
 
             <Link href={`/football/team/${r.teamId}?league=${league}`} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", minWidth: 0 }}>
               <TeamLogo logo={r.logo} shortName={r.shortName} size={24} highlight={cl} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.team}</span>
+              <span style={{ fontSize: 13, fontWeight: highlighted ? 800 : 600, color: highlighted ? "var(--navy)" : "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.team}</span>
             </Link>
 
             {[r.played, r.won, r.drawn, r.lost].map((v, vi) => (

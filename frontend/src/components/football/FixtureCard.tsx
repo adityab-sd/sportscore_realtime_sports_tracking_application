@@ -3,6 +3,16 @@ import Link from "next/link";
 import { ESPNFixture } from "@/lib/api/espn";
 import TeamLogo from "./TeamLogo";
 
+// ============================================================================
+// PLEASE review — guarded Date parsing
+// ----------------------------------------------------------------------------
+// ESPN kickoff strings are external input; new Date("bad-value") produces an
+// Invalid Date whose getters return NaN, rendering labels like "NaN:NaN".
+// Check validity before formatting in both time and date-only helpers.
+//
+// EXAMPLE:
+//   const d = kickoff ? new Date(kickoff) : null; if (!d || Number.isNaN(d.getTime())) return "TBD";
+// ============================================================================
 function fmt(kickoff: string | null): string {
   if (!kickoff) return "";
   const d = new Date(kickoff);
@@ -16,6 +26,27 @@ function fmt(kickoff: string | null): string {
   return `${dayLabel}, ${time}`;
 }
 
+/** Date-only label (no time) — used for finished matches where only the day matters. */
+function dateOnly(kickoff: string | null): string {
+  if (!kickoff) return "";
+  const d = new Date(kickoff);
+  const today    = new Date();
+  const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== today.getFullYear() ? "numeric" : undefined });
+}
+
+// ============================================================================
+// PLEASE review — league slug fallback
+// ----------------------------------------------------------------------------
+// Detail links silently default unknown fixture leagues to eng.1, so a World Cup
+// or Champions League fixture without _slug routes to the wrong league context.
+// Resolve the slug from fixture.competition or omit the query instead.
+//
+// EXAMPLE:
+//   const href = leagueSlug ? `/football/${fixture.id}?league=${leagueSlug}` : `/football/${fixture.id}`;
+// ============================================================================
 export default function FixtureCard({ fixture, leagueSlug }: { fixture: ESPNFixture; leagueSlug?: string }) {
   const isPost = fixture.statusState === "post";
   const isPre  = fixture.statusState === "pre";
@@ -25,11 +56,19 @@ export default function FixtureCard({ fixture, leagueSlug }: { fixture: ESPNFixt
   return (
     <Link href={`/football/${fixture.id}?league=${leagueSlug ?? 'eng.1'}`} style={{ textDecoration: "none" }}>
       <div className="card-hover" style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
-        {/* Competition + status */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>{fixture.competition || "Football"}</span>
-          {isPost && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>FT</span>}
-          {isPre  && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }} suppressHydrationWarning>{fmt(fixture.kickoff)}</span>}
+        {/* Competition + round (knockout stage) + status */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
+          <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {fixture.competition || "Football"}
+            {fixture.round && <span style={{ color: "var(--navy)", fontWeight: 700 }}> · {fixture.round}</span>}
+          </span>
+          {isPost && (
+            <span style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }} suppressHydrationWarning>{dateOnly(fixture.kickoff)}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>FT</span>
+            </span>
+          )}
+          {isPre  && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)", flexShrink: 0 }} suppressHydrationWarning>{fmt(fixture.kickoff)}</span>}
         </div>
 
         {/* Teams + score */}
