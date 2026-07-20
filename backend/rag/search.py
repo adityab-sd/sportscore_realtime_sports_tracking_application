@@ -1,12 +1,13 @@
 """
-search.py - RAG retrieval logic for SportScore Knowledge Assistant
+search.py — RAG retrieval logic for SportScore Knowledge Assistant
 
 Implements the two-round search strategy across football and basketball indices.
   Round 1 — exact search using the user's full question
   Round 2 — broader search using extracted key words (fallback)
-This module implements the two-round search strategy:
-  Round 1 - exact search using the user's full question
-  Round 2 - broader search using extracted key words (fallback)
+
+Also includes search_live_corpus() for live match data questions,
+which searches the separate football-live-index (updated every 30s
+by live_updater.py).
 
 If both rounds return nothing, a "not found" flag is returned.
 """
@@ -22,7 +23,11 @@ load_dotenv()
 SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 
+if not SEARCH_ENDPOINT or not SEARCH_API_KEY:
+    raise RuntimeError("Missing AZURE_SEARCH_ENDPOINT or AZURE_SEARCH_KEY environment variables")
+
 INDICES = ["football-index", "basketball-index"]
+LIVE_INDEX = "football-live-index"
 
 BASKETBALL_KEYWORDS = {
     "basketball", "nba", "dribble", "three point", "three-point", "free throw", "rebound", "slam dunk", "pick and roll", "layup",
@@ -41,15 +46,9 @@ STOPWORDS = {
 }
 
 
-# PLEASE review — two concerns:
-# 1) SEARCH_ENDPOINT/SEARCH_API_KEY are never validated; if unset, AzureKeyCredential(None)
-#    fails later with an opaque error instead of a clear startup check.
-# 2) A brand-new SearchClient is built on EVERY query (per index, per round). Clients are
-#    reusable and thread-safe — build once and cache to avoid per-request setup cost.
-# EXAMPLE:
-#   from functools import lru_cache
-#   @lru_cache(maxsize=None)
-#   def _get_client(index_name): return SearchClient(SEARCH_ENDPOINT, index_name, _cred)
+from functools import lru_cache
+
+@lru_cache(maxsize=None)
 def _get_client(index_name):
     return SearchClient(
         endpoint=SEARCH_ENDPOINT,
@@ -64,63 +63,79 @@ def _extract_keywords(question):
     return " ".join(keywords) if keywords else question
 
 
-# PLEASE review — substring matching: `kw in q_lower` can match inside unrelated words
-# (e.g. "rim" in "trim"/"primary", "paint" in "repaint"), misclassifying the sport and
-# restricting the search to the wrong index. Prefer whole-word/phrase matching.
-# EXAMPLE:
-#   tokens = set(re.findall(r"[a-z\-]+", q_lower))
-#   if tokens & BASKETBALL_SINGLE or any(p in q_lower for p in BASKETBALL_PHRASES): return "basketball"
 def _detect_sport(question):
     q_lower = question.lower()
-    if any(kw in q_lower for kw in BASKETBALL_KEYWORDS):
-        return "basketball"
-    if any(kw in q_lower for kw in FOOTBALL_KEYWORDS):
-        return "football"
+    tokens = set(re.findall(r"[a-z\-]+", q_lower))
+
+    for kw in BASKETBALL_KEYWORDS:
+        if " " in kw:
+            if kw in q_lower:
+                return "basketball"
+        elif kw in tokens:
+            return "basketball"
+
+    for kw in FOOTBALL_KEYWORDS:
+        if " " in kw:
+            if kw in q_lower:
+                return "football"
+        elif kw in tokens:
+            return "football"
+
     return None
+
+
+def _make_fuzzy_query(search_text):
+    """Turns a plain query into a Lucene fuzzy query, so close spelling
+    variants and typos (e.g. "traveling" vs "travelling", "basektball"
+    vs "basketball") still match without needing a maintained list of
+    spelling variants. Skips wildcard queries ("*") unchanged."""
+    if search_text.strip() == "*":
+        return search_text
+    words = search_text.split()
+    return " ".join(f"{w}~1" for w in words if w)
 
 
 def _search_index(index_name, search_text, top=3):
     client = _get_client(index_name)
-    return list(client.search(search_text=search_text, top=top))
+    try:
+        fuzzy_query = _make_fuzzy_query(search_text)
+        return list(client.search(
+            search_text=fuzzy_query,
+            query_type="full",
+            top=top
+        ))
+    except Exception:
+        return []
 
 
-# ============================================================================
-# PLEASE review — relevance bug when no sport is detected: results from each index are
-# concatenated in INDICES order and later sliced [:top] (in search_corpus) WITHOUT merging
-# by score. A highly-relevant basketball hit can be dropped in favour of weaker football
-# hits simply because football-index is listed first. Merge by @search.score before truncating.
-# EXAMPLE:
-#   merged = sorted(all_results, key=lambda r: r.get("@search.score", 0), reverse=True)
-#   return merged[:top]
-# ============================================================================
 def _search_all_indices(search_text, sport=None, top=3):
-    """Search across relevant indices and return results."""
+    """Search across relevant indices and return results, merged by relevance score."""
     all_results = []
     for index_name in INDICES:
-        # If sport detected, only search the relevant index
         if sport == "basketball" and index_name != "basketball-index":
             continue
         if sport == "football" and index_name != "football-index":
             continue
         results = _search_index(index_name, search_text, top=top)
         all_results.extend(results)
+
+    all_results.sort(key=lambda r: r.get("@search.score", 0), reverse=True)
+
+    if sport is None and all_results:
+        top_sport = all_results[0].get("sport")
+        if top_sport:
+            all_results = [r for r in all_results if r.get("sport") == top_sport]
+
     return all_results
 
 
 def search_corpus(question, top=3):
     """
-    Runs the two-round search strategy across football and basketball indices.
-
-    Returns:
-      {
-        "found": True/False,
-        "round_used": 1 or 2 or None,
-        "results": [ {id, title, category, content, source}, ... ]
-      }
+    Runs the two-round search strategy across football and basketball
+    KNOWLEDGE indices (rules, formations, strategies, competitions).
     """
     sport = _detect_sport(question)
 
-    # ── ROUND 1: exact search with the full question ──
     round1_results = _search_all_indices(question, sport=sport, top=top)
     if round1_results:
         return {
@@ -129,7 +144,6 @@ def search_corpus(question, top=3):
             "results": [_format_result(r) for r in round1_results[:top]]
         }
 
-    # ── ROUND 2: broader search using extracted key words ──
     keywords = _extract_keywords(question)
     round2_results = _search_all_indices(keywords, sport=sport, top=top)
     if round2_results:
@@ -139,7 +153,6 @@ def search_corpus(question, top=3):
             "results": [_format_result(r) for r in round2_results[:top]]
         }
 
-    # ── Nothing found in either round ──
     return {
         "found": False,
         "round_used": None,
@@ -147,19 +160,73 @@ def search_corpus(question, top=3):
     }
 
 
-# PLEASE review — inconsistent access: id/title/category/content use r["..."] (KeyError if a
-# document is missing the field) while source uses .get(). One malformed doc crashes the whole
-# request. Use .get() with defaults uniformly.
-# EXAMPLE:
-#   return {"id": r.get("id",""), "title": r.get("title",""), "category": r.get("category",""),
-#           "content": r.get("content",""), "source": r.get("source","")}
+def _extract_match_date(content):
+    """Pulls the ISO date (YYYY-MM-DD) out of a live match content string
+    like '...played on 2026-07-19T19:00Z...' or '...Kickoff: 2026-06-22T17:00Z.'
+    so finished matches can be sorted by actual match date, not upload time."""
+    match = re.search(r"(\d{4}-\d{2}-\d{2})T", content)
+    return match.group(1) if match else ""
+
+
+def search_live_corpus(question, top=6):
+    """
+    Fetches ALL current documents from the live index and ranks them
+    locally by relevance + recency, instead of relying on Azure's
+    keyword-based relevance search.
+    """
+    all_results = _search_index(LIVE_INDEX, "*", top=300)
+    if not all_results:
+        return {"found": False, "round_used": None, "results": []}
+
+    q_words = set(re.findall(r"[a-z']+", question.lower())) - STOPWORDS
+
+    def relevance(r):
+        text = (r.get("title", "") + " " + r.get("content", "")).lower()
+        text_words = set(re.findall(r"[a-z']+", text))
+        return len(q_words & text_words)
+
+    scored = [
+        (relevance(r), _extract_match_date(r.get("content", "")), r)
+        for r in all_results
+    ]
+    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+
+    top_results = [r for _, _, r in scored[:top]]
+
+    return {
+        "found": True,
+        "round_used": 1,
+        "results": [_format_result(r) for r in top_results]
+    }
+
+
 def _format_result(r):
     return {
-        "id": r["id"],
-        "title": r["title"],
-        "category": r["category"],
-        "content": r["content"],
+        "id": r.get("id", ""),
+        "title": r.get("title", ""),
+        "category": r.get("category", ""),
+        "content": r.get("content", ""),
         "source": r.get("source", "")
+    }
+
+
+def search_fallback_anything(top=3):
+    """
+    Absolute last resort — grabs a handful of documents from ANY index
+    (both knowledge bases + the live index) so the assistant always has
+    something to reason over, instead of returning zero context.
+    """
+    all_results = []
+    for index_name in INDICES + [LIVE_INDEX]:
+        try:
+            results = _search_index(index_name, "*", top=top)
+            all_results.extend(results)
+        except Exception:
+            continue
+    return {
+        "found": bool(all_results),
+        "round_used": "fallback",
+        "results": [_format_result(r) for r in all_results[:top]]
     }
 
 
@@ -180,3 +247,10 @@ if __name__ == "__main__":
         print(f"Found: {result['found']}  |  Round used: {result['round_used']}")
         for r in result["results"]:
             print(f"  - [{r['category']}] {r['title']}")
+
+    print(f"\n{'='*60}")
+    print("Testing live index...")
+    live_result = search_live_corpus("Arsenal score")
+    print(f"Found: {live_result['found']}  |  Round used: {live_result['round_used']}")
+    for r in live_result["results"]:
+        print(f"  - [{r['category']}] {r['title']}")
