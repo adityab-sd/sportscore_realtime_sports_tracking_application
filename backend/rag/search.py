@@ -6,8 +6,10 @@ Implements the two-round search strategy across football and basketball indices.
   Round 2 — broader search using extracted key words (fallback)
 
 Also includes search_live_corpus() for live match data questions,
-which searches the separate football-live-index (updated every 30s
-by live_updater.py).
+which searches the shared football-live-index (holds both football and
+basketball live documents — Azure's free tier caps index count at 3,
+so both sports' live data share one index, distinguished by the "sport"
+field on each document).
 
 If both rounds return nothing, a "not found" flag is returned.
 """
@@ -170,11 +172,17 @@ def _extract_match_date(content):
 
 def search_live_corpus(question, top=6):
     """
-    Fetches ALL current documents from the live index and ranks them
-    locally by relevance + recency, instead of relying on Azure's
-    keyword-based relevance search.
+    Fetches ALL current documents from the shared live index (football +
+    basketball) and ranks them locally by relevance + recency, instead of
+    relying on Azure's keyword-based relevance search.
+
+    Since both sports' live data share one index, results are filtered by
+    sport when the question clearly implies one (e.g. "Lakers" implies
+    basketball), and by the top-scoring result's sport when it's ambiguous
+    (e.g. "who's playing today?") — otherwise a generic question could
+    return a mix of football and basketball matches in one answer.
     """
-    all_results = _search_index(LIVE_INDEX, "*", top=300)
+    all_results = _search_index(LIVE_INDEX, "*", top=1000)
     if not all_results:
         return {"found": False, "round_used": None, "results": []}
 
@@ -185,6 +193,13 @@ def search_live_corpus(question, top=6):
         text_words = set(re.findall(r"[a-z']+", text))
         return len(q_words & text_words)
 
+    detected_sport = _detect_sport(question)
+    if detected_sport:
+        # Question clearly implies a sport — only consider that sport's
+        # documents, so e.g. asking about basketball never surfaces
+        # football matches just because they scored similarly.
+        all_results = [r for r in all_results if r.get("sport") == detected_sport]
+
     scored = [
         (relevance(r), _extract_match_date(r.get("content", "")), r)
         for r in all_results
@@ -192,6 +207,15 @@ def search_live_corpus(question, top=6):
     scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
     top_results = [r for _, _, r in scored[:top]]
+
+    if not detected_sport and top_results:
+        # No sport was explicitly detected (e.g. "who's playing today?")
+        # — infer it from the best-scoring result and drop the other
+        # sport's results, rather than mixing football and basketball
+        # matches in a single answer.
+        top_sport = top_results[0].get("sport")
+        if top_sport:
+            top_results = [r for r in top_results if r.get("sport") == top_sport]
 
     return {
         "found": True,
