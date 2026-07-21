@@ -104,13 +104,17 @@ def parse_matches(data, league_name):
 
             doc_id = f"live-football-match-{event.get('id', '')}"
 
+            has_real_score = home.get("score") not in (None, "", "0") or away.get("score") not in (None, "", "0")
+
             if state == "in":
                 content = f"{home_name} vs {away_name} is currently LIVE in the {league_name}. Current score: {home_name} {home_score} - {away_score} {away_name}."
-            elif state == "post":
+            elif state == "post" and has_real_score:
                 content = f"{home_name} vs {away_name} in the {league_name} has FINISHED (played on {kickoff}). Final score: {home_name} {home_score} - {away_score} {away_name}."
-            else:  # "pre" — not yet played
-                content = f"{home_name} vs {away_name} is scheduled (upcoming) in the {league_name}. Kickoff: {kickoff}."
-
+            elif state == "post" and not has_real_score:
+                content = f"{home_name} vs {away_name} in the {league_name} is marked as completed on {kickoff}, but the final score is not available in this data."
+            else:
+                content = f"{home_name} vs {away_name} is scheduled (upcoming) in the {league_name}. Tip-off: {kickoff}."
+                
             docs.append({
                 "id": doc_id,
                 "sport": "football",
