@@ -55,3 +55,4 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+ **/__pycache__/
