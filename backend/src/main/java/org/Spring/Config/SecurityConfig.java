@@ -67,25 +67,43 @@ public class SecurityConfig {
         this.rateLimitFilter = rateLimitFilter;
     }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/public/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                .anyRequest().authenticated()
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .headers(headers -> headers
+            // Forces browsers to only ever use HTTPS for this domain,
+            // even if someone types http:// by mistake, for 2 years.
+            .httpStrictTransportSecurity(hsts -> hsts
+                .includeSubDomains(true)
+                .maxAgeInSeconds(63072000)
             )
-            .httpBasic(Customizer.withDefaults())
-            // Rate limiter runs before authentication so it protects
-            // even unauthenticated / public endpoints from abuse.
-            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+            // Stops the browser guessing file types, a common XSS vector.
+            .contentTypeOptions(Customizer.withDefaults())
+            // Prevents this API being embedded in an <iframe> elsewhere,
+            // blocking clickjacking-style attacks.
+            .frameOptions(frame -> frame.deny())
+            // Limits how much referrer info leaks when a request originates
+            // from this API and something links elsewhere from it.
+            .referrerPolicy(referrer -> referrer
+                .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+            )
+        )
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/auth/**", "/public/**").permitAll()
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+            .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+            .anyRequest().authenticated()
+        )
+        .httpBasic(Customizer.withDefaults())
+        // Rate limiter runs before authentication so it protects
+        // even unauthenticated / public endpoints from abuse.
+        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+}
 
     @Bean
     public UserDetailsService userDetailsService() {
