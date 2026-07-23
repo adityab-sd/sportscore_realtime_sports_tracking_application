@@ -1,3 +1,7 @@
+// heroTypes.ts is now superseded by the types exported from HeroScrollClient.tsx.
+// Kept for backward compatibility — HeroScrollRows.tsx still imports from here.
+// Both files use the same shape.
+
 export interface RealMatch {
   id: string;
   sport: "football" | "basketball";
@@ -12,12 +16,5 @@ export interface RealMatch {
   href: string;
 }
 
-export interface AestheticCardData {
-  image: string;
-  label: string;
-  href: string;
-}
-
 export type Card =
-  | { type: "match"; match: RealMatch }
-  | ({ type: "aesthetic" } & AestheticCardData);
+  | { type: "match"; match: RealMatch };

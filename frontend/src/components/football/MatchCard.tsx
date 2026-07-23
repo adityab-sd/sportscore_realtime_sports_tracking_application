@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
+import { formatMatchDateTime, formatMatchDay } from "@/lib/formatDate";
 
 // ============================================================================
 // ADDRESSED: guarded Date parsing
@@ -32,7 +33,7 @@ function StatusChip({ match }: { match: Match }) {
     if (match.kickoff) {
       const d = new Date(match.kickoff);
       const time = `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
-      label = `${dateLabel(match.kickoff)}, ${time}`;
+      label = `${formatMatchDay(match.kickoff)}, ${time}`;
     }
     return <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }} suppressHydrationWarning>{label}</span>;
   }
@@ -41,7 +42,7 @@ function StatusChip({ match }: { match: Match }) {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>FT</span>
         {match.kickoff && (
-          <span style={{ fontSize: 9, color: "var(--text-muted)" }} suppressHydrationWarning>{dateLabel(match.kickoff)}</span>
+          <span style={{ fontSize: 9, color: "var(--text-muted)" }} suppressHydrationWarning>{formatMatchDay(match.kickoff)}</span>
         )}
       </div>
     );

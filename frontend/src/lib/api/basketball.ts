@@ -66,6 +66,7 @@ export interface BBGame {
   awayScore: number | null;
   period: number | null;
   clock: string | null;
+  _slug?: string;
 }
 
 export type BBFixture = BBGame;
