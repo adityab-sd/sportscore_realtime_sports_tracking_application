@@ -3,3 +3,6 @@ azure-search-documents
 python-dotenv
 requests
 openai
+psycopg2-binary
+pgvector
+sentence-transformers
