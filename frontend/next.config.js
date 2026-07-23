@@ -18,7 +18,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://rsms.me",
               "font-src 'self' https://rsms.me",
               "img-src 'self' data: https://flagcdn.com https://a.espncdn.com",
-              "connect-src 'self' https://site.api.espn.com https://sports.core.api.espn.com https://sportscore-sr1.service.signalr.net wss://sportscore-sr1.service.signalr.net",
+              "connect-src 'self' http://localhost:8081 https://site.api.espn.com https://sports.core.api.espn.com https://sportscore-sr1.service.signalr.net wss://sportscore-sr1.service.signalr.net",
               "frame-ancestors 'none'",
             ].join("; "),
           },

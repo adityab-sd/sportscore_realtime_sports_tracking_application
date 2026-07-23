@@ -59,12 +59,7 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setState("error");
           return;
         }
-// PLEASE review — SECURITY: remove before merge. These lines print a signing
-// credential (the SignalR access JWT) into the browser console, where any user or
-// extension can read it. EXAMPLE fix: delete both lines (never log tokens).
-console.log("[SignalR] url:", url);
-console.log("[SignalR] token:", token?.slice(0, 80));
-        console.log("[SignalR] Connecting to:", url);
+
 
         const signalR = await import("@microsoft/signalr");
 
