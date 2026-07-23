@@ -82,6 +82,13 @@ public class FootballController {
         return service.leaders(league);
     }
 
+    @GetMapping("/{league}/seasons/{season}/leaders/raw")
+    public com.fasterxml.jackson.databind.JsonNode rawLeaders(
+            @PathVariable String league,
+            @PathVariable String season) throws Exception {
+        return service.rawLeaders(league, season);
+    }
+
     @GetMapping("/{league}/match/{eventId}")
     public Dto.MatchDetail matchDetail(@PathVariable String league, @PathVariable String eventId) throws Exception {
         return service.matchDetail(league, eventId);
@@ -103,6 +110,13 @@ public class FootballController {
     public List<Dto.Transaction> transactions(@PathVariable String league,
                                               @RequestParam(defaultValue = "25") int limit) throws Exception {
         return service.transactions(league, limit);
+    }
+
+    @GetMapping("/{league}/athletes/{athleteId}/overview/raw")
+    public com.fasterxml.jackson.databind.JsonNode athleteOverviewRaw(
+            @PathVariable String league,
+            @PathVariable String athleteId) throws Exception {
+        return service.athleteOverviewRaw(league, athleteId);
     }
 
     @GetMapping("/{league}/athletes/{athleteId}/overview")

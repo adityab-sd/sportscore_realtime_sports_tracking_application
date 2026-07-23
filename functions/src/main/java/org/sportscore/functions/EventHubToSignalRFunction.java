@@ -81,9 +81,13 @@ public class EventHubToSignalRFunction {
         //   // private static String requireEnv(String n){ var v = System.getenv(n);
         //   //   if (v == null || v.isBlank()) throw new IllegalStateException("Missing env " + n);
         //   //   return v; }
+        // UPDATE:
+        // Both env vars are now checked via requireEnv() before use, so a missing value
+        // throws a clear IllegalStateException (caught and logged by run()'s try/catch)
+        // instead of silently building "null/api/v1/hubs/..." or NPE-ing inside the JWT signer.
         // ============================================================================
-        String signalREndpoint = System.getenv("SIGNALR_REST_ENDPOINT");
-        String signalRKey      = System.getenv("SIGNALR_ACCESS_KEY");
+        String signalREndpoint = requireEnv("SIGNALR_REST_ENDPOINT");
+        String signalRKey      = requireEnv("SIGNALR_ACCESS_KEY");
         String url = signalREndpoint + "/api/v1/hubs/sportscoreHub";
 
         String body = mapper.writeValueAsString(new SignalRMessage("matchUpdate", matches));
@@ -102,7 +106,27 @@ public class EventHubToSignalRFunction {
         // EXAMPLE:
         //   if (response.statusCode() / 100 != 2)
         //       throw new IOException("SignalR POST failed: " + response.statusCode() + " " + response.body());
+        // UPDATE:
+        // Now throws on a non-2xx response instead of just logging the status code. Since
+        // broadcastToSignalR() is called from run()'s try block, this surfaces as a logged
+        // "Failed to process event" with the real status + body, and (per the Cardinality.ONE
+        // comment above) the Event Hubs trigger will retry the invocation instead of the
+        // failure disappearing silently.
+        if (response.statusCode() / 100 != 2) {
+            throw new java.io.IOException(
+                    "SignalR POST failed: " + response.statusCode() + " " + response.body());
+        }
         context.getLogger().info("SignalR broadcast status: " + response.statusCode());
+    }
+
+    /** Fails fast with a clear message when a required env var is missing, instead of
+     *  letting a null silently propagate into a broken URL or NPE deep in the JWT signer. */
+    private static String requireEnv(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required environment variable: " + name);
+        }
+        return value;
     }
 
     // ============================================================================

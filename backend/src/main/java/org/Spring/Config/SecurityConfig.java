@@ -1,5 +1,8 @@
 package org.Spring.Config;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,9 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * SINGLE SOURCE OF TRUTH for backend security.
@@ -75,11 +75,17 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/public/**").permitAll()
+                .requestMatchers("/api/football/**").permitAll()
+                .requestMatchers("/api/basketball/**").permitAll()
+                .requestMatchers("/api/baseball/**").permitAll()
+                .requestMatchers("/api/cricket/**").permitAll()
+                .requestMatchers("/api/f1/**").permitAll()
+                .requestMatchers("/api/rugby/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults())
+                        .httpBasic(Customizer.withDefaults())
             // Rate limiter runs before authentication so it protects
             // even unauthenticated / public endpoints from abuse.
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);

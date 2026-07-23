@@ -684,7 +684,10 @@ public class BaseballService extends EspnApiHelper {
     //   int safeLimit = Math.min(Math.max(limit, 1), 100);
     //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
     //
-    // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
+// WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
+    // UPDATE:
+    // page/limit are now clamped centrally in EspnApiHelper.getPaged() (see that class),
+    // so every call below is bounded without repeating the clamp in each method.
     // ============================================================================
 
     public JsonNode teams(String league, int page, int limit) throws Exception {

@@ -1024,4 +1024,13 @@ public class FootballService extends EspnApiHelper {
     }
     
 
+
+    public JsonNode athleteOverviewRaw(String league, String athleteId) throws Exception {
+        return get(WEB + "/" + league + "/athletes/" + athleteId + "/overview");
+    }
+
+    public com.fasterxml.jackson.databind.JsonNode rawLeaders(String league, String season) throws Exception {
+        String url = CORE + "/leagues/" + league + "/seasons/" + season + "/types/1/leaders";
+        return get(url);
+    }
 }

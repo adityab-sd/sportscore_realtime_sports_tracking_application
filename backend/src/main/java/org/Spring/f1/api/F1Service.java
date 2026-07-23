@@ -1,18 +1,13 @@
 package org.Spring.f1.api;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.Spring.api.Dto;
+import org.Spring.api.EspnApiHelper;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 // Owns all ESPN Formula 1 reference-data parsing. Race-oriented: the scoreboard
 // returns GP weekends with sessions and driver grids; the calendar drives the
@@ -25,27 +20,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // of using shared beans, and its private get() has no retry/backoff proxy. This
 // diverges from EspnApiHelper and makes transient ESPN 5xx/timeouts fail once.
 //
-// EXAMPLE:
-//   @Service
-//   class F1Service {
-//       private final EspnHttpClient http;
-//       F1Service(EspnHttpClient http, ObjectMapper mapper) { this.http = http; }
-//       List<RaceWeekend> scoreboard() throws Exception {
-//           JsonNode raw = http.get(SITE + "/scoreboard");
-//           return parseScoreboard(raw);
-//       }
-//   }
-//
 // WHY: one shared HTTP/JSON infrastructure avoids duplicate connection pools and retry gaps.
+// UPDATE:
+// Now extends EspnApiHelper (same as Basketball/Football/Baseball) instead of building its
+// own HttpClient/ObjectMapper. get()/txt()/num()/str()/first()/bestImage() below all come
+// from the base class, and get() delegates to the injected EspnHttpClient bean, so
+// @Retryable actually crosses the Spring proxy boundary and F1's ESPN calls get the same
+// retry/backoff as every other sport (previously they had none).
 // ============================================================================
 @Service
-public class F1Service {
+public class F1Service extends EspnApiHelper {
 
     private static final String SITE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
     private static final String CORE = "https://sports.core.api.espn.com/v2/sports/racing/leagues/f1";
-
-    private final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-    private final ObjectMapper mapper = new ObjectMapper();
 
     // manufacturerId -> team name. Names don't change mid-season, so cache one lookup each.
     private final java.util.Map<String, String> manufacturerNameCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -482,15 +469,18 @@ public class F1Service {
     //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
     //
     // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
+    // UPDATE:
+    // page/limit are now clamped centrally in EspnApiHelper.getPaged() (see that class),
+    // so every call below is bounded without repeating the clamp in each method.
     // ============================================================================
 
     public JsonNode teams(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/teams", page, limit);
+        return getPaged(CORE + "/teams", page, limit);
     }
 
     /** Every driver in the Core API (large - paginated). */
     public JsonNode drivers(int page, int limit, boolean activeOnly) throws Exception {
-        return getRawPaged(CORE + "/athletes?active=" + activeOnly, page, limit);
+        return getPaged(CORE + "/athletes?active=" + activeOnly, page, limit);
     }
 
     public JsonNode driverProfile(String driverId) throws Exception {
@@ -499,11 +489,11 @@ public class F1Service {
     }
 
     public JsonNode circuits(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/circuits", page, limit);
+        return getPaged(CORE + "/circuits", page, limit);
     }
 
     public JsonNode venues(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/venues", page, limit);
+        return getPaged(CORE + "/venues", page, limit);
     }
 
     public JsonNode providers() throws Exception {
@@ -517,17 +507,15 @@ public class F1Service {
     }
 
     public JsonNode seasons(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/seasons", page, limit);
+        return getPaged(CORE + "/seasons", page, limit);
     }
 
     public JsonNode athleteNews(String athleteId, int limit) throws Exception {
         return get(SITE + "/athletes/" + athleteId + "/news?limit=" + limit);
     }
 
-    private JsonNode getRawPaged(String baseUrl, int page, int limit) throws Exception {
-        String sep = baseUrl.contains("?") ? "&" : "?";
-        return get(baseUrl + sep + "page=" + page + "&limit=" + limit);
-    }
+    // getPaged(baseUrl, page, limit) is inherited from EspnApiHelper - it now also
+    // clamps page/limit to sane bounds (see EspnApiHelper), so every sport benefits.
 
     // shared helpers
 
@@ -552,41 +540,7 @@ public class F1Service {
                 ? 0.0 : s.path("value").asDouble();
     }
 
-    private String bestImage(JsonNode images) {
-        String best = null; int bestW = -1;
-        for (JsonNode img : images) {
-            int    w   = img.path("width").asInt(0);
-            String src = first(txt(img.path("href")), txt(img.path("url")), null);
-            if (src != null && src.startsWith("http") && w > bestW) { best = src; bestW = w; }
-        }
-        return best;
-    }
-
-    private JsonNode get(String url) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SportScore/1.0").GET().build();
-        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-        if (res.statusCode() != 200) return mapper.createObjectNode();
-        return mapper.readTree(res.body());
-    }
-
-    private String txt(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull()) ? null : n.asText();
-    }
-
-    private Integer num(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull() || n.asText().isBlank())
-                ? null : (int) n.asDouble();
-    }
-
-    private String str(JsonNode n)                { return str(n, ""); }
-    private String str(JsonNode n, String fallback) {
-        String s = txt(n); return s != null ? s : fallback;
-    }
-
-    private String first(String... vals) {
-        for (String v : vals) if (v != null) return v;
-        return null;
-    }
+    // get()/txt()/num()/str()/first()/bestImage() are inherited from EspnApiHelper —
+    // same signatures this class used to define locally, now backed by the shared,
+    // retryable EspnHttpClient bean instead of a private HttpClient/ObjectMapper.
 }
