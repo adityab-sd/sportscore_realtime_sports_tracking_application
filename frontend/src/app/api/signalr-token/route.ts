@@ -1,14 +1,54 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+// ============================================================================
+// Simple in-memory rate limiter for this single route.
+// WHY IN-MEMORY HERE (unlike the backend's Redis-based limiter): this is one
+// lightweight Next.js API route, not a multi-instance backend service, so a
+// shared external store isn't needed for this scope. Limits requests per
+// client IP to prevent unlimited token minting / SignalR quota exhaustion.
+// ============================================================================
+const MAX_REQUESTS = 20;
+const WINDOW_MS = 60_000; // 1 minute
+
+const requestCounts = new Map<string, { count: number; windowStart: number }>();
+
+function isRateLimited(clientId: string): boolean {
+  const now = Date.now();
+  const entry = requestCounts.get(clientId);
+
+  if (!entry || now - entry.windowStart > WINDOW_MS) {
+    requestCounts.set(clientId, { count: 1, windowStart: now });
+    return false;
+  }
+
+  entry.count += 1;
+  return entry.count > MAX_REQUESTS;
+}
+
+function resolveClientId(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return "unknown";
+}
+
+export async function GET(request: NextRequest) {
+  const clientId = resolveClientId(request);
+
+  if (isRateLimited(clientId)) {
+    return NextResponse.json(
+      { error: "rate_limit_exceeded", message: "Too many token requests. Please slow down." },
+      { status: 429 }
+    );
+  }
+
   const endpoint = process.env.SIGNALR_ENDPOINT;
   const hub      = process.env.SIGNALR_HUB;
   const key      = process.env.SIGNALR_ACCESS_KEY;
 
-  // [already correct — keep this] SIGNALR_ACCESS_KEY is read from server-only env, not a NEXT_PUBLIC_ variable.
+  // SIGNALR_ACCESS_KEY is read from server-only env, not a NEXT_PUBLIC_ variable.
 
   if (!endpoint || !hub || !key) {
     const missing = [
@@ -16,40 +56,27 @@ export async function GET() {
       !hub      && "SIGNALR_HUB",
       !key      && "SIGNALR_ACCESS_KEY",
     ].filter(Boolean).join(", ");
-    console.error("[signalr-token] Missing env vars:", missing);
+    console.error("[signalr-token] Missing required env vars (names withheld from client response)");
     return NextResponse.json(
-      { error: `Missing required env vars: ${missing}` },
+      { error: "Server misconfigured. Contact an administrator." },
       { status: 503 }
     );
   }
 
   const aud       = `${endpoint}/client/?hub=${hub}`;
   const clientUrl = aud.replace(/^https:\/\//, "wss://");
-  // ============================================================================
-  // PLEASE review — Token lifetime is fixed and lacks issued/not-before claims
-  // ----------------------------------------------------------------------------
-  // A hard-coded one-hour token is broad for a browser client, and the JWT omits
-  // iat/nbf so consumers cannot reject tokens minted too far in the past/future.
-  // Prefer a short, configurable TTL with explicit clock-skew handling.
-  //
-  // EXAMPLE:
-  //   const now = Math.floor(Date.now() / 1000);
-  //   const exp = now + 300;
-  //   const payload = b64url(JSON.stringify({ aud, iat: now, nbf: now - 5, exp }));
-  // ============================================================================
-  const exp       = Math.floor(Date.now() / 1000) + 3600;
 
-  // ============================================================================
-  // PLEASE review — SignalR audience and hub leak through logs
-  // ----------------------------------------------------------------------------
-  // Logging aud and hub exposes the service hostname and hub naming convention in
-  // production telemetry. Keep only non-sensitive success/failure diagnostics.
-  //
-  // EXAMPLE:
-  //   if (process.env.NODE_ENV !== "production") console.debug("[signalr-token] issued SignalR token");
-  // ============================================================================
-  console.log("[signalr-token] aud:", aud);
-  console.log("[signalr-token] hub:", hub);
+  // Shorter, tighter token lifetime (5 minutes instead of 1 hour), with
+  // iat/nbf claims so downstream consumers can reject tokens minted too
+  // far in the past or future.
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 300;
+
+  // No longer logging aud/hub - these reveal the service hostname and
+  // hub naming convention, which shouldn't appear in server telemetry.
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[signalr-token] issued SignalR token");
+  }
 
   const b64url = (s: string) =>
     Buffer.from(s)
@@ -59,7 +86,7 @@ export async function GET() {
       .replace(/\//g, "_");
 
   const header   = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const payload  = b64url(JSON.stringify({ aud, exp }));
+  const payload  = b64url(JSON.stringify({ aud, iat: now, nbf: now - 5, exp }));
   const unsigned = `${header}.${payload}`;
   const keyBuf = Buffer.from(key, "utf8");
 
