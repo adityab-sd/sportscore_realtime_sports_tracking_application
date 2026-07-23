@@ -59,19 +59,19 @@ export default function TodaysGames({ games, defaultLeague = "nba" }: { games: B
       {showLive && live.length > 0 && (
         <section style={{ marginBottom: 36 }}>
           <div className="section-label"><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ff4d4d" }} />Live Now</div>
-          <div className="matches-grid">{live.map(g => <GameCard key={g.id} game={g} league={defaultLeague} />)}</div>
+          <div className="matches-grid">{live.map(g => <GameCard key={g.id} game={g} league={g._slug || defaultLeague} />)}</div>
         </section>
       )}
       {showSched && sched.length > 0 && (
         <section style={{ marginBottom: 36 }}>
           <div className="section-label">Scheduled</div>
-          <div className="matches-grid">{sched.map(g => <GameCard key={g.id} game={g} league={defaultLeague} />)}</div>
+          <div className="matches-grid">{sched.map(g => <GameCard key={g.id} game={g} league={g._slug || defaultLeague} />)}</div>
         </section>
       )}
       {showFin && fin.length > 0 && (
         <section style={{ marginBottom: 36 }}>
           <div className="section-label">Final</div>
-          <div className="matches-grid">{fin.map(g => <GameCard key={g.id} game={g} league={defaultLeague} />)}</div>
+          <div className="matches-grid">{fin.map(g => <GameCard key={g.id} game={g} league={g._slug || defaultLeague} />)}</div>
         </section>
       )}
     </div>

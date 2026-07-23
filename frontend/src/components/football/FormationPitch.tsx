@@ -137,7 +137,7 @@ function PlayerToken({
 
   return (
     <Link
-      href={`/football/player/${player.id}?league=${league}&team=${teamId}`}
+      href={`/football/player/${player.id}?league=${league}`}
       style={{
         display: "flex", flexDirection: "column",
         alignItems: "center", gap: 3,
@@ -225,7 +225,7 @@ export default function FormationPitch({
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <span style={{
-          fontSize: 12, fontWeight: 700, color: "var(--text-muted)",
+          fontSize: 12, fontWeight: 700, color: "var(--obsidian)",
           textTransform: "uppercase", letterSpacing: "0.8px",
         }}>Lineups</span>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, fontWeight: 600 }}>

@@ -137,7 +137,6 @@ export function DepthChart({ data }: { data: RawJSON }) {
         const athletes = pos.athletes ?? [];
 
         return (
-          {/* ADDRESSED: index key for depth positions: position order changes can keep stale athlete rows under the wrong heading. EXAMPLE: <div key={pos.position?.id ?? posName}>...</div>. */}
           <div key={pi} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
               {posName}

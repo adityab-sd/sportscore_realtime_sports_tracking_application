@@ -95,14 +95,20 @@ export type MatchState = "live" | "scheduled" | "finished";
 
 export function classifyStatus(status: string | null | undefined): MatchState {
   if (!status) return "scheduled";
-  const s = status.toUpperCase();
-  if (s.includes("FT") || s.includes("FULL")) return "finished";
-  if (s.includes("AT ") || s.includes("TBD") || s.includes("SCHEDULED")) return "scheduled";
+  const s = status.toUpperCase().trim();
+  // Finished — check before ET to prevent AET being caught as live
+  if (s === "FT" || s.includes("FULL TIME") || s.includes("FULL")) return "finished";
+  if (s === "AET" || s.includes("AFTER EXTRA") || s.includes("PENALTIES")) return "finished";
+  if (s === "POST" || s === "FINISHED" || s.includes("FINAL")) return "finished";
+  // Scheduled
+  if (s.includes("TBD") || s.includes("SCHEDULED") || s.includes("AT ")) return "scheduled";
   if (s.includes("NS") || s.includes("NOT STARTED")) return "scheduled";
   if (s.includes("CANCEL") || s.includes("POSTPON")) return "scheduled";
+  // Live
   const hasMinute = /\d+'/.test(s);
-  const inPlay = s.includes("1H") || s.includes("2H") || s.includes("HT") || s.includes("ET") || s.includes("LIVE");
-  return (hasMinute || inPlay) ? "live" : "finished";
+  const inPlay = s.includes("1H") || s.includes("2H") || s.includes("HT") || s.includes("LIVE");
+  const inET = s.includes("ET") && hasMinute; // ET only live if has minute marker
+  return (hasMinute || inPlay || inET) ? "live" : "finished";
 }
 
 export const matchState = classifyStatus;
@@ -121,4 +127,10 @@ export function statusLabel(m: Match): string {
     return `${h}:${min}`;
   }
   return m.status ?? "";
+}
+
+/** Returns true for leagues that have a full standings table. */
+export function leagueHasFullTable(slug: string): boolean {
+  const noTable = new Set(["fifa.world", "fifa.friendly", "uefa.champions", "uefa.europa", "uefa.europa.conf"]);
+  return !noTable.has(slug);
 }
