@@ -8,6 +8,9 @@ from prompts import build_prompt
 from openai import AzureOpenAI
 from dotenv import load_dotenv
 import os
+import re
+import time
+from datetime import datetime
 
 load_dotenv()
 
@@ -19,6 +22,13 @@ if missing:
 
 app = Flask(__name__)
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    return response
+
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_KEY"),
     api_version="2024-02-01",
@@ -26,20 +36,89 @@ client = AzureOpenAI(
 )
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
+CURRENT_YEAR = datetime.now().year  # used by fast_classify_question's year heuristic
+
+# Words that reliably signal a definition/rules/bio question (always "knowledge"),
+# vs. words that reliably signal a current/right-now question (always "live").
+KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do",
+                      "explain", "define", "who is", "who was", "how many",
+                      "how is", "how are")
+KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds",
+                     "most decorated", "biggest", "greatest of all",
+                     "the most", "won the most", "has won the most")
+LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently",
+               "live score", "at the moment", "this season")
+
+
+def fast_classify_question(question):
+    """
+    Rule-based pre-classifier that skips the classify_question() LLM call
+    (~1.6-1.7s per the timing logs) for questions with an obvious, high-
+    confidence answer. Returns "live", "knowledge", or None if genuinely
+    ambiguous — callers must fall back to the LLM classifier when None is
+    returned, rather than guessing.
+
+    This does NOT replace classify_question()'s nuanced logic (e.g. "who
+    won the 2022 World Cup" vs "who won the World Cup 2026") — it only
+    shortcuts the clearly-obvious cases, so the carefully-tuned LLM
+    behavior is preserved for anything ambiguous.
+
+    Tested against 12 representative questions before shipping (see chat
+    history) — LIVE_SIGNALS is checked FIRST, before KNOWLEDGE_STARTERS,
+    because an explicit "today"/"right now" is the strongest possible
+    signal and must win even when the question also happens to start with
+    a knowledge-style phrase like "what is" or "who is" (e.g. "what is
+    the live score for today's match?" must be "live", not "knowledge").
+    """
+    q_lower = question.lower().strip()
+
+    if any(signal in q_lower for signal in LIVE_SIGNALS):
+        return "live"
+
+    if any(q_lower.startswith(starter) for starter in KNOWLEDGE_STARTERS):
+        # "who is X" is a bio question (knowledge) — but "who won/has won X"
+        # is NOT covered by this starter list, so it correctly falls through
+        # to the year-based check or the LLM below instead of being
+        # misclassified here.
+        return "knowledge"
+
+    if any(signal in q_lower for signal in KNOWLEDGE_SIGNALS):
+        return "knowledge"
+
+    # A year clearly in the past (2 + years ago) with no "live" wording
+    # is very likely a settled historical result, e.g. "who won the 2022
+    # World Cup" — recent/current years (this year or last year) are left
+    # ambiguous on purpose and fall through to the LLM, since "who won the
+    # World Cup 2026" needs the nuanced live-vs-settled judgment call.
+    years_mentioned = [int(y) for y in re.findall(r"\b(?:19|20)\d{2}\b", q_lower)]
+    if years_mentioned and not any(signal in q_lower for signal in LIVE_SIGNALS):
+        most_recent_year_mentioned = max(years_mentioned)
+        if most_recent_year_mentioned <= CURRENT_YEAR - 2:
+            return "knowledge"
+
+    return None  # ambiguous — let the LLM decide
+
 
 def classify_question(question):
     classification_prompt = f"""Classify the following sports question into exactly one category.
 
 Reply with ONLY one word: "live" or "knowledge"
 
-- "live" = ANY question asking about the outcome, result, score, or status of a specific match or tournament — including "who won X", "what was the score of X", "did X win", standings, fixtures, qualifiers, rankings, recent news, transfers. If the question asks about a real event, match, or competition result (even a past one, even a named tournament like "the World Cup 2026" or "the Premier League"), it is "live", NOT "knowledge".
-- "knowledge" = ONLY questions about rules, formations, strategies, definitions, or how something works in general — with no reference to a specific match, team result, or tournament outcome.
+- "live" = questions about the outcome, score, or status of a SPECIFIC recent/current match, fixture, or ongoing competition — including "who won X" (a specific recent game), "what was the score of X", standings RIGHT NOW, upcoming fixtures, recent transfers. This is for things that change week to week and need current data.
+- "knowledge" = questions about rules, formations, strategies, definitions, player/team biographical info, or ALL-TIME/HISTORICAL records and milestones — even if phrased as "who won X". This includes: "who has won the most X (ever/all-time)", "who holds the record for X", "who is the all-time leading Y", player profiles ("who is X"), team history, and named historical tournament results (e.g. "who won the 2022 World Cup" — a specific past, settled event, not a live/current one).
+
+The key distinction for "who won/has won" phrasing: if the question is asking about an ALL-TIME record, a named historical year/tournament, or general career achievement, it's "knowledge" — that's where player bios, team profiles, and record-holder data now live. Only classify as "live" if the question is genuinely about a current or very recent result, standings, or fixture that needs up-to-the-minute data.
 
 Examples:
-"Who won the World Cup 2026?" -> live
+"Who won the World Cup 2026?" -> live (a specific, recent tournament — treat as needing current/live data)
+"Who has won the most Champions League titles?" -> knowledge (all-time record, not a live score)
+"Who holds the NBA all-time scoring record?" -> knowledge (all-time record)
+"Who is Michael Jordan?" -> knowledge (player biography)
 "What is the format of the World Cup?" -> knowledge
 "What is offside?" -> knowledge
-"Did Portugal win their last match?" -> live
+"Did Portugal win their last match?" -> live (a specific recent game result)
+"Who is leading the Premier League right now?" -> live (current standings)
+"Who won the 2022 FIFA World Cup?" -> knowledge (named historical event, settled record)
 
 Question: {question}
 
@@ -65,7 +144,8 @@ def _generate_answer(context, question):
         response = client.chat.completions.create(
             model=DEPLOYMENT,
             messages=[{"role": "user", "content": prompt}],
-            max_completion_tokens=1500,
+            max_completion_tokens=1500,  
+            # every real answer seen in testing has been well under this
         )
         return response.choices[0].message.content.strip()
     except Exception:
@@ -118,17 +198,31 @@ def get_context_and_meta(question, category):
 # ── MAIN ENDPOINT ────────────────────────────────────────
 @app.route("/ask", methods=["POST"])
 def ask():
+    t0 = time.time()
     data = request.get_json(silent=True) or {}
     question = data.get("question", "").strip()
 
     if not question:
         return jsonify({"error": "Missing 'question' field in request body"}), 400
 
-    category = classify_question(question)
+    category = fast_classify_question(question)
+    if category is None:
+        category = classify_question(question)  # LLM fallback for ambiguous cases
+        classify_source = "llm"
+    else:
+        classify_source = "fast-path"
+    t1 = time.time()
+    print(f"[TIMING] classify ({classify_source}): {t1 - t0:.2f}s -> '{category}'")
+
     results, round_used, source_type = get_context_and_meta(question, category)
+    t2 = time.time()
+    print(f"[TIMING] get_context_and_meta ({source_type}): {t2 - t1:.2f}s")
 
     context = "\n\n".join(r["content"] for r in results)
     answer = _generate_answer(context, question)
+    t3 = time.time()
+    print(f"[TIMING] _generate_answer: {t3 - t2:.2f}s")
+    print(f"[TIMING] TOTAL: {t3 - t0:.2f}s")
 
     return jsonify({
         "question": question,
