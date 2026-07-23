@@ -3,6 +3,7 @@ package org.Spring.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,23 +20,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.authentication.AuthenticationProvider;
 
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * SINGLE SOURCE OF TRUTH for backend security.
- *
- * IMPORTANT: There must be no other @Configuration class defining
- * UserDetailsService, PasswordEncoder, or SecurityFilterChain beans.
- * A previous duplicate (UserConfig.java) silently overrode this file's
- * credentials because "spring.main.allow-bean-definition-overriding=true"
- * was set in application.properties. That flag has been removed
- * (see application.properties) and UserConfig.java has been deleted.
- * If Spring now fails to start complaining about a duplicate bean,
- * that means a leftover copy of UserConfig.java (or similar) still
- * exists somewhere in the project - search for it and delete it.
- */
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -52,12 +42,7 @@ public class SecurityConfig {
     @Value("${APP_USER_PASS}")
     private String userPass;
 
-    /**
-     * Comma-separated list of allowed frontend origins.
-     * Defaults to localhost:3000 if CORS_ALLOWED_ORIGINS is not set,
-     * so nothing breaks if the env var is missing during local dev.
-     * For prod/demo, set CORS_ALLOWED_ORIGINS=https://yourdomain.com
-     */
+    
     @Value("${CORS_ALLOWED_ORIGINS:http://localhost:3000}")
     private String allowedOrigins;
 
@@ -129,12 +114,14 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     }
 
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService());
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
+public AuthenticationProvider authenticationProvider(LoginAttemptService loginAttemptService) {
+    DaoAuthenticationProvider realProvider = new DaoAuthenticationProvider();
+    realProvider.setUserDetailsService(userDetailsService());
+    realProvider.setPasswordEncoder(passwordEncoder());
+
+    
+    return new LockingAuthenticationProvider(realProvider, loginAttemptService);
+}
 
     @Bean
     public PasswordEncoder passwordEncoder() {
