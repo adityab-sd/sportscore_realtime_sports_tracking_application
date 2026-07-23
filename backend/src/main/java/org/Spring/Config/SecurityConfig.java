@@ -20,7 +20,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.authentication.AuthenticationProvider;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,53 +41,47 @@ public class SecurityConfig {
     @Value("${APP_USER_PASS}")
     private String userPass;
 
-    
+
     @Value("${CORS_ALLOWED_ORIGINS:http://localhost:3000}")
     private String allowedOrigins;
 
     private final RateLimitFilter rateLimitFilter;
+    private final LockoutAwareAuthenticationEntryPoint lockoutAwareEntryPoint;
 
-    public SecurityConfig(RateLimitFilter rateLimitFilter) {
+    public SecurityConfig(RateLimitFilter rateLimitFilter,
+                           LockoutAwareAuthenticationEntryPoint lockoutAwareEntryPoint) {
         this.rateLimitFilter = rateLimitFilter;
+        this.lockoutAwareEntryPoint = lockoutAwareEntryPoint;
     }
 
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .csrf(csrf -> csrf.disable())
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .headers(headers -> headers
-            // Forces browsers to only ever use HTTPS for this domain,
-            // even if someone types http:// by mistake, for 2 years.
-            .httpStrictTransportSecurity(hsts -> hsts
-                .includeSubDomains(true)
-                .maxAgeInSeconds(63072000)
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(63072000)
+                )
+                .contentTypeOptions(Customizer.withDefaults())
+                .frameOptions(frame -> frame.deny())
+                .referrerPolicy(referrer -> referrer
+                    .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                )
             )
-            // Stops the browser guessing file types, a common XSS vector.
-            .contentTypeOptions(Customizer.withDefaults())
-            // Prevents this API being embedded in an <iframe> elsewhere,
-            // blocking clickjacking-style attacks.
-            .frameOptions(frame -> frame.deny())
-            // Limits how much referrer info leaks when a request originates
-            // from this API and something links elsewhere from it.
-            .referrerPolicy(referrer -> referrer
-                .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**", "/public/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                .anyRequest().authenticated()
             )
-        )
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/auth/**", "/public/**").permitAll()
-            .requestMatchers("/api/admin/**").hasRole("ADMIN")
-            .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-            .anyRequest().authenticated()
-        )
-        .httpBasic(Customizer.withDefaults())
-        // Rate limiter runs before authentication so it protects
-        // even unauthenticated / public endpoints from abuse.
-        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+            .httpBasic(basic -> basic.authenticationEntryPoint(lockoutAwareEntryPoint))
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
-    return http.build();
-}
+        return http.build();
+    }
 
     @Bean
     public UserDetailsService userDetailsService() {
@@ -114,14 +107,13 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     }
 
     @Bean
-public AuthenticationProvider authenticationProvider(LoginAttemptService loginAttemptService) {
-    DaoAuthenticationProvider realProvider = new DaoAuthenticationProvider();
-    realProvider.setUserDetailsService(userDetailsService());
-    realProvider.setPasswordEncoder(passwordEncoder());
+    public AuthenticationProvider authenticationProvider(LoginAttemptService loginAttemptService) {
+        DaoAuthenticationProvider realProvider = new DaoAuthenticationProvider();
+        realProvider.setUserDetailsService(userDetailsService());
+        realProvider.setPasswordEncoder(passwordEncoder());
 
-    
-    return new LockingAuthenticationProvider(realProvider, loginAttemptService);
-}
+        return new LockingAuthenticationProvider(realProvider, loginAttemptService);
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -20,12 +20,12 @@ import org.springframework.stereotype.Component;
         this.loginAttemptService = loginAttemptService;
     }
 
-    @Override
+   @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String username = authentication.getName();
+    String username = authentication.getName();
 
-        if (loginAttemptService.isBlocked(username)) {
-            throw new LockedException(
+    if (loginAttemptService.isBlocked(username)) {
+        throw new LockedException(
                 "Too many failed login attempts for this account. Please try again in a few minutes."
             );
         }
