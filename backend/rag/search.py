@@ -53,12 +53,21 @@ INDICES = ["football-index", "basketball-index"]  # still referenced by search_f
 LIVE_INDEX = "football-live-index"
 
 # ── Postgres/pgvector config for the knowledge-base corpus (NEW) ──
+# No hardcoded fallback defaults on ANY field, including host/port/dbname —
+# every value must come from a real environment variable. This matches the
+# same fail-loudly pattern already used above for AZURE_SEARCH_ENDPOINT/KEY,
+# rather than silently falling back to a hardcoded credential-shaped string.
+_required_pg_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+_missing_pg_vars = [v for v in _required_pg_vars if not os.getenv(v)]
+if _missing_pg_vars:
+    raise RuntimeError(f"Missing required Postgres environment variables: {', '.join(_missing_pg_vars)}")
+
 PG_CONFIG = {
-    "host": os.getenv("POSTGRES_HOST", "localhost"),
-    "port": int(os.getenv("POSTGRES_PORT", "5432")),
-    "dbname": os.getenv("POSTGRES_DB", "sportsscore"),
-    "user": os.getenv("POSTGRES_USER", "postgres"),
-    "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+    "host": os.getenv("POSTGRES_HOST"),
+    "port": int(os.getenv("POSTGRES_PORT")),
+    "dbname": os.getenv("POSTGRES_DB"),
+    "user": os.getenv("POSTGRES_USER"),
+    "password": os.getenv("POSTGRES_PASSWORD"),
 }
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 

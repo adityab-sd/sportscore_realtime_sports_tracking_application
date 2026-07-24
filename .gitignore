@@ -55,3 +55,10 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# macOS
+.DS_Store
+._*
+__MACOSX/
+.AppleDouble
+.LSOverride__pycache__/

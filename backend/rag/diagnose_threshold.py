@@ -8,13 +8,29 @@ Usage:
     python3 diagnose_threshold.py
 """
 
+import os
+
+from dotenv import load_dotenv
 import psycopg2
 from pgvector.psycopg2 import register_vector
 from sentence_transformers import SentenceTransformer
 
+load_dotenv()
+
+# No hardcoded fallback defaults — every value must come from a real
+# environment variable, same fail-loudly pattern used in search.py and
+# ingest_corpus_to_postgres.py.
+_required_pg_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+_missing_pg_vars = [v for v in _required_pg_vars if not os.getenv(v)]
+if _missing_pg_vars:
+    raise RuntimeError(f"Missing required Postgres environment variables: {', '.join(_missing_pg_vars)}")
+
 PG_CONFIG = {
-    "host": "localhost", "port": 5432, "dbname": "sportsscore",
-    "user": "postgres", "password": "postgres",
+    "host": os.getenv("POSTGRES_HOST"),
+    "port": int(os.getenv("POSTGRES_PORT")),
+    "dbname": os.getenv("POSTGRES_DB"),
+    "user": os.getenv("POSTGRES_USER"),
+    "password": os.getenv("POSTGRES_PASSWORD"),
 }
 
 TEST_QUESTIONS = [

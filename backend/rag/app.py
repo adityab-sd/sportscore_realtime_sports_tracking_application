@@ -175,7 +175,23 @@ def get_context_and_meta(question, category):
       2. If nothing found, try the OTHER index
       3. If still nothing, grab whatever is available from any index
          (absolute last resort — should rarely trigger)
+
+    ADDITIONAL CHECK: if classified as "knowledge" but the question
+    mentions a recent year (this year or last year), ALSO check the live
+    index FIRST — since Postgres/pgvector's similarity search can grab a
+    topically-related but wrong-year historical entry (e.g. matching
+    "who won the World Cup 2026?" to the "2022 FIFA World Cup" record,
+    since both mention "World Cup") with no signal telling it the year
+    is wrong. If the live index has a genuinely relevant match, it's
+    preferred over the knowledge-base result.
+
+    KNOWN LIMITATION: this only helps when a year is explicitly
+    mentioned in the question. A phrasing like "what was the score
+    between Spain and Argentina?" (no year) doesn't trigger this check.
     """
+    years_mentioned = [int(y) for y in re.findall(r"\b(?:19|20)\d{2}\b", question.lower())]
+    mentions_recent_year = any(y >= CURRENT_YEAR - 1 for y in years_mentioned)
+
     if category == "live":
         primary = search_live_corpus(question)
         if primary["found"]:
@@ -184,6 +200,11 @@ def get_context_and_meta(question, category):
         if secondary["found"]:
             return secondary["results"], secondary["round_used"], "knowledge_base"
     else:
+        if mentions_recent_year:
+            live_check = search_live_corpus(question)
+            if live_check["found"]:
+                return live_check["results"], live_check["round_used"], "live_data"
+
         primary = search_corpus(question)
         if primary["found"]:
             return primary["results"], primary["round_used"], "knowledge_base"
