@@ -85,4 +85,74 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/public/**").permitAll()
-                .requestMatchers("/api/football/
+                .requestMatchers("/api/football/**").permitAll()
+                .requestMatchers("/api/basketball/**").permitAll()
+                .requestMatchers("/api/baseball/**").permitAll()
+                .requestMatchers("/api/cricket/**").permitAll()
+                .requestMatchers("/api/f1/**").permitAll()
+                .requestMatchers("/api/rugby/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                .anyRequest().authenticated()
+            )
+            .httpBasic(basic -> basic.authenticationEntryPoint(lockoutAwareEntryPoint))
+            // Rate limiter runs before authentication so it protects
+            // even unauthenticated / public endpoints from abuse.
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        if (adminUser.equals(userName)) {
+            throw new IllegalStateException(
+                "APP_ADMIN_USER and APP_USER_NAME must be different usernames."
+            );
+        }
+
+        UserDetails admin = User.builder()
+            .username(adminUser)
+            .password(passwordEncoder().encode(adminPass))
+            .roles("ADMIN")
+            .build();
+
+        UserDetails user = User.builder()
+            .username(userName)
+            .password(passwordEncoder().encode(userPass))
+            .roles("USER")
+            .build();
+
+        return new InMemoryUserDetailsManager(admin, user);
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider(LoginAttemptService loginAttemptService) {
+        DaoAuthenticationProvider realProvider = new DaoAuthenticationProvider();
+        realProvider.setUserDetailsService(userDetailsService());
+        realProvider.setPasswordEncoder(passwordEncoder());
+
+        return new LockingAuthenticationProvider(realProvider, loginAttemptService);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
+        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+}
