@@ -18,7 +18,7 @@ export default function TransactionFeed({ transactions }: { transactions: BBTran
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{(transactions ?? []).length}</span>
       </div>
       {transactions.map((tx, i) => (
-        {/* ADDRESSED: fallback index key can attach the wrong transaction after live inserts. EXAMPLE: <div key={tx.id ?? `${tx.date}:${tx.description}`}>...</div>. */}
+
         <div key={tx.id || i} style={{ padding: "11px 18px", borderBottom: i < (transactions ?? []).length - 1 ? "1px solid var(--border)" : "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
             {tx.team && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)" }}>{tx.team}</span>}
