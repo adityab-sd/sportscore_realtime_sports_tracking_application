@@ -51,8 +51,11 @@ public class CoreF1Adapter implements ScoreboardAdapter {
         return matches;
     }
 
+    // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and
+    // can collapse distinct weekends. Same fix as CoreBaseballAdapter, applied here for consistency.
     private Match toMatch(JsonNode event) {
-        int id = event.path("id").asInt();
+        Integer id = parseId(event.path("id"));
+        if (id == null) return null;
         JsonNode sessions = event.path("competitions");
         if (!sessions.isArray() || sessions.isEmpty()) return null;
 
@@ -180,9 +183,8 @@ public class CoreF1Adapter implements ScoreboardAdapter {
     /** Driver mapped onto the Team shape: id, full name, country (flag alt), flag image. */
     private Team toDriver(JsonNode competitor) {
         JsonNode athlete = competitor.path("athlete");
-        int id = athlete.path("id").canConvertToInt()
-                ? athlete.path("id").asInt()
-                : competitor.path("id").asInt();
+        Integer id = parseId(athlete.path("id"));
+        if (id == null) id = parseId(competitor.path("id"));
         String name = first(
                 textOrNull(athlete.path("fullName")),
                 textOrNull(athlete.path("displayName")),
@@ -206,5 +208,17 @@ public class CoreF1Adapter implements ScoreboardAdapter {
     private String first(String... vals) {
         for (String v : vals) if (v != null && !v.isBlank()) return v;
         return null;
+    }
+
+    // Validates an ESPN id field is present and numeric before parsing it, so a
+    // missing/non-numeric id comes through as null instead of silently becoming 0.
+    private Integer parseId(JsonNode idNode) {
+        String text = textOrNull(idNode);
+        if (text == null || !text.matches("\\d+")) return null;
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

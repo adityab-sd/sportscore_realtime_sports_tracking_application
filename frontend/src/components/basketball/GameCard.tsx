@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BBGame } from "@/lib/api/basketball";
 import { classifyStatus, periodLabel } from "@/types/basketball";
 import TeamLogo from "@/components/football/TeamLogo";
+import { formatMatchTime } from "@/lib/formatDate";
 
 function StatusChip({ game, league }: { game: BBGame; league: string }) {
   const state = classifyStatus(game.statusState);
