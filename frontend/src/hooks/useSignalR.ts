@@ -56,7 +56,6 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
         // ADDRESSED: SECURITY — removed console.log lines that printed the SignalR
         // access JWT (url + token) into the browser console. Credentials must never
         // be logged where users or extensions can read them.
-
         const signalR = await import("@microsoft/signalr");
 
         const connection = new signalR.HubConnectionBuilder()
