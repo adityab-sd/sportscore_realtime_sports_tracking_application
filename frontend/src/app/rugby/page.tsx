@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function ComingSoonPage() {
 // ============================================================================
-// PLEASE review — Placeholder copy should be polished before release
+// ADDRESSED: Placeholder copy should be polished before release
 // ----------------------------------------------------------------------------
 // The route renders public-facing copy with a stray semicolon and no future
 // error/empty state path for live rugby data. Keep placeholder pages clean so
@@ -28,7 +28,7 @@ export default function ComingSoonPage() {
         Coming Soon
       </h1>
       <p style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.65, margin: "0 0 36px" }}>
-        We&apos;re building full real-time coverage for rugby. Football is live now, more sports dropping soon;.
+        We&apos;re building full real-time coverage for rugby. Football is live now, more sports dropping soon.
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <Link href="/football" style={{

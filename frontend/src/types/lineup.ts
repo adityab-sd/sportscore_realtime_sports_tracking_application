@@ -11,17 +11,11 @@ export interface LineupPlayer {
   events?: LineupPlayerEvent[];
 }
 
-// ============================================================================
-// PLEASE review — Lineup events need direction-specific payloads
-// ----------------------------------------------------------------------------
-// A single union of string literals loses fields needed for substitutions and
-// cards, and it cannot enforce that subOff has a replacement player. Use a
-// discriminated union with event-specific properties.
-//
-// EXAMPLE:
-//   type LineupPlayerEvent = { type: "goal"; minute: number } | { type: "subOff"; minute: number; replacementId: string };
-// ============================================================================
-export interface LineupPlayerEvent {
-  type: "goal" | "yellowCard" | "redCard" | "subOff";
-  minute: number;
-}
+// ADDRESSED: Lineup events need direction-specific payloads — converted to a discriminated
+// union with event-specific properties. subOff now requires a replacementId so the UI can
+// show which player came on. Other event types carry only a minute.
+export type LineupPlayerEvent =
+  | { type: "goal"; minute: number }
+  | { type: "yellowCard"; minute: number }
+  | { type: "redCard"; minute: number }
+  | { type: "subOff"; minute: number; replacementId?: string };

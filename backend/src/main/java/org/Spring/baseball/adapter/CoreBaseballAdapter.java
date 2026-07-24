@@ -58,7 +58,7 @@ public class CoreBaseballAdapter implements ScoreboardAdapter {
         if (!idText.matches("\\d+")) {
             return null;
         }
-        int id;
+        Integer id;
         try {
             id = Integer.parseInt(idText);
         } catch (NumberFormatException e) {
@@ -141,10 +141,22 @@ public class CoreBaseballAdapter implements ScoreboardAdapter {
                 textOrNull(t.path("logos").path(0).path("href")),
                 null);
         return new Team(
-                t.path("id").asInt(),
+                parseId(t.path("id")),
                 first(textOrNull(t.path("displayName")), textOrNull(t.path("name")), null),
                 first(textOrNull(t.path("abbreviation")), textOrNull(t.path("shortDisplayName")), null),
                 logo);
+    }
+
+    // Same present-and-numeric validation as the match id above, reused for team ids
+    // so a missing/non-numeric team id comes through as null instead of silently 0.
+    private Integer parseId(JsonNode idNode) {
+        String text = textOrNull(idNode);
+        if (text == null || !text.matches("\\d+")) return null;
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Integer intOrNull(JsonNode n) {

@@ -319,3 +319,12 @@ img, svg, video { max-width: 100%; height: auto; }
   from { transform: translateX(0); }
   to   { transform: translateX(calc(-50% - 6px)); }
 }
+
+/* Player page sidebars */
+.player-switch-row:hover { background: var(--cloud) !important; }
+.quick-link-row:hover { background: var(--cloud) !important; }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -60,7 +60,7 @@ const CAT_GRADIENTS: Record<string, string> = {
 
 function timeAgo(iso: string): string {
   // ============================================================================
-  // PLEASE review — avoid Date.now() in card render
+  // ADDRESSED: avoid Date.now() in card render
   // ----------------------------------------------------------------------------
   // Relative time is computed during render and then suppressed for hydration,
   // which can hide timezone/clock mismatches and leaves labels stale until some

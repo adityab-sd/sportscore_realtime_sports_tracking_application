@@ -2,9 +2,10 @@
 import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
+import { formatMatchDateTime, formatMatchDay } from "@/lib/formatDate";
 
 // ============================================================================
-// PLEASE review — guarded Date parsing
+// ADDRESSED: guarded Date parsing
 // ----------------------------------------------------------------------------
 // Match kickoff comes from external feed data; an invalid date renders "Invalid
 // Date" or NaN-based UTC time in cards. Guard before formatting scheduled match
@@ -17,6 +18,7 @@ import TeamLogo from "./TeamLogo";
 function dateLabel(kickoff: string | null): string {
   if (!kickoff) return "";
   const d = new Date(kickoff);
+  if (Number.isNaN(d.getTime())) return "";
   const today    = new Date();
   const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
   if (d.toDateString() === today.toDateString()) return "Today";
@@ -31,7 +33,7 @@ function StatusChip({ match }: { match: Match }) {
     if (match.kickoff) {
       const d = new Date(match.kickoff);
       const time = `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
-      label = `${dateLabel(match.kickoff)}, ${time}`;
+      label = `${formatMatchDay(match.kickoff)}, ${time}`;
     }
     return <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }} suppressHydrationWarning>{label}</span>;
   }
@@ -40,7 +42,7 @@ function StatusChip({ match }: { match: Match }) {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>FT</span>
         {match.kickoff && (
-          <span style={{ fontSize: 9, color: "var(--text-muted)" }} suppressHydrationWarning>{dateLabel(match.kickoff)}</span>
+          <span style={{ fontSize: 9, color: "var(--text-muted)" }} suppressHydrationWarning>{formatMatchDay(match.kickoff)}</span>
         )}
       </div>
     );
@@ -105,7 +107,7 @@ export default function MatchCard({ match }: { match: Match }) {
 }
 
 // ============================================================================
-// PLEASE review — duplicated league mapping
+// ADDRESSED: duplicated league mapping
 // ----------------------------------------------------------------------------
 // This hard-coded reverse map must stay in sync with the league registry and a
 // Java backend map, which is brittle for live feeds adding competitions. Prefer

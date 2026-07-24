@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { Match, MatchEvent } from "@/types/football";
+import type { ESPNTeamLineup } from "@/lib/api/espn";
 
 function EventIcon({ type, detail }: { type: string; detail: string }) {
   const d = (detail || "").toLowerCase();
@@ -29,52 +31,48 @@ function EventIcon({ type, detail }: { type: string; detail: string }) {
   );
 }
 
-export default function EventFeed({ match }: { match: Match }) {
+interface Props {
+  match: Match;
+  /** Optional — if provided, player names are linked to their player page. */
+  lineups?: ESPNTeamLineup[];
+  league?: string;
+}
+
+export default function EventFeed({ match, lineups, league }: Props) {
   if (!match.events || match.events.length === 0) {
     return <p style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", padding: "24px 0", margin: 0 }}>No events recorded for this match.</p>;
   }
   const sorted = [...match.events].sort((a, b) => b.minute - a.minute);
 
-  // ============================================================================
-  // PLEASE review — stable event identity
-  // ----------------------------------------------------------------------------
-  // This feed keys rows by array index after sorting by minute, so a late SignalR
-  // insert can cause React to reuse the wrong DOM node for an existing event.
-  // Live match events need a stable key derived from event identity.
-  //
-  // EXAMPLE:
-  //   {sorted.map(e => <div key={`${e.minute}-${e.type}-${e.teamId ?? "unknown"}-${e.player ?? e.detail}`} />)}
-  // ============================================================================
-
-  // ============================================================================
-  // PLEASE review — defensive team resolution
-  // ----------------------------------------------------------------------------
-  // Any event whose teamId is missing or does not match the home team is rendered
-  // as the away team. ESPN/SignalR payloads can omit team data for VAR, kickoff,
-  // or administrative events, which makes the feed attribute events incorrectly.
-  //
-  // EXAMPLE:
-  //   const sn = e.teamId === match.homeTeam.id ? match.homeTeam.shortName : e.teamId === match.awayTeam.id ? match.awayTeam.shortName : "—";
-  // ============================================================================
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {sorted.map((e: MatchEvent, i: number) => {
+      {sorted.map((e: MatchEvent) => {
         const isHome = e.teamId === match.homeTeam.id;
-        const sn = isHome ? match.homeTeam.shortName : match.awayTeam.shortName;
+        const sn = e.teamId === match.homeTeam.id ? match.homeTeam.shortName : e.teamId === match.awayTeam.id ? match.awayTeam.shortName : "—";
+
+        const teamLineup = lineups?.find(l => Number(l.teamId) === e.teamId);
+        const allTeamPlayers = teamLineup ? [...teamLineup.starters, ...teamLineup.bench] : [];
+        const matchedPlayer = e.player ? allTeamPlayers.find(p => p.name === e.player) : undefined;
+
+        const nameNode = matchedPlayer && league ? (
+          <Link href={`/football/player/${matchedPlayer.id}?league=${league}&team=${teamLineup!.teamId}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", textDecoration: "none" }}>
+            {e.player}
+          </Link>
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)" }}>{e.player ?? e.detail}</span>
+        );
+
         return (
-          <div key={i} style={{
-            display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-            borderRadius: 8, flexDirection: isHome ? "row" : "row-reverse",
-            transition: "background 100ms",
-          }}
+          <div
+            key={`${e.minute}-${e.type}-${e.teamId ?? "unknown"}-${e.player ?? e.detail}`}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, flexDirection: isHome ? "row" : "row-reverse", transition: "background 100ms" }}
             onMouseEnter={ev => (ev.currentTarget.style.background = "var(--cloud)")}
             onMouseLeave={ev => (ev.currentTarget.style.background = "transparent")}
           >
             <span className="stat-num" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", minWidth: 30, textAlign: "center" }}>{e.minute}&apos;</span>
             <EventIcon type={e.type} detail={e.detail} />
             <div style={{ flex: 1, textAlign: isHome ? "left" : "right", minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)" }}>{e.player ?? e.detail}</div>
+              <div>{nameNode}</div>
               {e.assist && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>Assist: {e.assist}</div>}
               {!e.player && e.detail && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{e.detail}</div>}
             </div>

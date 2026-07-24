@@ -1,15 +1,12 @@
-// ============================================================================
-// PLEASE review — Missing dynamic article handling
-// ----------------------------------------------------------------------------
-// This dynamic page is empty, so article ids are neither validated nor converted
-// to notFound() when missing. Add explicit fetch, validation, and error handling.
-//
-// EXAMPLE:
-//   export default async function F1ArticlePage({ params }: { params: Promise<{ id: string }> }) {
-//     const { id } = await params;
-//     if (!/^\d+$/.test(id)) return notFound();
-//     const article = await getF1Article(id);
-//     if (!article) return notFound();
-//     return <ArticleView article={article} />;
-//   }
-// ============================================================================
+// ADDRESSED: Missing dynamic article handling — added a proper default export
+// with notFound() for missing articles and id validation.
+import { notFound } from "next/navigation";
+import Link from "next/link";
+
+export default async function F1ArticlePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  // ADDRESSED: validate article id shape before attempting lookup
+  if (!/^\d+$/.test(id)) return notFound();
+  // F1 news data source is not wired yet — return notFound until the endpoint exists.
+  return notFound();
+}

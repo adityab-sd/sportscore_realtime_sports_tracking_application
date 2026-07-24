@@ -1,5 +1,8 @@
 package org.Spring.Config;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,10 +24,19 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
-
+/**
+ * SINGLE SOURCE OF TRUTH for backend security.
+ *
+ * IMPORTANT: There must be no other @Configuration class defining
+ * UserDetailsService, PasswordEncoder, or SecurityFilterChain beans.
+ * A previous duplicate (UserConfig.java) silently overrode this file's
+ * credentials because "spring.main.allow-bean-definition-overriding=true"
+ * was set in application.properties. That flag has been removed
+ * (see application.properties) and UserConfig.java has been deleted.
+ * If Spring now fails to start complaining about a duplicate bean,
+ * that means a leftover copy of UserConfig.java (or similar) still
+ * exists somewhere in the project - search for it and delete it.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -73,66 +85,4 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/public/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                .anyRequest().authenticated()
-            )
-            .httpBasic(basic -> basic.authenticationEntryPoint(lockoutAwareEntryPoint))
-            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
-
-    @Bean
-    public UserDetailsService userDetailsService() {
-        if (adminUser.equals(userName)) {
-            throw new IllegalStateException(
-                "APP_ADMIN_USER and APP_USER_NAME must be different usernames."
-            );
-        }
-
-        UserDetails admin = User.builder()
-            .username(adminUser)
-            .password(passwordEncoder().encode(adminPass))
-            .roles("ADMIN")
-            .build();
-
-        UserDetails user = User.builder()
-            .username(userName)
-            .password(passwordEncoder().encode(userPass))
-            .roles("USER")
-            .build();
-
-        return new InMemoryUserDetailsManager(admin, user);
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider(LoginAttemptService loginAttemptService) {
-        DaoAuthenticationProvider realProvider = new DaoAuthenticationProvider();
-        realProvider.setUserDetailsService(userDetailsService());
-        realProvider.setPasswordEncoder(passwordEncoder());
-
-        return new LockingAuthenticationProvider(realProvider, loginAttemptService);
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .toList();
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
-}
+                .requestMatchers("/api/football/

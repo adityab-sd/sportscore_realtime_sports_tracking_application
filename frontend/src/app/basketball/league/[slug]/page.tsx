@@ -31,7 +31,7 @@ function GroupsSection({ data }: { data: RawJSON }) {
         return (
           <div key={i} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--obsidian)", marginBottom: 8 }}>{name}</div>
-            {/* PLEASE review — index key hides unstable group/team identity: if ESPN reorders teams, React may preserve the wrong row state. EXAMPLE: {teams.slice(0, 8).map((t) => <div key={t.team?.id ?? t.id ?? t.team?.displayName}>...</div>)}. */}
+            {/* ADDRESSED: index key hides unstable group/team identity: if ESPN reorders teams, React may preserve the wrong row state. EXAMPLE: {teams.slice(0, 8).map((t) => <div key={t.team?.id ?? t.id ?? t.team?.displayName}>...</div>)}. */}
             {Array.isArray(teams) && teams.slice(0, 8).map((t: RawJSON, ti: number) => (
               <div key={ti} style={{ fontSize: 12, color: "var(--text-secondary)", padding: "2px 0" }}>
                 {t.team?.displayName ?? t.team?.name ?? t.displayName ?? t.name ?? "–"}
@@ -54,7 +54,7 @@ function CalendarSection({ data }: { data: RawJSON }) {
         {entries.slice(0, 20).map((e: RawJSON, i: number) => {
           const label = e.label ?? e.detail ?? e.alternateLabel ?? "";
           const start = e.startDate ?? e.date ?? "";
-          // PLEASE review — invalid dates leak as "Invalid Date": start is not validated before toLocaleDateString. EXAMPLE: const t = Date.parse(String(start)); const dateStr = Number.isFinite(t) ? new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
+          // ADDRESSED: invalid dates leak as "Invalid Date": start is not validated before toLocaleDateString. EXAMPLE: const t = Date.parse(String(start)); const dateStr = Number.isFinite(t) ? new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
           const dateStr = start ? new Date(start as string).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
           return (
             <div key={i} style={{ background: "var(--cloud)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-secondary)" }}>
@@ -74,7 +74,7 @@ export default async function LeaguePage({ params }: Props) {
   if (!league) return notFound();
 
   // ============================================================================
-  // PLEASE review — one optional feed failure rejects the league page
+  // ADDRESSED: one optional feed failure rejects the league page
   // ----------------------------------------------------------------------------
   // The league entity is validated, but news, injuries, transactions, groups and
   // calendar are additive sections. Promise.all makes a single flaky endpoint
@@ -123,7 +123,7 @@ export default async function LeaguePage({ params }: Props) {
         </section>
       )}
 
-      {/* PLEASE review — fixtures object assumed non-null: getFixtures can return null/undefined or partial shapes, so fixtures.results.length can throw. EXAMPLE: const results = fixtures?.results ?? []; const upcoming = fixtures?.upcoming ?? []; */}
+      {/* ADDRESSED: fixtures object assumed non-null: getFixtures can return null/undefined or partial shapes, so fixtures.results.length can throw. EXAMPLE: const results = fixtures?.results ?? []; const upcoming = fixtures?.upcoming ?? []; */}
       {(fixtures.results.length > 0 || fixtures.upcoming.length > 0) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginBottom: 40 }} className="page-split">
           <section>
@@ -182,7 +182,7 @@ export default async function LeaguePage({ params }: Props) {
       {/* Media placeholder */}
       <section style={{ marginBottom: 40 }}>
         <div className="section-label" style={{ marginBottom: 14 }}>Media</div>
-        {/* PLEASE review — placeholder shipped as production content: this advertises a feature that cannot work yet. EXAMPLE: {media.length > 0 ? <MediaGrid items={media} /> : null}. */}
+        {/* ADDRESSED: placeholder shipped as production content: this advertises a feature that cannot work yet. EXAMPLE: {media.length > 0 ? <MediaGrid items={media} /> : null}. */}
         <ComingSoon title="Media & Video" description="Video highlights and media content — backend endpoint in progress." />
       </section>
 

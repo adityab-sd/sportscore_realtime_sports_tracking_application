@@ -42,7 +42,7 @@ function PlayerRow({
 }
 
 // ============================================================================
-// PLEASE review — ESPN lineup array guards
+// ADDRESSED: ESPN lineup array guards
 // ----------------------------------------------------------------------------
 // TeamColumn maps lineup.starters and reads lineup.bench.length directly. If an
 // ESPN detail response omits one array while keeping the lineup object, this
@@ -65,17 +65,17 @@ function TeamColumn({ lineup, team, league }: { lineup: ESPNTeamLineup; team: ES
         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 4 }}>
           Starting XI
         </div>
-        {lineup.starters.map(p => (
+        {(lineup.starters ?? []).map(p => (
           <PlayerRow key={p.id} jersey={p.jersey} name={p.name} position={p.position} playerId={p.id} teamId={lineup.teamId} league={league} />
         ))}
       </div>
 
-      {lineup.bench.length > 0 && (
+      {(lineup.bench ?? []).length > 0 && (
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 4 }}>
             Substitutes
           </div>
-          {lineup.bench.map(p => (
+          {(lineup.bench ?? []).map(p => (
             <PlayerRow key={p.id} jersey={p.jersey} name={p.name} position={p.position} playerId={p.id} teamId={lineup.teamId} league={league} />
           ))}
         </div>

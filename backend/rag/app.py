@@ -1,39 +1,34 @@
 """
-app.py - Flask API for the SportScore Knowledge Assistant
-
-Exposes a single endpoint:
-  POST /ask   { "question": "..." }  ->  JSON response
-
-Current behaviour (until Azure OpenAI quota is approved):
-  - Runs the two-round search from search.py
-  - If results are found, returns the retrieved corpus entries directly
-    as a placeholder "answer" (raw retrieval, not yet GPT-generated)
-  - If nothing is found, returns a fallback message
-
-Once Azure OpenAI is unblocked, the TODO section below gets replaced
-with an actual call to GPT-4o using the retrieved entries as context.
 app.py — Flask API for the SportScore Knowledge Assistant
 """
 
 from flask import Flask, request, jsonify
-from search import search_corpus
+from search import search_corpus, search_live_corpus, search_fallback_anything
 from prompts import build_prompt
 from openai import AzureOpenAI
 from dotenv import load_dotenv
 import os
+import re
+import time
+from datetime import datetime
 
 load_dotenv()
 
+required_vars = ["AZURE_OPENAI_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT",
+                  "AZURE_SEARCH_ENDPOINT", "AZURE_SEARCH_KEY"]
+missing = [v for v in required_vars if not os.getenv(v)]
+if missing:
+    raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
+
 app = Flask(__name__)
 
-# ── Azure OpenAI client ───────────────────────────────────
-# PLEASE review — missing case: none of these env vars are validated. If AZURE_OPENAI_KEY /
-# ENDPOINT / DEPLOYMENT are unset the client builds with None and fails deep inside the first
-# /ask request with an opaque error instead of failing fast at startup.
-# EXAMPLE:
-#   required = ["AZURE_OPENAI_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"]
-#   missing = [v for v in required if not os.getenv(v)]
-#   if missing: raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    return response
+
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_KEY"),
     api_version="2024-02-01",
@@ -41,108 +36,209 @@ client = AzureOpenAI(
 )
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
-# ── LIVE DATA KEYWORDS ───────────────────────────────────
-LIVE_DATA_KEYWORDS = {
-    "score", "scores", "result", "results", "today", "yesterday",
-    "tonight", "now", "live", "playing", "currently", "latest",
-    "fixture", "fixtures", "standings", "table", "who won", "did they win",
-    "match today", "game today", "kick off", "kickoff", "qualify", "qualified"
-}
+CURRENT_YEAR = datetime.now().year  # used by fast_classify_question's year heuristic
 
-# ============================================================================
-# PLEASE review — substring matching causes false positives (missing case):
-# `keyword in q` matches inside other words, so "now" matches "k-now-n" (known) and
-# "knowledge", "table" matches "comfortable", "score" matches "scoreless". Innocent
-# knowledge questions get misrouted to the live-data layer and never answered.
-# EXAMPLE — match whole words / phrases:
-#   import re
-#   tokens = set(re.findall(r"[a-z']+", question.lower()))
-#   single = {"score","live","now","today",...}          # single-word triggers
-#   phrases = {"who won","did they win","match today",...} # multi-word triggers
-#   return bool(tokens & single) or any(p in question.lower() for p in phrases)
-# ============================================================================
-def is_live_data_question(question):
-    q = question.lower()
-    return any(keyword in q for keyword in LIVE_DATA_KEYWORDS)
+# Words that reliably signal a definition/rules/bio question (always "knowledge"),
+# vs. words that reliably signal a current/right-now question (always "live").
+KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do",
+                      "explain", "define", "who is", "who was", "how many",
+                      "how is", "how are")
+KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds",
+                     "most decorated", "biggest", "greatest of all",
+                     "the most", "won the most", "has won the most")
+LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently",
+               "live score", "at the moment", "this season")
+
+
+def fast_classify_question(question):
+    """
+    Rule-based pre-classifier that skips the classify_question() LLM call
+    (~1.6-1.7s per the timing logs) for questions with an obvious, high-
+    confidence answer. Returns "live", "knowledge", or None if genuinely
+    ambiguous — callers must fall back to the LLM classifier when None is
+    returned, rather than guessing.
+
+    This does NOT replace classify_question()'s nuanced logic (e.g. "who
+    won the 2022 World Cup" vs "who won the World Cup 2026") — it only
+    shortcuts the clearly-obvious cases, so the carefully-tuned LLM
+    behavior is preserved for anything ambiguous.
+
+    Tested against 12 representative questions before shipping (see chat
+    history) — LIVE_SIGNALS is checked FIRST, before KNOWLEDGE_STARTERS,
+    because an explicit "today"/"right now" is the strongest possible
+    signal and must win even when the question also happens to start with
+    a knowledge-style phrase like "what is" or "who is" (e.g. "what is
+    the live score for today's match?" must be "live", not "knowledge").
+    """
+    q_lower = question.lower().strip()
+
+    if any(signal in q_lower for signal in LIVE_SIGNALS):
+        return "live"
+
+    if any(q_lower.startswith(starter) for starter in KNOWLEDGE_STARTERS):
+        # "who is X" is a bio question (knowledge) — but "who won/has won X"
+        # is NOT covered by this starter list, so it correctly falls through
+        # to the year-based check or the LLM below instead of being
+        # misclassified here.
+        return "knowledge"
+
+    if any(signal in q_lower for signal in KNOWLEDGE_SIGNALS):
+        return "knowledge"
+
+    # A year clearly in the past (2 + years ago) with no "live" wording
+    # is very likely a settled historical result, e.g. "who won the 2022
+    # World Cup" — recent/current years (this year or last year) are left
+    # ambiguous on purpose and fall through to the LLM, since "who won the
+    # World Cup 2026" needs the nuanced live-vs-settled judgment call.
+    years_mentioned = [int(y) for y in re.findall(r"\b(?:19|20)\d{2}\b", q_lower)]
+    if years_mentioned and not any(signal in q_lower for signal in LIVE_SIGNALS):
+        most_recent_year_mentioned = max(years_mentioned)
+        if most_recent_year_mentioned <= CURRENT_YEAR - 2:
+            return "knowledge"
+
+    return None  # ambiguous — let the LLM decide
+
+
+def classify_question(question):
+    classification_prompt = f"""Classify the following sports question into exactly one category.
+
+Reply with ONLY one word: "live" or "knowledge"
+
+- "live" = questions about the outcome, score, or status of a SPECIFIC recent/current match, fixture, or ongoing competition — including "who won X" (a specific recent game), "what was the score of X", standings RIGHT NOW, upcoming fixtures, recent transfers. This is for things that change week to week and need current data.
+- "knowledge" = questions about rules, formations, strategies, definitions, player/team biographical info, or ALL-TIME/HISTORICAL records and milestones — even if phrased as "who won X". This includes: "who has won the most X (ever/all-time)", "who holds the record for X", "who is the all-time leading Y", player profiles ("who is X"), team history, and named historical tournament results (e.g. "who won the 2022 World Cup" — a specific past, settled event, not a live/current one).
+
+The key distinction for "who won/has won" phrasing: if the question is asking about an ALL-TIME record, a named historical year/tournament, or general career achievement, it's "knowledge" — that's where player bios, team profiles, and record-holder data now live. Only classify as "live" if the question is genuinely about a current or very recent result, standings, or fixture that needs up-to-the-minute data.
+
+Examples:
+"Who won the World Cup 2026?" -> live (a specific, recent tournament — treat as needing current/live data)
+"Who has won the most Champions League titles?" -> knowledge (all-time record, not a live score)
+"Who holds the NBA all-time scoring record?" -> knowledge (all-time record)
+"Who is Michael Jordan?" -> knowledge (player biography)
+"What is the format of the World Cup?" -> knowledge
+"What is offside?" -> knowledge
+"Did Portugal win their last match?" -> live (a specific recent game result)
+"Who is leading the Premier League right now?" -> live (current standings)
+"Who won the 2022 FIFA World Cup?" -> knowledge (named historical event, settled record)
+
+Question: {question}
+
+Category:"""
+
+    try:
+        response = client.chat.completions.create(
+            model=DEPLOYMENT,
+            messages=[{"role": "user", "content": classification_prompt}],
+            max_completion_tokens=150
+        )
+        answer = response.choices[0].message.content.strip().lower()
+        return "live" if "live" in answer else "knowledge"
+    except Exception:
+        app.logger.exception("Classification call failed or was blocked by content filter")
+        return "knowledge"
+
+
+def _generate_answer(context, question):
+    """Shared helper: builds the prompt and calls gpt-5-mini."""
+    prompt = build_prompt(context, question)
+    try:
+        response = client.chat.completions.create(
+            model=DEPLOYMENT,
+            messages=[{"role": "user", "content": prompt}],
+            max_completion_tokens=1500,  
+            # every real answer seen in testing has been well under this
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        app.logger.exception("OpenAI call failed")
+        return "Sorry, the assistant is temporarily unavailable. Please try again shortly."
+
+
+def _relevant_sources(results, answer):
+    """Keep only sources whose team names appear in the answer text."""
+    answer_lower = answer.lower()
+    filtered = []
+    for r in results:
+        title = r["title"]
+        match_part = title.split("—")[0]
+        words = [w.strip(".,") for w in match_part.split() if len(w.strip(".,")) > 3]
+        if any(word.lower() in answer_lower for word in words):
+            filtered.append(r)
+    if not filtered and results:
+        filtered = [results[0]]
+    return [{"title": r["title"], "category": r["category"]} for r in filtered]
+
+
+def get_context_and_meta(question, category):
+    """
+    Chained fallback so the assistant almost never comes up empty:
+      1. Try the classified index first (live or knowledge)
+      2. If nothing found, try the OTHER index
+      3. If still nothing, grab whatever is available from any index
+         (absolute last resort — should rarely trigger)
+    """
+    if category == "live":
+        primary = search_live_corpus(question)
+        if primary["found"]:
+            return primary["results"], primary["round_used"], "live_data"
+        secondary = search_corpus(question)
+        if secondary["found"]:
+            return secondary["results"], secondary["round_used"], "knowledge_base"
+    else:
+        primary = search_corpus(question)
+        if primary["found"]:
+            return primary["results"], primary["round_used"], "knowledge_base"
+        secondary = search_live_corpus(question)
+        if secondary["found"]:
+            return secondary["results"], secondary["round_used"], "live_data"
+
+    fallback = search_fallback_anything()
+    return fallback["results"], fallback["round_used"], "fallback"
 
 
 # ── MAIN ENDPOINT ────────────────────────────────────────
 @app.route("/ask", methods=["POST"])
 def ask():
+    t0 = time.time()
     data = request.get_json(silent=True) or {}
     question = data.get("question", "").strip()
 
     if not question:
         return jsonify({"error": "Missing 'question' field in request body"}), 400
 
-    # Step 1: Route live data questions away
-    if is_live_data_question(question):
-        return jsonify({
-            "question": question,
-            "answer": "This question requires live match data. Please check the live scores section of SportScore.",
-            "grounded": False,
-            "routed_to": "live_data_layer"
-        })
+    category = fast_classify_question(question)
+    if category is None:
+        category = classify_question(question)  # LLM fallback for ambiguous cases
+        classify_source = "llm"
+    else:
+        classify_source = "fast-path"
+    t1 = time.time()
+    print(f"[TIMING] classify ({classify_source}): {t1 - t0:.2f}s -> '{category}'")
 
-    # Step 2: Search corpus
-    result = search_corpus(question)
+    results, round_used, source_type = get_context_and_meta(question, category)
+    t2 = time.time()
+    print(f"[TIMING] get_context_and_meta ({source_type}): {t2 - t1:.2f}s")
 
-    if not result["found"]:
-        return jsonify({
-            "question": question,
-            "answer": "I don't have information about that in the sports knowledge base.",
-            "grounded": False,
-            "sources": []
-        })
-
-    # Step 3: Build prompt and call OpenAI
-    context = "\n\n".join(r["content"] for r in result["results"])
-    prompt = build_prompt(context, question)
-
-    # ============================================================================
-    # PLEASE review — missing error handling: this network call is unguarded, so any
-    # rate-limit / quota / timeout / auth failure bubbles up as a 500 + stack trace to
-    # the caller. Wrap it and degrade gracefully.
-    # Also verify the token param: Azure OpenAI chat.completions expects `max_tokens`;
-    # `max_completion_tokens` is only for newer o-series models and errors on gpt-4o.
-    # EXAMPLE:
-    #   try:
-    #       response = client.chat.completions.create(model=DEPLOYMENT,
-    #           messages=[{"role": "user", "content": prompt}], max_tokens=500)
-    #   except Exception:
-    #       app.logger.exception("OpenAI call failed")
-    #       return jsonify({"error": "assistant temporarily unavailable"}), 502
-    # ============================================================================
-    response = client.chat.completions.create(
-        model=DEPLOYMENT,
-        messages=[{"role": "user", "content": prompt}],
-        max_completion_tokens=500,
-    )
-    answer = response.choices[0].message.content.strip()
+    context = "\n\n".join(r["content"] for r in results)
+    answer = _generate_answer(context, question)
+    t3 = time.time()
+    print(f"[TIMING] _generate_answer: {t3 - t2:.2f}s")
+    print(f"[TIMING] TOTAL: {t3 - t0:.2f}s")
 
     return jsonify({
         "question": question,
         "answer": answer,
         "grounded": True,
-        "round_used": result["round_used"],
-        "sources": [
-            {"title": r["title"], "category": r["category"]}
-            for r in result["results"]
-        ]
+        "round_used": round_used,
+        "source_type": source_type,
+        "sources": _relevant_sources(results, answer)
     })
 
 
-# ── HEALTH CHECK ─────────────────────────────────────────
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "service": "sportscore-rag"})
 
 
 if __name__ == "__main__":
-    # PLEASE review — SECURITY: debug=True enables the Werkzeug interactive debugger, which
-    # allows arbitrary code execution if the port is reachable. Never enable in production;
-    # drive it from an env var (default False) and bind the host explicitly.
-    # EXAMPLE:
-    #   app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")),
-    #           debug=os.getenv("FLASK_DEBUG", "false").lower() == "true")
-    app.run(debug=True, port=5000)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")), debug=debug_mode)

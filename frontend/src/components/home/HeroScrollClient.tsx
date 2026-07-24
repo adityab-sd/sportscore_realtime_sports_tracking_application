@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import TeamLogo from "@/components/football/TeamLogo";
+import { formatMatchDateTime } from "@/lib/formatDate";
 import "./heroScroll.css";
 
 /* ------------------------------------------------------------------ */
-/* Types — shared with the server-side HeroStrip                       */
+/* Types                                                               */
 /* ------------------------------------------------------------------ */
 
 export interface MatchCard {
   type: "match";
   id: string;
-  dateLabel: string;
+  kickoff: string | null;
   home: { name: string; short: string; logo: string | null };
   away: { name: string; short: string; logo: string | null };
   leagueLabel: string;
@@ -30,14 +30,51 @@ export interface AestheticCard {
 export type Card = MatchCard | AestheticCard;
 
 /* ------------------------------------------------------------------ */
-/* Single card                                                         */
+/* Team crest with initials fallback                                   */
+/* ------------------------------------------------------------------ */
+
+function Crest({ logo, name }: { logo: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (logo && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logo}
+        alt={name}
+        width={20}
+        height={20}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+        background: "rgba(255,255,255,0.15)", color: "#fff",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 9, fontWeight: 700,
+      }}
+    >
+      {name.charAt(0)}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Single card — handles both match and aesthetic types                 */
 /* ------------------------------------------------------------------ */
 
 function CardItem({ card }: { card: Card }) {
   const bg = card.type === "match" ? card.bgImage : card.image;
+  const href = card.type === "match" ? card.href : card.href;
 
   return (
-    <Link href={card.href} style={{ display: "block", flexShrink: 0 }}>
+    <Link href={href} style={{ display: "block", flexShrink: 0 }}>
       <div
         style={{
           width: 240,
@@ -61,19 +98,22 @@ function CardItem({ card }: { card: Card }) {
 
         {card.type === "match" ? (
           <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "12px 14px" }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", letterSpacing: "0.2px" }}>
-              {card.dateLabel}
+            <span
+              style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", letterSpacing: "0.2px" }}
+              suppressHydrationWarning
+            >
+              {formatMatchDateTime(card.kickoff)}
             </span>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <TeamLogo logo={card.home.logo} shortName={card.home.short} size={20} />
+                <Crest logo={card.home.logo} name={card.home.short} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {card.home.name}
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <TeamLogo logo={card.away.logo} shortName={card.away.short} size={20} />
+                <Crest logo={card.away.logo} name={card.away.short} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {card.away.name}
                 </span>
@@ -97,7 +137,7 @@ function CardItem({ card }: { card: Card }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Infinite scroll row                                                 */
+/* Infinite scroll row with clone cleanup                              */
 /* ------------------------------------------------------------------ */
 
 function ScrollRow({
@@ -112,37 +152,21 @@ function ScrollRow({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
 
-  // ============================================================================
-  // PLEASE review — clean up cloned marquee nodes
-  // ----------------------------------------------------------------------------
-  // The effect imperatively appends clones and only clears the timeout-free
-  // ready flag, so updates to cards can leave duplicate/stale DOM children in
-  // the scroller. Remove appended clones during cleanup and rebuild from cards.
-  //
-  // EXAMPLE:
-  //   useEffect(() => {
-  //     const scroller = scrollerRef.current;
-  //     if (!scroller) return;
-  //     const clones = Array.from(scroller.children).map((item) => {
-  //       const clone = item.cloneNode(true) as HTMLElement;
-  //       scroller.appendChild(clone);
-  //       return clone;
-  //     });
-  //     return () => clones.forEach((clone) => clone.remove());
-  //   }, [cards]);
-  // ============================================================================
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller || ready) return;
 
     const items = Array.from(scroller.children);
+    const clones: HTMLElement[] = [];
     items.forEach((item) => {
       const clone = item.cloneNode(true) as HTMLElement;
       clone.setAttribute("aria-hidden", "true");
       scroller.appendChild(clone);
+      clones.push(clone);
     });
 
     setReady(true);
+    return () => { clones.forEach((c) => c.remove()); };
   }, [ready]);
 
   if (cards.length === 0) return null;
@@ -171,9 +195,11 @@ function ScrollRow({
         onMouseEnter={(e) => { e.currentTarget.style.animationPlayState = "paused"; }}
         onMouseLeave={(e) => { e.currentTarget.style.animationPlayState = "running"; }}
       >
-        {/* PLEASE review — stable keys: adding the array index to the key makes cards remount after reordering. EXAMPLE: <CardItem key={card.type === "match" ? card.id : card.href} card={card} />. */}
         {cards.map((card, i) => (
-          <CardItem key={`${card.type === "match" ? card.id : card.label}-${i}`} card={card} />
+          <CardItem
+            key={card.type === "match" ? `m-${card.id}-${i}` : `a-${card.label}-${i}`}
+            card={card}
+          />
         ))}
       </div>
     </div>

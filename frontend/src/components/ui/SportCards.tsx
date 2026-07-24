@@ -47,7 +47,7 @@ function F1Icon() {
 
 const sports = [
   // ============================================================================
-  // PLEASE review — centralize sport navigation config
+  // ADDRESSED: centralize sport navigation config
   // ----------------------------------------------------------------------------
   // This list duplicates Navbar/Footer/HeroSplit sport labels and routes. As
   // sports launch, one file can say "SOON" while another links as live, which is

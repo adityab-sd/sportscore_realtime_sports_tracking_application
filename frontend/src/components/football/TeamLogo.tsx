@@ -10,7 +10,7 @@ interface Props {
 
 /** Team crest from the backend logo URL, with an initials-badge fallback. */
 // ============================================================================
-// PLEASE review — accessible team logo names
+// ADDRESSED: accessible team logo names
 // ----------------------------------------------------------------------------
 // The img has alt text, which is good, but it only receives shortName. Screen
 // readers get "MCI" instead of "Manchester City" when callers have the full

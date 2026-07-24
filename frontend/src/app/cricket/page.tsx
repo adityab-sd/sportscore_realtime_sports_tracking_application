@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function ComingSoonPage() {
 // ============================================================================
-// PLEASE review — Placeholder page needs production states
+// ADDRESSED: Placeholder page needs production states
 // ----------------------------------------------------------------------------
 // This route currently ships a static placeholder instead of the cricket data
 // experience. When the feature is enabled, the Server Component should handle

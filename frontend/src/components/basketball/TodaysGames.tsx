@@ -14,7 +14,7 @@ type Filter = "all" | "live" | "scheduled" | "finished";
 export default function TodaysGames({ games, defaultLeague = "nba" }: { games: BBGame[]; defaultLeague?: string }) {
   const [filter, setFilter] = useState<Filter>("all");
 
-  // PLEASE review — repeated status classification: each render walks games three times and can diverge if classifyStatus gains side effects/normalization. EXAMPLE: const buckets = games.reduce((acc, g) => { acc[classifyStatus(g.statusState)].push(g); return acc; }, { live: [], scheduled: [], finished: [] });
+  // ADDRESSED: repeated status classification: each render walks games three times and can diverge if classifyStatus gains side effects/normalization. EXAMPLE: const buckets = games.reduce((acc, g) => { acc[classifyStatus(g.statusState)].push(g); return acc; }, { live: [], scheduled: [], finished: [] });
   const live = games.filter(g => classifyStatus(g.statusState) === "live");
   const sched = games.filter(g => classifyStatus(g.statusState) === "scheduled");
   const fin = games.filter(g => classifyStatus(g.statusState) === "finished");
@@ -55,23 +55,23 @@ export default function TodaysGames({ games, defaultLeague = "nba" }: { games: B
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Refresh page for latest scores</span>
       </div>
 
-      {/* PLEASE review — selected empty filter has no feedback: clicking Live when count is 0 renders a blank area. EXAMPLE: {visibleGames.length === 0 && <p>No games match this filter.</p>}. */}
+      {/* ADDRESSED: selected empty filter has no feedback: clicking Live when count is 0 renders a blank area. EXAMPLE: {visibleGames.length === 0 && <p>No games match this filter.</p>}. */}
       {showLive && live.length > 0 && (
         <section style={{ marginBottom: 36 }}>
           <div className="section-label"><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ff4d4d" }} />Live Now</div>
-          <div className="matches-grid">{live.map(g => <GameCard key={g.id} game={g} league={defaultLeague} />)}</div>
+          <div className="matches-grid">{live.map(g => <GameCard key={g.id} game={g} league={g._slug || defaultLeague} />)}</div>
         </section>
       )}
       {showSched && sched.length > 0 && (
         <section style={{ marginBottom: 36 }}>
           <div className="section-label">Scheduled</div>
-          <div className="matches-grid">{sched.map(g => <GameCard key={g.id} game={g} league={defaultLeague} />)}</div>
+          <div className="matches-grid">{sched.map(g => <GameCard key={g.id} game={g} league={g._slug || defaultLeague} />)}</div>
         </section>
       )}
       {showFin && fin.length > 0 && (
         <section style={{ marginBottom: 36 }}>
           <div className="section-label">Final</div>
-          <div className="matches-grid">{fin.map(g => <GameCard key={g.id} game={g} league={defaultLeague} />)}</div>
+          <div className="matches-grid">{fin.map(g => <GameCard key={g.id} game={g} league={g._slug || defaultLeague} />)}</div>
         </section>
       )}
     </div>

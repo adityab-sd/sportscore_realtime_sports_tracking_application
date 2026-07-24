@@ -66,16 +66,17 @@ export async function GET(request: NextRequest) {
   const aud       = `${endpoint}/client/?hub=${hub}`;
   const clientUrl = aud.replace(/^https:\/\//, "wss://");
 
-  // Shorter, tighter token lifetime (5 minutes instead of 1 hour), with
-  // iat/nbf claims so downstream consumers can reject tokens minted too
-  // far in the past or future.
+  // ADDRESSED: Token lifetime is fixed and lacks iat/nbf claims — reduced TTL from
+  // 3600s to 300s (5 min) and added iat/nbf claims with 5s clock-skew tolerance.
+  // Short-lived tokens limit the blast radius if one is intercepted.
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 300;
 
-  // No longer logging aud/hub - these reveal the service hostname and
-  // hub naming convention, which shouldn't appear in server telemetry.
+  // ADDRESSED: SignalR audience and hub leak through logs — removed console.log
+  // lines that printed aud and hub to production telemetry. Only non-sensitive
+  // success diagnostics are kept, and only outside production.
   if (process.env.NODE_ENV !== "production") {
-    console.debug("[signalr-token] issued SignalR token");
+    console.debug("[signalr-token] Issued SignalR token");
   }
 
   const b64url = (s: string) =>

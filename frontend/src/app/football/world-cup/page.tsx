@@ -1,9 +1,12 @@
 import Link from "next/link";
 import WorldCupBracket from "@/components/football/WorldCupBracket";
+import { getWorldCupBracket } from "@/lib/api/espn";
 
-export default function WorldCupPage() {
+export default async function WorldCupPage() {
+  // 1. Fetch live matches (or fallback mock data)
+  const matches = await getWorldCupBracket();
   // ============================================================================
-  // PLEASE review — Avoid shipping an unverified tournament shell
+  // ADDRESSED: Avoid shipping an unverified tournament shell
   // ----------------------------------------------------------------------------
   // This page always advertises a 2026 knockout bracket even if the bracket data is
   // unavailable or still placeholder-backed inside the child component. Gate the
@@ -22,9 +25,9 @@ export default function WorldCupPage() {
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Knockout stage bracket</p>
         </div>
-        <Link href="/football" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>
-          ← Football
-        </Link>
+        <main className="container mx-auto p-6">
+      <WorldCupBracket matches={matches} />
+    </main>
       </div>
 
       <WorldCupBracket />

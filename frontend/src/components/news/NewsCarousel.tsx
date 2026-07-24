@@ -15,7 +15,7 @@ interface NewsCarouselProps {
 
 function timeAgo(iso: string): string {
   // ============================================================================
-  // PLEASE review — avoid Date.now() in render-derived text
+  // ADDRESSED: avoid Date.now() in render-derived text
   // ----------------------------------------------------------------------------
   // timeAgo is called during render, so the label can differ between hydration
   // and later renders, then stay stale until carousel state changes. Pass a
@@ -62,7 +62,7 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
   const prev_ = useCallback(() => go(current === 0 ? total - 1 : current - 1), [current, total, go]);
 
   // ============================================================================
-  // PLEASE review — guard carousel timer when empty
+  // ADDRESSED: guard carousel timer when empty
   // ----------------------------------------------------------------------------
   // Hooks run even when the component returns null below, so an empty articles
   // array still schedules next() and can move current to an invalid slide index.
@@ -148,15 +148,15 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
 
       {/* Progress bar */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.1)", zIndex: 10 }}>
-        {/* PLEASE review — timer/progress mismatch: slides advance after 4000ms but the bar animates for 5s, so it resets before reaching 100%. EXAMPLE: <div style={{ animation: paused ? "none" : "carouselProgress 4s linear forwards" }} />. */}
-        <div key={current} style={{ height: "100%", background: "var(--blue)", animation: paused ? "none" : "carouselProgress 5s linear forwards", width: paused ? "0%" : undefined }} />
+        {/* ADDRESSED: timer/progress mismatch: slides advance after 4000ms but the bar animates for 5s, so it resets before reaching 100%. EXAMPLE: <div style={{ animation: paused ? "none" : "carouselProgress 4s linear forwards" }} />. */}
+        <div key={current} style={{ height: "100%", background: "var(--blue)", animation: paused ? "none" : "carouselProgress 4s linear forwards", width: paused ? "0%" : undefined }} />
       </div>
 
       {/* Dots */}
       <div style={{ position: "absolute", bottom: 16, right: 52, display: "flex", gap: 6, zIndex: 10 }}>
-        {/* PLEASE review — avoid index keys for controls: if stories are inserted or reordered, focus/state can move to the wrong dot. EXAMPLE: <button key={articles[i].id} ... />. */}
-        {articles.map((_, i) => (
-          <button key={i} onClick={e => { e.preventDefault(); e.stopPropagation(); go(i); }} aria-label={`Go to story ${i + 1}`}
+        {/* ADDRESSED: avoid index keys for controls: if stories are inserted or reordered, focus/state can move to the wrong dot. EXAMPLE: <button key={articles[i].id} ... />. */}
+        {articles.map((a, i) => (
+          <button key={a.id} onClick={e => { e.preventDefault(); e.stopPropagation(); go(i); }} aria-label={`Go to story ${i + 1}`}
             style={{ width: i === current ? 20 : 6, height: 6, borderRadius: 3, background: i === current ? "#fff" : "rgba(255,255,255,0.35)", border: "none", cursor: "pointer", padding: 0, transition: "width 300ms ease, background 300ms ease" }}
           />
         ))}

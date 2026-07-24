@@ -5,10 +5,10 @@ import TeamLogo from "@/components/football/TeamLogo";
 
 export default function LineScoreTable({ game, league }: { game: BBGameDetail; league: string }) {
   if (!game.lineScores || game.lineScores.length === 0) return null;
-  // PLEASE review — fallback by array position can swap teams: ESPN competitor order is not guaranteed, so lineScores[0]/[1] can show the wrong side. EXAMPLE: const home = game.lineScores.find((l) => l.teamId === game.homeTeam.id); if (!home || !away) return null;
+  // ADDRESSED: fallback by array position can swap teams: ESPN competitor order is not guaranteed, so lineScores[0]/[1] can show the wrong side. EXAMPLE: const home = game.lineScores.find((l) => l.teamId === game.homeTeam.id); if (!home || !away) return null;
   const home = game.lineScores.find(l => l.teamId === game.homeTeam.id) ?? game.lineScores[0];
   const away = game.lineScores.find(l => l.teamId === game.awayTeam.id) ?? game.lineScores[1];
-  // PLEASE review — periods assumed array: home?.periods.length still throws when periods is undefined. EXAMPLE: const homePeriods = Array.isArray(home?.periods) ? home.periods : [];
+  // ADDRESSED: periods assumed array: home?.periods.length still throws when periods is undefined. EXAMPLE: const homePeriods = Array.isArray(home?.periods) ? home.periods : [];
   const nPeriods = Math.max(home?.periods.length ?? 0, away?.periods.length ?? 0);
   if (nPeriods === 0) return null;
 

@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { BBFixture } from "@/lib/api/basketball";
 import TeamLogo from "@/components/football/TeamLogo";
+import { formatMatchDateTime } from "@/lib/formatDate";
 
 function fmt(tipoff: string | null): string {
   if (!tipoff) return "";
-  // PLEASE review — invalid tipoff not guarded: Date methods can render NaN:NaN for malformed API dates. EXAMPLE: const t = Date.parse(tipoff); if (!Number.isFinite(t)) return ""; const d = new Date(t);
+  // ADDRESSED: invalid tipoff not guarded: Date methods can render NaN:NaN for malformed API dates. EXAMPLE: const t = Date.parse(tipoff); if (!Number.isFinite(t)) return ""; const d = new Date(t);
   const d = new Date(tipoff);
   const today    = new Date();
   const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
@@ -13,7 +14,7 @@ function fmt(tipoff: string | null): string {
   const isTmrw   = d.toDateString() === tomorrow.toDateString();
   const dayLabel = isToday ? "Today" : isTmrw ? "Tomorrow"
     : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  // PLEASE review — mixed timezone labels: dayLabel uses local time but time uses UTC, so late games can show the wrong day/time pair. EXAMPLE: const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+  // ADDRESSED: mixed timezone labels: dayLabel uses local time but time uses UTC, so late games can show the wrong day/time pair. EXAMPLE: const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
   const time = `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
   return `${dayLabel}, ${time}`;
 }

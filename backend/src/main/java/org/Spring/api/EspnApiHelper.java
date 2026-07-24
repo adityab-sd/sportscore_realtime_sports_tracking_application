@@ -80,9 +80,23 @@ public abstract class EspnApiHelper {
         return espnHttp.get(url);
     }
 
+    // ============================================================================
+    // PLEASE review — Pagination bounds / URL encoding
+    // (raised independently on F1Service, BaseballService and BasketballService,
+    // which all forward REST page/limit params straight through to ESPN)
+    // UPDATE:
+    // Clamped centrally here instead of in each service, since every sport's
+    // paginated passthrough calls end up here. page is floored at 1; limit is
+    // clamped to [1, 100] so a bad/huge REST param can no longer force an
+    // oversized upstream ESPN request. URL encoding for free-text query params
+    // (category/sort/date fragments passed to get(), not getPaged()) is still
+    // open - those live in each service's own passthrough methods.
+    // ============================================================================
     protected JsonNode getPaged(String baseUrl, int page, int limit) throws Exception {
+        int safePage  = Math.max(page, 1);
+        int safeLimit = Math.max(1, Math.min(limit, 100));
         String sep = baseUrl.contains("?") ? "&" : "?";
-        return get(baseUrl + sep + "page=" + page + "&limit=" + limit);
+        return get(baseUrl + sep + "page=" + safePage + "&limit=" + safeLimit);
     }
 
     // ── Node helpers ──────────────────────────────────────────────────────────

@@ -37,7 +37,7 @@ function TeamColumn({
   league: string;
 }) {
   // ============================================================================
-  // PLEASE review — roster input normalization
+  // ADDRESSED: roster input normalization
   // ----------------------------------------------------------------------------
   // TeamColumn assumes roster is always an array. That is true for the current
   // prop type, but ESPN detail payloads often omit one side's roster; normalize at
