@@ -514,6 +514,49 @@ public class F1Service extends EspnApiHelper {
         return get(SITE + "/athletes/" + athleteId + "/news?limit=" + limit);
     }
 
+    // ADDED — constructors (Ferrari, Red Bull, etc.) for a given season. This was
+    // the one genuinely missing season-scoped resource every other sport already has.
+    public JsonNode manufacturers(String season, int page, int limit) throws Exception {
+        return getPaged(CORE + "/seasons/" + season + "/manufacturers", page, limit);
+    }
+
+    // ADDED — current season, mirroring every other sport's currentSeason().
+    public JsonNode currentSeason() throws Exception {
+        return get(CORE + "/season");
+    }
+
+    // ADDED — league-wide media. Previously only per-athlete news existed
+    // (athleteNews() above), with no general F1 media feed.
+    public JsonNode media() throws Exception {
+        return get(CORE + "/media");
+    }
+
+    // ADDED — event/session-level passthrough. In this codebase's F1 model a race
+    // weekend is an "event" and each session (practice/qualifying/race) is a
+    // "competition" within it — same id pattern already used by resolveDriverTeam()
+    // and results() above, just exposed as raw Core API passthrough like the other
+    // long-tail resources in this section.
+
+    public JsonNode eventDetail(String eventId) throws Exception {
+        return get(CORE + "/events/" + eventId);
+    }
+
+    public JsonNode competitionDetail(String eventId, String competitionId) throws Exception {
+        return get(CORE + "/events/" + eventId + "/competitions/" + competitionId);
+    }
+
+    public JsonNode broadcasts(String eventId, String competitionId) throws Exception {
+        return get(CORE + "/events/" + eventId + "/competitions/" + competitionId + "/broadcasts");
+    }
+
+    public JsonNode competitionOdds(String eventId, String competitionId, int page, int limit) throws Exception {
+        return getPaged(CORE + "/events/" + eventId + "/competitions/" + competitionId + "/odds", page, limit);
+    }
+
+    public JsonNode officials(String eventId, String competitionId) throws Exception {
+        return get(CORE + "/events/" + eventId + "/competitions/" + competitionId + "/officials");
+    }
+
     // getPaged(baseUrl, page, limit) is inherited from EspnApiHelper - it now also
     // clamps page/limit to sane bounds (see EspnApiHelper), so every sport benefits.
 
