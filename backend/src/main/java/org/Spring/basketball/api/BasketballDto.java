@@ -11,8 +11,7 @@ public final class BasketballDto {
             String id, String status, String statusState, String tipoff, String competition,
             Dto.TeamRef homeTeam, Dto.TeamRef awayTeam, Integer homeScore, Integer awayScore,
             Integer period, String clock) {}
-
-    // ============================================================================
+   // ============================================================================
     // PLEASE review — Null Object / immutability for collection record components
     // ----------------------------------------------------------------------------
     // Records do not defensively copy List components. A caller can pass a mutable
@@ -28,7 +27,17 @@ public final class BasketballDto {
     // WHY: Null Object lists plus defensive copies make DTOs stable API values.
     // ============================================================================
 
-    public record Fixtures(List<GameDto> results, List<GameDto> upcoming) {}
+
+
+    // ADDED — the fix this comment proposed was never wired in; the compact
+    // constructor below now actually does it: null lists become empty lists,
+    // and a caller's mutable list can no longer be mutated after construction.
+    public record Fixtures(List<GameDto> results, List<GameDto> upcoming) {
+        public Fixtures {
+            results  = List.copyOf(results  == null ? List.of() : results);
+            upcoming = List.copyOf(upcoming == null ? List.of() : upcoming);
+        }
+    }
 
     public record StandingRow(
             int rank, String teamId, String team, String shortName, String logo,
@@ -55,6 +64,16 @@ public final class BasketballDto {
             List<Dto.MatchEventDto>  events,
             List<Dto.Official>       officials,
             List<Dto.OddsPick>       odds) {
+
+        // ADDED — same defensive-copy fix as Fixtures above, applied to every
+        // list component. Runs regardless of which constructor below is used,
+        // since the secondary constructor delegates to this canonical one.
+        public GameDetail {
+            lineScores = List.copyOf(lineScores == null ? List.of() : lineScores);
+            events     = List.copyOf(events     == null ? List.of() : events);
+            officials  = List.copyOf(officials  == null ? List.of() : officials);
+            odds       = List.copyOf(odds       == null ? List.of() : odds);
+        }
 
         public GameDetail(String id, String status, String statusState, String tipoff,
                           String competition, String venue, Integer attendance,

@@ -1,9 +1,8 @@
 package org.Spring.baseball.api;
 
-import org.Spring.api.Dto;
-
 import java.util.List;
 
+import org.Spring.api.Dto;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -111,8 +110,6 @@ public class BaseballController {
     }
 
     // ── reference data (raw passthrough) ──────────────────────────────────────
-    // WARNING: every route below this line will 500 until BaseballService gets
-    // the matching methods added — see the "still missing" list below.
 
     @GetMapping("/{league}/teams")
     public JsonNode teams(@PathVariable String league,
@@ -287,5 +284,60 @@ public class BaseballController {
     @GetMapping("/cdn/{siteSlug}/scoreboard")
     public JsonNode cdnScoreboard(@PathVariable String siteSlug) throws Exception {
         return service.cdnScoreboard(siteSlug);
+    }
+
+    // ADDED — league-wide media (previously missing; this is the endpoint the
+    // frontend's "Media & Video — backend endpoint in progress" placeholder
+    // was waiting on, same gap as basketball/F1).
+    @GetMapping("/{league}/media")
+    public JsonNode media(@PathVariable String league) throws Exception {
+        return service.media(league);
+    }
+
+    // ADDED — event/competition-level passthrough (broadcasts/odds/officials
+    // as standalone resources, matching what matchDetail already embeds).
+
+    @GetMapping("/{league}/events/{eventId}")
+    public JsonNode eventDetail(@PathVariable String league, @PathVariable String eventId) throws Exception {
+        return service.eventDetail(league, eventId);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}")
+    public JsonNode competitionDetail(@PathVariable String league, @PathVariable String eventId,
+                                      @PathVariable String competitionId) throws Exception {
+        return service.competitionDetail(league, eventId, competitionId);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}/broadcasts")
+    public JsonNode broadcasts(@PathVariable String league, @PathVariable String eventId,
+                               @PathVariable String competitionId) throws Exception {
+        return service.broadcasts(league, eventId, competitionId);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}/odds")
+    public JsonNode competitionOdds(@PathVariable String league, @PathVariable String eventId,
+                                    @PathVariable String competitionId,
+                                    @RequestParam(defaultValue = "1") int page,
+                                    @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.competitionOdds(league, eventId, competitionId, page, limit);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}/officials")
+    public JsonNode officials(@PathVariable String league, @PathVariable String eventId,
+                              @PathVariable String competitionId) throws Exception {
+        return service.officials(league, eventId, competitionId);
+    }
+
+    // ADDED — raw JsonNode passthrough versions, matching what football already
+    // exposes alongside its bespoke DTO endpoints.
+
+    @GetMapping("/{league}/athletes/{athleteId}/overview/raw")
+    public JsonNode athleteOverviewRaw(@PathVariable String league, @PathVariable String athleteId) throws Exception {
+        return service.athleteOverviewRaw(league, athleteId);
+    }
+
+    @GetMapping("/{league}/seasons/{season}/leaders/raw")
+    public JsonNode rawLeaders(@PathVariable String league, @PathVariable String season) throws Exception {
+        return service.rawLeaders(league, season);
     }
 }

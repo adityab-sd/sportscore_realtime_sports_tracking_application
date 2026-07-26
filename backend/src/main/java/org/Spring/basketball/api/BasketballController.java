@@ -320,4 +320,66 @@ public class BasketballController {
     public JsonNode powerIndexTeam(@PathVariable String year, @PathVariable String teamId) throws Exception {
         return service.powerIndexTeam(year, teamId);
     }
+
+    // ADDED — league-wide media. This is the endpoint the frontend's "Media &
+    // Video — backend endpoint in progress" placeholder was waiting on.
+    @GetMapping("/{league}/media")
+    public JsonNode media(@PathVariable String league) throws Exception {
+        return service.media(league);
+    }
+
+    // ADDED — season-scoped manufacturers passthrough.
+    @GetMapping("/{league}/seasons/{season}/manufacturers")
+    public JsonNode manufacturers(@PathVariable String league, @PathVariable String season,
+                                  @RequestParam(defaultValue = "1") int page,
+                                  @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.manufacturers(league, season, page, limit);
+    }
+
+    // ADDED — event/competition-level passthrough (broadcasts/odds/officials
+    // as standalone resources, matching what matchDetail already embeds).
+
+    @GetMapping("/{league}/events/{eventId}")
+    public JsonNode eventDetail(@PathVariable String league, @PathVariable String eventId) throws Exception {
+        return service.eventDetail(league, eventId);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}")
+    public JsonNode competitionDetail(@PathVariable String league, @PathVariable String eventId,
+                                      @PathVariable String competitionId) throws Exception {
+        return service.competitionDetail(league, eventId, competitionId);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}/broadcasts")
+    public JsonNode broadcasts(@PathVariable String league, @PathVariable String eventId,
+                               @PathVariable String competitionId) throws Exception {
+        return service.broadcasts(league, eventId, competitionId);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}/odds")
+    public JsonNode competitionOdds(@PathVariable String league, @PathVariable String eventId,
+                                    @PathVariable String competitionId,
+                                    @RequestParam(defaultValue = "1") int page,
+                                    @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.competitionOdds(league, eventId, competitionId, page, limit);
+    }
+
+    @GetMapping("/{league}/events/{eventId}/competitions/{competitionId}/officials")
+    public JsonNode officials(@PathVariable String league, @PathVariable String eventId,
+                              @PathVariable String competitionId) throws Exception {
+        return service.officials(league, eventId, competitionId);
+    }
+
+    // ADDED — raw JsonNode passthrough versions, matching what football already
+    // exposes alongside its bespoke DTO endpoints.
+
+    @GetMapping("/{league}/athletes/{athleteId}/overview/raw")
+    public JsonNode athleteOverviewRaw(@PathVariable String league, @PathVariable String athleteId) throws Exception {
+        return service.athleteOverviewRaw(league, athleteId);
+    }
+
+    @GetMapping("/{league}/seasons/{season}/leaders/raw")
+    public JsonNode rawLeaders(@PathVariable String league, @PathVariable String season) throws Exception {
+        return service.rawLeaders(league, season);
+    }
 }
