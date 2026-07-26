@@ -60,13 +60,15 @@ export default function RadioBar({ open, onClose }: Props) {
   // New clip arrived (or the filter changed): if we're at the "live edge"
   // (haven't manually browsed back), move the pointer to the newest one in
   // the currently-filtered list. The src-load effect below picks it up.
+  const latestEvent = filteredEvents[filteredEvents.length - 1] ?? null;
+
   useEffect(() => {
     if (filteredEvents.length === 0) {
       setIndex(-1);
       return;
     }
     if (live) setIndex(filteredEvents.length - 1);
-  }, [filteredEvents.length, live, currentSport]);
+  }, [latestEvent, live, currentSport]);
 
   // Load whichever clip `index` points to into the <audio> element.
   useEffect(() => {
