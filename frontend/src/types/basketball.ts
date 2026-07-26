@@ -5,18 +5,20 @@ export interface LeagueInfo {
   name: string;
   short: string;
   logo: string;
+  /** Brand color used for banners/accents (hex). */
+  accent: string;
 }
 
 const espnLogo = (slug: string) =>
   `https://a.espncdn.com/i/teamlogos/leagues/500/${slug}.png`;
 
 export const LEAGUES: LeagueInfo[] = [
-  { slug: "nba",                       name: "NBA",                          short: "NBA",      logo: espnLogo("nba")  },
-  { slug: "wnba",                      name: "WNBA",                         short: "WNBA",     logo: espnLogo("wnba") },
-  { slug: "nba-summer-las-vegas",      name: "NBA Summer League",            short: "Summer",   logo: espnLogo("nba")  },
-  { slug: "mens-college-basketball",   name: "NCAA Men's Basketball",        short: "NCAAM",    logo: espnLogo("ncaa") },
-  { slug: "womens-college-basketball", name: "NCAA Women's Basketball",      short: "NCAAW",    logo: espnLogo("ncaa_wbball") },
-  { slug: "nba-development",           name: "NBA G League",                 short: "G-LG",     logo: espnLogo("nba")  },
+  { slug: "nba",                       name: "NBA",                          short: "NBA",      logo: espnLogo("nba"),        accent: "#c8102e" },
+  { slug: "wnba",                      name: "WNBA",                         short: "WNBA",     logo: espnLogo("wnba"),       accent: "#ff6900" },
+  { slug: "nba-summer-las-vegas",      name: "NBA Summer League",            short: "Summer",   logo: espnLogo("nba"),        accent: "#1d428a" },
+  { slug: "mens-college-basketball",   name: "NCAA Men's Basketball",        short: "NCAAM",    logo: espnLogo("ncaa"),       accent: "#002868" },
+  { slug: "womens-college-basketball", name: "NCAA Women's Basketball",      short: "NCAAW",    logo: espnLogo("ncaa_wbball"),accent: "#bf0a30" },
+  { slug: "nba-development",           name: "NBA G League",                 short: "G-LG",     logo: espnLogo("nba"),        accent: "#1d428a" },
 ];
 
 export const leagueName = (slug: string): string =>
@@ -24,6 +26,9 @@ export const leagueName = (slug: string): string =>
 
 export const leagueLogo = (slug: string): string =>
   LEAGUES.find(l => l.slug === slug)?.logo ?? "";
+
+export const leagueBySlug = (slug: string): LeagueInfo | undefined =>
+  LEAGUES.find(l => l.slug === slug);
 
 // ── Status classification ──
 

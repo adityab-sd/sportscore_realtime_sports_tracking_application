@@ -12,7 +12,7 @@ import { NewsArticle } from "./NewsCard";
 interface FeaturedStoryProps {
   article: NewsArticle;
   side?: NewsArticle[];
-  sport?: "football" | "basketball";
+  sport?: "football" | "basketball" | "baseball";
 }
 
 const fallbackGradient = "linear-gradient(135deg, var(--navy) 0%, #0066ff 100%)";

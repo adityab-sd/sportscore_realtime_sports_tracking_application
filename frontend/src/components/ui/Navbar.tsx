@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { useSignalR } from "@/hooks/useSignalR";
 import { classifyStatus, LEAGUES as FOOTBALL_LEAGUES } from "@/types/football";
 import { LEAGUES as BASKETBALL_LEAGUES } from "@/types/basketball";
+import { LEAGUES as BASEBALL_LEAGUES } from "@/types/baseball";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -49,12 +50,18 @@ const DROPDOWN_CONFIGS: Record<string, DropdownConfig> = {
     sportPath: "/basketball",
     leagues: BASKETBALL_LEAGUES,
   },
+  baseball: {
+    newsHref: "/baseball/news",
+    newsLabel: "Baseball News",
+    sportPath: "/baseball",
+    leagues: BASEBALL_LEAGUES,
+  },
 };
 
 const SPORTS = [
   { key: "football", label: "Football", href: "/football", hasDropdown: true, emoji: "⚽" },
   { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: true, emoji: "🏀" },
-  { key: "cricket", label: "Cricket", href: "/cricket", hasDropdown: false, emoji: "🏏" },
+  { key: "baseball", label: "Baseball", href: "/baseball", hasDropdown: true, emoji: "⚾" },
   { key: "f1", label: "Formula 1", href: "/f1", hasDropdown: false, emoji: "🏎" },
 ];
 
@@ -471,7 +478,21 @@ export default function Navbar() {
                       transition={{ type: "spring", stiffness: 400, damping: 35 }}
                     />
                   )}
-                  <span className="relative z-10">{sport.label}</span>
+                  <span className="relative z-10">
+                    {sport.key === "f1" ? (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img
+    src="/f1.png"
+    alt="Formula 1"
+    style={{
+      height: 45,
+      width: "auto",
+      maxWidth: 50,
+      filter: "invert(1)",
+    }}
+  />
+) : sport.label}
+                  </span>
                   {sport.key === "football" && liveCount > 0 && <LiveDot />}
                   {sport.hasDropdown && config && (
                     <ChevronDown

@@ -101,16 +101,16 @@ export interface ESPNTransaction {
 export const getScoreboard = (league: string) =>
   apiGet<ESPNMatch[]>(`/${league}/scoreboard`, [], 30);
 
-export const getFixtures = (league: string) =>
+export const getFixtures = (league: string, season?: string) =>
   apiGet<{ results: ESPNFixture[]; upcoming: ESPNFixture[] }>(
-    `/${league}/fixtures`, { results: [], upcoming: [] }, 60);
+    `/${league}/fixtures${season ? `?season=${season}` : ""}`, { results: [], upcoming: [] }, 60);
 
 // ═══════════════════════════════════════════════════════════════
 //  Standings, Groups, Rankings
 // ═══════════════════════════════════════════════════════════════
 
-export const getStandings = (league: string) =>
-  apiGet<ESPNStandingRow[]>(`/${league}/standings`, [], 300);
+export const getStandings = (league: string, season?: string) =>
+  apiGet<ESPNStandingRow[]>(`/${league}/standings${season ? `?season=${season}` : ""}`, [], 300);
 
 export const getGroups = (league: string) =>
   apiGet<RawJSON>(`/${league}/groups`, null, 3600);
