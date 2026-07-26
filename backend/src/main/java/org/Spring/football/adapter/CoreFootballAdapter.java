@@ -160,11 +160,15 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
 
     private String mapType(String text, JsonNode d) {
         String t = text.toLowerCase();
-        if (d.path("scoringPlay").asBoolean(false) || t.contains("goal")) return "goal";
-        if (d.path("redCard").asBoolean(false)) return "card";
-        if (d.path("yellowCard").asBoolean(false)) return "card";
-        if (t.contains("card")) return "card";
-        return t;
+        if (d.path("ownGoal").asBoolean(false)) return "OWN_GOAL";
+        if (d.path("scoringPlay").asBoolean(false) || t.contains("goal")) return "GOAL";
+        if (d.path("redCard").asBoolean(false) || t.contains("red card")) return "RED_CARD";
+        if (d.path("yellowCard").asBoolean(false) || t.contains("yellow card")) return "YELLOW_CARD";
+        if (t.contains("substitution")) return "SUBSTITUTION";
+        if (t.contains("penalty") && t.contains("miss")) return "PENALTY_MISSED";
+        if (t.contains("penalty")) return "PENALTY_SCORED";
+        if (t.contains("var")) return "VAR_REVIEW";
+        return t; // unrecognized ESPN text still falls to CommentaryService's default template
     }
 
     // "33'" -> 33, "90'+6'" -> 90
