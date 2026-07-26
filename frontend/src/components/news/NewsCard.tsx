@@ -21,10 +21,10 @@ interface NewsCardProps {
   article: NewsArticle;
   /**
    * Which sport this article belongs to.
-   * Determines the internal route: /football/news/[id] or /basketball/news/[id]
+   * Determines the internal route: /football/news/[id], /basketball/news/[id], etc.
    * Defaults to "football" so existing usages don't need updating.
    */
-  sport?: "football" | "basketball";
+  sport?: "football" | "basketball" | "baseball";
   /**
    * Optional extra classes merged onto the outer <Link>. Purely additive —
    * omit it and NewsCard behaves exactly as before. Used e.g. when stacking

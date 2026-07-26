@@ -24,6 +24,31 @@ interface Props {
 }
 
 function toUnifiedMatch(m: ESPNMatchDetail): FootballMatch {
+  // Deduplicate events: ESPN / the backend sometimes produces two entries for the
+  // same play — one with a player name and one generic ("Goal" / "Goal"). Keep the
+  // richer entry (with a player) and drop the generic duplicate.
+  const raw = m.events.map(e => ({
+    minute: e.minute, type: e.type, detail: e.detail,
+    player: e.player, assist: e.assist, teamId: Number(e.teamId),
+  }));
+
+  const deduped = raw.filter((ev, _idx, arr) => {
+    // If this entry has no player name or its player IS the type label (e.g. "Goal"),
+    // check whether a richer entry exists at the same minute for the same team+type.
+    const isGeneric = !ev.player || ev.player.toLowerCase() === ev.type.toLowerCase()
+      || ev.player.toLowerCase() === ev.detail?.toLowerCase();
+    if (!isGeneric) return true; // keep detailed entries always
+    const hasRicher = arr.some(
+      other => other !== ev
+        && other.minute === ev.minute
+        && String(other.teamId) === String(ev.teamId)
+        && other.type === ev.type
+        && other.player
+        && other.player.toLowerCase() !== other.type.toLowerCase()
+    );
+    return !hasRicher; // drop generic if a richer duplicate exists
+  });
+
   return {
     id: Number(m.id),
     sport: "football",
@@ -35,10 +60,7 @@ function toUnifiedMatch(m: ESPNMatchDetail): FootballMatch {
     awayTeam: { id: Number(m.awayTeam.id), name: m.awayTeam.name, shortName: m.awayTeam.shortName, logo: m.awayTeam.logo },
     homeScore: m.homeScore,
     awayScore: m.awayScore,
-    events: m.events.map(e => ({
-      minute: e.minute, type: e.type, detail: e.detail,
-      player: e.player, assist: e.assist, teamId: Number(e.teamId),
-    })),
+    events: deduped,
   };
 }
 
@@ -115,7 +137,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
 
           {isLive && <MatchDetailLive id={Number(id)} />}
 
-          {!isPre && (
+          {isPost && (
             <>
               <SectionHeading text="Match Events" />
               <MatchEventsCard match={unified} lineups={match.lineups} league={league} />

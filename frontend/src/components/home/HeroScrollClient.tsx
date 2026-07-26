@@ -27,7 +27,17 @@ export interface AestheticCard {
   href: string;
 }
 
-export type Card = MatchCard | AestheticCard;
+export interface RaceCard {
+  type: "race";
+  id: string;
+  kickoff: string | null;  // race start (named kickoff so rows sort uniformly)
+  name: string;            // Grand Prix name
+  circuit: string;
+  bgImage: string;
+  href: string;
+}
+
+export type Card = MatchCard | AestheticCard | RaceCard;
 
 /* ------------------------------------------------------------------ */
 /* Team crest with initials fallback                                   */
@@ -70,8 +80,8 @@ function Crest({ logo, name }: { logo: string | null; name: string }) {
 /* ------------------------------------------------------------------ */
 
 function CardItem({ card }: { card: Card }) {
-  const bg = card.type === "match" ? card.bgImage : card.image;
-  const href = card.type === "match" ? card.href : card.href;
+  const bg = card.type === "aesthetic" ? card.image : card.bgImage;
+  const href = card.href;
 
   return (
     <Link href={href} style={{ display: "block", flexShrink: 0 }}>
@@ -122,6 +132,30 @@ function CardItem({ card }: { card: Card }) {
 
             <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {card.leagueLabel}
+            </span>
+          </div>
+        ) : card.type === "race" ? (
+          <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "12px 14px" }}>
+            <span
+              style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", letterSpacing: "0.2px" }}
+              suppressHydrationWarning
+            >
+              {formatMatchDateTime(card.kickoff)}
+            </span>
+
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px", lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {card.name}
+              </div>
+              {card.circuit && (
+                <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {card.circuit}
+                </div>
+              )}
+            </div>
+
+            <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.3px" }}>
+              Formula 1
             </span>
           </div>
         ) : (
@@ -197,7 +231,11 @@ function ScrollRow({
       >
         {cards.map((card, i) => (
           <CardItem
-            key={card.type === "match" ? `m-${card.id}-${i}` : `a-${card.label}-${i}`}
+            key={
+              card.type === "match" ? `m-${card.id}-${i}`
+                : card.type === "race" ? `r-${card.id}-${i}`
+                : `a-${card.label}-${i}`
+            }
             card={card}
           />
         ))}

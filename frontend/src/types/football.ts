@@ -108,7 +108,7 @@ export function classifyStatus(status: string | null | undefined): MatchState {
   const hasMinute = /\d+'/.test(s);
   const inPlay = s.includes("1H") || s.includes("2H") || s.includes("HT") || s.includes("LIVE");
   const inET = s.includes("ET") && hasMinute; // ET only live if has minute marker
-  return (hasMinute || inPlay || inET) ? "live" : "finished";
+  return (hasMinute || inPlay || inET) ? "live" : "scheduled";
 }
 
 export const matchState = classifyStatus;
@@ -122,9 +122,7 @@ export function statusLabel(m: Match): string {
     const d = new Date(m.kickoff);
     // ADDRESSED: guarded Date parsing — invalid kickoff now returns empty string instead of NaN:NaN
     if (Number.isNaN(d.getTime())) return m.status ?? "";
-    const h = d.getUTCHours().toString().padStart(2, "0");
-    const min = d.getUTCMinutes().toString().padStart(2, "0");
-    return `${h}:${min}`;
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   }
   return m.status ?? "";
 }

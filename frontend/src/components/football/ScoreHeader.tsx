@@ -24,9 +24,9 @@ function StatusLabel({ match }: { match: Match }) {
       if (Number.isNaN(d.getTime())) {
         return <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>TBD</span>;
       }
-      label = d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+      label = d.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit", hour12: true });
     }
-    return <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>{label}</span>;
+    return <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }} suppressHydrationWarning>{label}</span>;
   }
 
   if (state === "finished") {
