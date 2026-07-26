@@ -129,4 +129,56 @@ public class F1Controller {
                             @RequestParam(defaultValue = "25") int limit) throws Exception {
         return service.seasons(page, limit);
     }
+
+    // ADDED — constructors (Ferrari, Red Bull, etc.) for a given season.
+    @GetMapping("/seasons/{season}/manufacturers")
+    public JsonNode manufacturers(@PathVariable String season,
+                                  @RequestParam(defaultValue = "1") int page,
+                                  @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.manufacturers(season, page, limit);
+    }
+
+    // ADDED — current season, mirroring every other sport's currentSeason().
+    @GetMapping("/season")
+    public JsonNode currentSeason() throws Exception {
+        return service.currentSeason();
+    }
+
+    // ADDED — league-wide media (previously only per-athlete news existed).
+    @GetMapping("/media")
+    public JsonNode media() throws Exception {
+        return service.media();
+    }
+
+    // ADDED — event/session-level passthrough (weekend = event, session = competition).
+
+    @GetMapping("/events/{eventId}")
+    public JsonNode eventDetail(@PathVariable String eventId) throws Exception {
+        return service.eventDetail(eventId);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}")
+    public JsonNode competitionDetail(@PathVariable String eventId,
+                                      @PathVariable String competitionId) throws Exception {
+        return service.competitionDetail(eventId, competitionId);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}/broadcasts")
+    public JsonNode broadcasts(@PathVariable String eventId,
+                               @PathVariable String competitionId) throws Exception {
+        return service.broadcasts(eventId, competitionId);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}/odds")
+    public JsonNode competitionOdds(@PathVariable String eventId, @PathVariable String competitionId,
+                                    @RequestParam(defaultValue = "1") int page,
+                                    @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.competitionOdds(eventId, competitionId, page, limit);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}/officials")
+    public JsonNode officials(@PathVariable String eventId,
+                              @PathVariable String competitionId) throws Exception {
+        return service.officials(eventId, competitionId);
+    }
 }

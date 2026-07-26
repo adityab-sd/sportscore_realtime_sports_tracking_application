@@ -813,4 +813,48 @@ public class BaseballService extends EspnApiHelper {
     public JsonNode cdnScoreboard(String siteSlug) throws Exception {
         return get(CDN + "/" + siteSlug + "/scoreboard?xhr=1");
     }
+
+    // ADDED — league-wide media. Same confirmed gap as basketball/F1: nothing
+    // in this service ever called ESPN's documented /media resource.
+    public JsonNode media(String league) throws Exception {
+        return get(CORE + "/leagues/" + league + "/media");
+    }
+
+    // ADDED — event/competition-level passthrough. odds/officials already
+    // exist embedded inside matchDetail() above; these expose the same Core
+    // API resources standalone, matching ESPN's documented event endpoints
+    // (and mirroring the same addition made to BasketballService/F1Service).
+
+    public JsonNode eventDetail(String league, String eventId) throws Exception {
+        return get(CORE + "/leagues/" + league + "/events/" + eventId);
+    }
+
+    public JsonNode competitionDetail(String league, String eventId, String competitionId) throws Exception {
+        return get(CORE + "/leagues/" + league + "/events/" + eventId + "/competitions/" + competitionId);
+    }
+
+    public JsonNode broadcasts(String league, String eventId, String competitionId) throws Exception {
+        return get(CORE + "/leagues/" + league + "/events/" + eventId + "/competitions/" + competitionId + "/broadcasts");
+    }
+
+    public JsonNode competitionOdds(String league, String eventId, String competitionId, int page, int limit) throws Exception {
+        return getPaged(CORE + "/leagues/" + league + "/events/" + eventId + "/competitions/" + competitionId + "/odds", page, limit);
+    }
+
+    public JsonNode officials(String league, String eventId, String competitionId) throws Exception {
+        return get(CORE + "/leagues/" + league + "/events/" + eventId + "/competitions/" + competitionId + "/officials");
+    }
+
+    // ADDED — raw JsonNode passthrough versions of athleteOverview() and
+    // leadersFromCoreApi() above, mirroring FootballService's
+    // athleteOverviewRaw()/rawLeaders(). Season-type is 2 here (not football's
+    // 1), matching this sport's own leadersFromCoreApi() convention already
+    // used above (American sports need season-type 2 = regular season).
+    public JsonNode athleteOverviewRaw(String league, String athleteId) throws Exception {
+        return get(WEB + "/" + league + "/athletes/" + athleteId + "/overview");
+    }
+
+    public JsonNode rawLeaders(String league, String season) throws Exception {
+        return get(CORE + "/leagues/" + league + "/seasons/" + season + "/types/2/leaders");
+    }
 }
