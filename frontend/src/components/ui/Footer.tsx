@@ -38,7 +38,14 @@ const columns = [
       { label: "Accessibility", href: "/" },
     ],
   },
-];
+
+{
+    title: "Security",
+    links: [
+      { label: "Security & Privacy", href: "/security" },
+    ],
+  },
+]
 
 const legal = ["Terms of Use", "Privacy Policy", "Cookie Policy", "Accessibility Statement"];
 
