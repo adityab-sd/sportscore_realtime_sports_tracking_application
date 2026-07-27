@@ -91,6 +91,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/cricket/**").permitAll()
                 .requestMatchers("/api/f1/**").permitAll()
                 .requestMatchers("/api/rugby/**").permitAll()
+                .requestMatchers("/api/security/stats").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
                 .anyRequest().authenticated()

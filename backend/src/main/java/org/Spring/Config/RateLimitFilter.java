@@ -20,10 +20,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final Duration WINDOW = Duration.ofSeconds(60); // per 1 minute
 
     private final StringRedisTemplate redisTemplate;
+    private final SecurityStatsService statsService;
 
     @Autowired
-    public RateLimitFilter(StringRedisTemplate redisTemplate) {
+    public RateLimitFilter(StringRedisTemplate redisTemplate, SecurityStatsService statsService) {
         this.redisTemplate = redisTemplate;
+        this.statsService = statsService;
     }
 
     @Override
@@ -43,6 +45,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         if (count != null && count > MAX_REQUESTS) {
+            statsService.incrementBlockedRequests();
             response.setStatus(429); // 429 Too Many Requests
             response.setContentType("application/json");
             response.getWriter().write(
