@@ -53,4 +53,11 @@ public record Match(
         this(id, "football", status, elapsed, null, null, status, kickoff, competition,
                 homeTeam, awayTeam, homeScore, awayScore, null, null, events);
     }
+
+    // add inside the Match record body, alongside the existing football constructor
+    public Match withEvents(List<MatchEvent> newEvents) {
+        return new Match(id, sport, status, elapsed, clock, period, statusDetail, kickoff,
+                competition, homeTeam, awayTeam, homeScore, awayScore,
+                homeScoreDisplay, awayScoreDisplay, newEvents);
+    }
 }

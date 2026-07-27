@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@azure/event-hubs": "^6.0.4",
     "@azure/web-pubsub": "^1.2.0",
     "@microsoft/signalr": "^7.0.5",
     "clsx": "^2.1.1",

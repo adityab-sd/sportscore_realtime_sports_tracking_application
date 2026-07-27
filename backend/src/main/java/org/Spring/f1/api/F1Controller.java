@@ -16,11 +16,16 @@ import com.fasterxml.jackson.databind.JsonNode;
  * REST reference data for Formula 1. No {league} path variable — F1 is a single
  * championship.
  *
- *   GET /api/f1/scoreboard          -> current/nearest weekend(s) + session grids
- *   GET /api/f1/schedule            -> full season calendar
- *   GET /api/f1/results/{eventId}   -> one weekend's sessions + grids
- *   GET /api/f1/standings           -> driver + constructor standings
- *   GET /api/f1/news?limit=         -> latest F1 news
+ *   GET /api/f1/scoreboard[?year=]        -> current/nearest weekend(s) + session grids
+ *   GET /api/f1/schedule[?year=]          -> full season calendar
+ *   GET /api/f1/results/{eventId}[?year=] -> one weekend's sessions + grids
+ *   GET /api/f1/standings[?year=]         -> driver + constructor standings
+ *   GET /api/f1/news?limit=               -> latest F1 news
+ *
+ * The optional ?year= (added on the four season-scoped endpoints) selects a past
+ * season; omitting it keeps the current-season behaviour. It maps straight onto the
+ * F1Service.*(Integer year) overloads, which thread the year through ESPN's
+ * /seasons/{year}/... resources.
  *
  * Live session leaders are pushed via Event Hub -> SignalR, not here.
  */
@@ -52,23 +57,28 @@ public class F1Controller {
     }
 
     @GetMapping("/scoreboard")
-    public List<F1Dto.RaceWeekend> scoreboard() throws Exception {
-        return service.scoreboard();
+    public List<F1Dto.RaceWeekend> scoreboard(
+            @RequestParam(required = false) Integer year) throws Exception {
+        return service.scoreboard(year);
     }
 
     @GetMapping("/schedule")
-    public List<F1Dto.ScheduleEntry> schedule() throws Exception {
-        return service.schedule();
+    public List<F1Dto.ScheduleEntry> schedule(
+            @RequestParam(required = false) Integer year) throws Exception {
+        return service.schedule(year);
     }
 
     @GetMapping("/results/{eventId}")
-    public F1Dto.RaceWeekend results(@PathVariable String eventId) throws Exception {
-        return service.results(eventId);
+    public F1Dto.RaceWeekend results(
+            @PathVariable String eventId,
+            @RequestParam(required = false) Integer year) throws Exception {
+        return service.results(eventId, year);
     }
 
     @GetMapping("/standings")
-    public F1Dto.Standings standings() throws Exception {
-        return service.standings();
+    public F1Dto.Standings standings(
+            @RequestParam(required = false) Integer year) throws Exception {
+        return service.standings(year);
     }
 
     @GetMapping("/news")
@@ -128,5 +138,57 @@ public class F1Controller {
     public JsonNode seasons(@RequestParam(defaultValue = "1") int page,
                             @RequestParam(defaultValue = "25") int limit) throws Exception {
         return service.seasons(page, limit);
+    }
+
+    // ADDED — constructors (Ferrari, Red Bull, etc.) for a given season.
+    @GetMapping("/seasons/{season}/manufacturers")
+    public JsonNode manufacturers(@PathVariable String season,
+                                  @RequestParam(defaultValue = "1") int page,
+                                  @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.manufacturers(season, page, limit);
+    }
+
+    // ADDED — current season, mirroring every other sport's currentSeason().
+    @GetMapping("/season")
+    public JsonNode currentSeason() throws Exception {
+        return service.currentSeason();
+    }
+
+    // ADDED — league-wide media (previously only per-athlete news existed).
+    @GetMapping("/media")
+    public JsonNode media() throws Exception {
+        return service.media();
+    }
+
+    // ADDED — event/session-level passthrough (weekend = event, session = competition).
+
+    @GetMapping("/events/{eventId}")
+    public JsonNode eventDetail(@PathVariable String eventId) throws Exception {
+        return service.eventDetail(eventId);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}")
+    public JsonNode competitionDetail(@PathVariable String eventId,
+                                      @PathVariable String competitionId) throws Exception {
+        return service.competitionDetail(eventId, competitionId);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}/broadcasts")
+    public JsonNode broadcasts(@PathVariable String eventId,
+                               @PathVariable String competitionId) throws Exception {
+        return service.broadcasts(eventId, competitionId);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}/odds")
+    public JsonNode competitionOdds(@PathVariable String eventId, @PathVariable String competitionId,
+                                    @RequestParam(defaultValue = "1") int page,
+                                    @RequestParam(defaultValue = "50") int limit) throws Exception {
+        return service.competitionOdds(eventId, competitionId, page, limit);
+    }
+
+    @GetMapping("/events/{eventId}/competitions/{competitionId}/officials")
+    public JsonNode officials(@PathVariable String eventId,
+                              @PathVariable String competitionId) throws Exception {
+        return service.officials(eventId, competitionId);
     }
 }

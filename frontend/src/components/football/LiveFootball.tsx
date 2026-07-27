@@ -47,16 +47,21 @@ function LeagueGroup({ name, slug, matches }: { name: string; slug: string | nul
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
-function startOfDayUTC(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+function startOfDayLocal(d: Date): Date {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
 }
 
 function addDays(d: Date, n: number): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + n));
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + n);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
 }
 
 function toKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
 function pillLabel(d: Date, today: Date): string {
@@ -72,15 +77,14 @@ function isSameDay(kickoff: string | null, date: Date): boolean {
   const t = Date.parse(kickoff);
   if (!Number.isFinite(t)) return false;
   const k = new Date(t);
-  // Compare both in UTC to avoid timezone shift moving matches to wrong day
-  return k.getUTCFullYear() === date.getUTCFullYear() &&
-    k.getUTCMonth() === date.getUTCMonth() &&
-    k.getUTCDate() === date.getUTCDate();
+  return k.getFullYear() === date.getFullYear() &&
+    k.getMonth() === date.getMonth() &&
+    k.getDate() === date.getDate();
 }
 
 // ─── DatePicker ───────────────────────────────────────────────────────────────
 function DatePicker({ selected, onSelect }: { selected: Date; onSelect: (d: Date) => void }) {
-  const today = startOfDayUTC(new Date());
+  const today = startOfDayLocal(new Date());
   // Window offset in multiples of 7 — starts at -1 so yesterday is first pill
   const [windowStart, setWindowStart] = useState<Date>(() => addDays(today, -1));
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
@@ -182,7 +186,7 @@ function DatePicker({ selected, onSelect }: { selected: Date; onSelect: (d: Date
 export default function LiveFootball({ seed = [] }: { seed?: Match[] }) {
   const { matches: live, state, lastUpdate } = useSignalR();
   const [filter, setFilter] = useState<Filter>("all");
-  const today = startOfDayUTC(new Date());
+  const today = startOfDayLocal(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(today);
 
   // Merge seed + live

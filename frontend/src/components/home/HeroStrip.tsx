@@ -1,7 +1,8 @@
 import { getFixtures as getFootballFixtures } from "@/lib/api/espn";
 import { getFixtures as getBasketballFixtures } from "@/lib/api/basketball";
+import { getFixtures as getBaseballFixtures } from "@/lib/api/baseball";
 import { leagueByName as footballLeagueInfo } from "@/types/football";
-import HeroScrollClient, { type Card, type MatchCard } from "./HeroScrollClient";
+import HeroScrollClient, { type Card, type MatchCard, type AestheticCard, type RaceCard } from "./HeroScrollClient";
 
 /* ------------------------------------------------------------------ */
 /* Background images per league                                        */
@@ -24,35 +25,40 @@ const BASKETBALL_BG: Record<string, string> = {
   "mens-college-basketball": "/cards/nba-2.jpeg",
 };
 
+const BASEBALL_BG: Record<string, string> = {
+  "mlb":              "/carousel/baseball/baseball-1.jpg",
+  "college-baseball": "/carousel/baseball/baseball-3.jpg",
+};
+
 /* ------------------------------------------------------------------ */
 /* Aesthetic league/sport cards — one unique set per row so images     */
 /* never repeat across rows. Scalable: append entries when adding a   */
 /* new sport or league.                                                */
 /* ------------------------------------------------------------------ */
 
-const AESTHETICS_ROW1: Card[] = [
+const AESTHETICS_ROW1: AestheticCard[] = [
   { type: "aesthetic", image: "/cards/worldcup.jpeg",    label: "World Cup 2026",   href: "/football/world-cup" },
   { type: "aesthetic", image: "/cards/aes-ucl.jpeg",     label: "Champions League", href: "/football/league/uefa.champions" },
   { type: "aesthetic", image: "/cards/aes-pl.jpeg",      label: "Premier League",   href: "/football/league/eng.1" },
   { type: "aesthetic", image: "/cards/aes-nba-1.jpeg",   label: "NBA",              href: "/basketball/league/nba" },
+  { type: "aesthetic", image: "/carousel/baseball/baseball-2.jpg", label: "MLB",     href: "/baseball/league/mlb" },
   { type: "aesthetic", image: "/cards/aes-f1-1.jpeg",    label: "Formula 1",        href: "/f1" },
-  { type: "aesthetic", image: "/cards/aes-cricket-1.jpeg", label: "Cricket",        href: "/cricket" },
 ];
 
-const AESTHETICS_ROW2: Card[] = [
+const AESTHETICS_ROW2: AestheticCard[] = [
   { type: "aesthetic", image: "/cards/aes-seriea.jpeg",  label: "Serie A",     href: "/football/league/ita.1" },
   { type: "aesthetic", image: "/cards/aes-bayern.jpeg",  label: "Bundesliga",  href: "/football/league/ger.1" },
   { type: "aesthetic", image: "/cards/aes-nba-2.jpeg",   label: "NBA",         href: "/basketball/league/nba" },
+  { type: "aesthetic", image: "/carousel/baseball/baseball-4.jpg", label: "MLB", href: "/baseball/league/mlb" },
   { type: "aesthetic", image: "/cards/aes-f1-2.jpeg",    label: "Formula 1",   href: "/f1" },
-  { type: "aesthetic", image: "/cards/aes-cricket-2.jpeg", label: "Cricket",   href: "/cricket" },
 ];
 
-const AESTHETICS_ROW3: Card[] = [
+const AESTHETICS_ROW3: AestheticCard[] = [
   { type: "aesthetic", image: "/cards/aes-laliga.jpeg",  label: "La Liga",    href: "/football/league/esp.1" },
   { type: "aesthetic", image: "/cards/aes-ligue1.jpeg",  label: "Ligue 1",    href: "/football/league/fra.1" },
   { type: "aesthetic", image: "/cards/aes-nba-3.jpeg",   label: "NBA",         href: "/basketball/league/nba" },
+  { type: "aesthetic", image: "/carousel/baseball/baseball-5.jpg", label: "NCAA Baseball", href: "/baseball/league/college-baseball" },
   { type: "aesthetic", image: "/cards/aes-f1-3.jpeg",    label: "Formula 1",   href: "/f1" },
-  { type: "aesthetic", image: "/cards/aes-cricket-3.jpeg", label: "Cricket",   href: "/cricket" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -61,15 +67,17 @@ const AESTHETICS_ROW3: Card[] = [
 
 const FOOTBALL_LEAGUES  = ["fifa.world", "eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"];
 const BASKETBALL_LEAGUES = ["nba", "wnba", "nba-summer-las-vegas", "mens-college-basketball"];
+const BASEBALL_LEAGUES = ["mlb", "college-baseball"];
 
 async function getRealMatches(): Promise<MatchCard[]> {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const sevenDays = startOfToday + 7 * 24 * 60 * 60 * 1000;
 
-  const [footballSettled, basketballSettled] = await Promise.all([
+  const [footballSettled, basketballSettled, baseballSettled] = await Promise.all([
     Promise.allSettled(FOOTBALL_LEAGUES.map((slug) => getFootballFixtures(slug))),
     Promise.allSettled(BASKETBALL_LEAGUES.map((slug) => getBasketballFixtures(slug))),
+    Promise.allSettled(BASEBALL_LEAGUES.map((slug) => getBaseballFixtures(slug))),
   ]);
 
   const matches: MatchCard[] = [];
@@ -117,59 +125,177 @@ async function getRealMatches(): Promise<MatchCard[]> {
     }
   });
 
+  baseballSettled.forEach((r, i) => {
+    if (r.status !== "fulfilled" || !r.value) return;
+    const slug = BASEBALL_LEAGUES[i];
+    const upcoming = r.value.upcoming ?? [];
+    for (const f of upcoming.slice(0, 6)) {
+      if (f.firstPitch) {
+        const t = Date.parse(f.firstPitch);
+        if (Number.isFinite(t) && (t < startOfToday || t > sevenDays)) continue;
+      }
+      matches.push({
+        type: "match",
+        id: f.id,
+        kickoff: f.firstPitch,
+        home: { name: f.homeTeam.name, short: f.homeTeam.shortName, logo: f.homeTeam.logo },
+        away: { name: f.awayTeam.name, short: f.awayTeam.shortName, logo: f.awayTeam.logo },
+        leagueLabel: f.competition,
+        bgImage: BASEBALL_BG[slug] ?? "/carousel/baseball/baseball-1.jpg",
+        href: `/baseball/${f.id}?league=${slug}`,
+      });
+    }
+  });
+
   return matches;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fetch upcoming F1 races (weekly, so we show the next few) directly   */
+/* from ESPN's racing scoreboard.                                       */
+/* ------------------------------------------------------------------ */
+
+const ESPN_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json",
+};
+const F1_BG = ["/cards/f1.jpeg"];
+
+async function getF1RaceCards(): Promise<RaceCard[]> {
+  try {
+    const fmt = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const now = new Date();
+    const end = new Date(now.getFullYear(), 11, 31);
+    const url = `https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates=${fmt(now)}-${fmt(end)}`;
+    const res = await fetch(url, { headers: ESPN_HEADERS, next: { revalidate: 600 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const events: any[] = Array.isArray(data?.events) ? data.events : [];
+    const clean = (n: string) => n.replace(/^Formula 1\s+/i, "").replace(/\s+20\d\d$/, "").trim();
+    const nowMs = Date.now();
+    const races = events
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((ev: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const comps: any[] = Array.isArray(ev.competitions) ? ev.competitions : [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const byType = comps.find((c: any) => (c?.type?.text ?? c?.type?.abbreviation ?? "").toString().toLowerCase().includes("race"));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const byLatest = comps.slice().sort((a: any, b: any) => new Date(b?.date ?? 0).getTime() - new Date(a?.date ?? 0).getTime())[0];
+        const raceComp = byType ?? byLatest ?? comps[0] ?? {};
+        const raceDate: string | null = raceComp.date ?? ev.date ?? null;
+        const espnState = raceComp.status?.type?.state ?? ev.status?.type?.state ?? "pre";
+        const t = raceDate ? new Date(raceDate).getTime() : NaN;
+        const finished = espnState === "post" && !(Number.isFinite(t) && t > nowMs);
+        const circuit = raceComp.circuit ?? ev.circuit ?? ev.venue ?? {};
+        return { id: String(ev.id), name: clean(String(ev.name ?? ev.shortName ?? "Grand Prix")), circuit: String(circuit.fullName ?? circuit.name ?? ""), dateISO: raceDate, t, finished };
+      })
+      .filter((r) => !r.finished)
+      .sort((a, b) => (Number.isFinite(a.t) ? a.t : Infinity) - (Number.isFinite(b.t) ? b.t : Infinity))
+      .slice(0, 4);
+
+    return races.map((r, i): RaceCard => ({
+      type: "race",
+      id: r.id,
+      kickoff: r.dateISO,
+      name: r.name,
+      circuit: r.circuit,
+      bgImage: F1_BG[i % F1_BG.length],
+      href: `/f1/race/${r.id}`,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /* ------------------------------------------------------------------ */
 /* Build 3 rows: interleave real matches with aesthetic league cards   */
 /* ------------------------------------------------------------------ */
 
-function buildRows(matches: MatchCard[]): [Card[], Card[], Card[]] {
-  // Each row gets its own aesthetic pool
-  const aesPools = [AESTHETICS_ROW1, AESTHETICS_ROW2, AESTHETICS_ROW3];
+type RealCard = MatchCard | RaceCard;
 
-  // If very few matches, duplicate them across all rows so every row has content
-  const expanded = matches.length <= 3 && matches.length > 0
-    ? [...matches, ...matches, ...matches]
-    : [...matches];
+/** Background image a card renders (what must not visibly repeat). */
+function imgOf(c: Card): string {
+  return c.type === "aesthetic" ? c.image : c.bgImage;
+}
 
-  // Sort by kickoff so matches flow chronologically
-  expanded.sort((a, b) => (a.kickoff ?? "").localeCompare(b.kickoff ?? ""));
-
-  // Round-robin matches into 3 buckets
-  const buckets: [MatchCard[], MatchCard[], MatchCard[]] = [[], [], []];
-  expanded.forEach((m, i) => buckets[i % 3].push(m));
-
-  const rows: [Card[], Card[], Card[]] = [[], [], []];
-
-  for (let r = 0; r < 3; r++) {
-    const pool = aesPools[r];
-    const matchBucket = buckets[r];
-    const row: Card[] = [];
-    let aesIdx = 0;
-
-    // Interleave: aesthetic → match → aesthetic → match ...
-    // This guarantees variety regardless of match count
-    const maxLen = Math.max(matchBucket.length, pool.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < pool.length) {
-        row.push(pool[i]);
-      }
-      if (i < matchBucket.length) {
-        row.push(matchBucket[i]);
-      }
-    }
-
-    // Ensure minimum 10 cards for seamless infinite scroll at 240px wide
-    while (row.length < 10) {
-      row.push(pool[aesIdx % pool.length]);
-      aesIdx++;
-    }
-
-    rows[r] = row;
+/*
+ * Build 3 always-full rows with NO repeated background image inside a sliding
+ * window (so a quick glance never shows the same image twice), including across
+ * the infinite-scroll clone seam. Real matches/races are placed first (once
+ * each); distinct aesthetic league cards fill the rest and may recur, but never
+ * within the window.
+ */
+function buildRows(real: RealCard[]): [Card[], Card[], Card[]] {
+  // Distinct aesthetic cards, de-duplicated by image.
+  const distinctAes: AestheticCard[] = [];
+  const seenImg = new Set<string>();
+  for (const c of [...AESTHETICS_ROW1, ...AESTHETICS_ROW2, ...AESTHETICS_ROW3]) {
+    if (!seenImg.has(c.image)) { seenImg.add(c.image); distinctAes.push(c); }
   }
 
-  return rows;
+  // Real content, earliest first.
+  const content: RealCard[] = [...real].sort((a, b) => (a.kickoff ?? "").localeCompare(b.kickoff ?? ""));
+
+  const TARGET = 14;   // cards per row (cloned for the seamless loop)
+  const WINDOW = 6;    // no image may repeat within this many cards
+
+  const rows: Card[][] = [[], [], []];
+  const recent: string[][] = [[], [], []];
+  const used = new Array(content.length).fill(false);
+  let ci = 0, ai = 0, guard = 0;
+
+  const fits = (r: number, c: Card): boolean => {
+    const img = imgOf(c);
+    if (recent[r].includes(img)) return false;
+    // When filling the tail, also avoid the row's opening images so the
+    // clone seam (…end | start…) has no repeat within the window either.
+    if (rows[r].length >= TARGET - WINDOW) {
+      const head = rows[r].slice(0, WINDOW).map(imgOf);
+      if (head.includes(img)) return false;
+    }
+    return true;
+  };
+  const put = (r: number, c: Card) => {
+    rows[r].push(c);
+    recent[r].push(imgOf(c));
+    if (recent[r].length > WINDOW) recent[r].shift();
+  };
+
+  while (!rows.every((row) => row.length >= TARGET) && guard++ < 3000) {
+    for (let r = 0; r < 3; r++) {
+      if (rows[r].length >= TARGET) continue;
+
+      // 1) next unused real card that fits the window
+      let done = false;
+      for (let k = 0; k < content.length; k++) {
+        const idx = (ci + k) % content.length;
+        if (!used[idx] && fits(r, content[idx])) {
+          used[idx] = true; put(r, content[idx]); ci = (idx + 1) % content.length; done = true; break;
+        }
+      }
+      if (done) continue;
+
+      // 2) an aesthetic card that fits
+      for (let k = 0; k < distinctAes.length; k++) {
+        const c = distinctAes[(ai + k) % distinctAes.length];
+        if (fits(r, c)) { put(r, c); ai = (ai + k + 1) % distinctAes.length; done = true; break; }
+      }
+      if (done) continue;
+
+      // 3) last resort (tiny pools): place any remaining real, else any aesthetic
+      let placed = false;
+      for (let k = 0; k < content.length; k++) {
+        const idx = (ci + k) % content.length;
+        if (!used[idx]) { used[idx] = true; put(r, content[idx]); ci = (idx + 1) % content.length; placed = true; break; }
+      }
+      if (!placed && distinctAes.length > 0) { put(r, distinctAes[ai % distinctAes.length]); ai = (ai + 1) % distinctAes.length; }
+      if (!placed && distinctAes.length === 0) { rows[r].push(rows[r][0] ?? content[0]); } // degenerate guard
+    }
+  }
+
+  return [rows[0], rows[1], rows[2]];
 }
 
 /* ------------------------------------------------------------------ */
@@ -179,8 +305,8 @@ function buildRows(matches: MatchCard[]): [Card[], Card[], Card[]] {
 export const dynamic = "force-dynamic";
 
 export default async function HeroStrip() {
-  const matches = await getRealMatches();
-  const [row1, row2, row3] = buildRows(matches);
+  const [matches, f1] = await Promise.all([getRealMatches(), getF1RaceCards()]);
+  const [row1, row2, row3] = buildRows([...matches, ...f1]);
 
   return (
     <section
@@ -217,7 +343,7 @@ export default async function HeroStrip() {
             letterSpacing: "-0.2px",
           }}
         >
-          Live scores, AI commentary and instant analysis across football and basketball.
+          Live scores, AI commentary and instant analysis across football, basketball and baseball.
         </p>
       </div>
 
