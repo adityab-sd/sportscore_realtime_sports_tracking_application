@@ -60,6 +60,10 @@ export const LEAGUES: LeagueInfo[] = [
   { slug: "fra.1",          name: "Ligue 1",          short: "Ligue 1",    logo: espnLogo(9),  accent: "#091c3e" },
   { slug: "usa.1",          name: "MLS",              short: "MLS",        logo: espnLogo(19), accent: "#4f1681" },
   { slug: "bra.1",          name: "Brasileirão",      short: "Brazil",     logo: espnLogo(85), accent: "#009c3b" },
+  { slug: "arg.1",          name: "Argentine Primera", short: "Argentina",  logo: espnLogo(86), accent: "#75aadb" },
+  { slug: "uefa.europa",    name: "Europa League",    short: "UEL",        logo: espnLogo(3),  accent: "#f47a20" },
+  { slug: "uefa.europa.conf", name: "Europa Conf.",   short: "UECL",       logo: espnLogo(5),  accent: "#f47a20" },
+  { slug: "fifa.friendly",  name: "International Friendlies", short: "Friendlies", logo: espnLogo(4), accent: "#e30b1c" },
 ];
 
 export const leagueName = (slug: string): string =>

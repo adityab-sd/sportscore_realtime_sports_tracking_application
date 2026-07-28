@@ -37,6 +37,9 @@ const SPORT_CONFIGS: Record<string, SportConfig> = {
         "World Cup 2026": "fifa.world", "Champions League": "uefa.champions",
         "Premier League": "eng.1", "La Liga": "esp.1", "Serie A": "ita.1",
         "Bundesliga": "ger.1", "Ligue 1": "fra.1", "MLS": "usa.1",
+        "Brasileirão": "bra.1", "Argentine Primera": "arg.1",
+        "Europa League": "uefa.europa", "Europa Conference": "uefa.europa.conf",
+        "International Friendlies": "fifa.friendly",
       };
       if (exact[name]) return exact[name];
       const l = name.toLowerCase();
@@ -98,6 +101,23 @@ export interface F1Race {
   sessionLabel?: string;        // e.g. "Race", "Qualifying" when live
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Some ESPN timestamps arrive without seconds ("2026-08-23T13:00Z"), which a
+// few browsers refuse to parse (→ Invalid Date → a stuck/zeroed countdown).
+// Pad the seconds so it's always valid ISO; strings that already have seconds
+// (or no time zone) are returned unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+function normalizeIso(iso: string | null): string | null {
+  if (!iso) return null;
+  return iso.replace(/T(\d{2}):(\d{2})(Z|[+-]\d{2}:?\d{2})?$/, "T$1:$2:00$3");
+}
+function parseMs(iso: string | null): number | null {
+  const t = normalizeIso(iso);
+  if (!t) return null;
+  const ms = new Date(t).getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
 // ============================================================================
 // ADDRESSED: make date formatting timezone-explicit
 // ----------------------------------------------------------------------------
@@ -112,9 +132,9 @@ export interface F1Race {
 //   }).format(new Date(iso));
 // ============================================================================
 function formatUpcoming(iso: string | null): string {
-  if (!iso) return "Date TBD";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "Date TBD";
+  const ms = parseMs(iso);
+  if (ms == null) return "Date TBD";
+  const d = new Date(ms);
   const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   return `${date} · ${time}`;
@@ -233,7 +253,9 @@ function F1CountdownBanner({ race }: { race: F1Race }) {
     return () => clearInterval(id);
   }, []);
   const svg = circuitSvgFile(race);
-  const target = race.dateISO ? new Date(race.dateISO).getTime() : null;
+  // Counts down to whatever race.dateISO is (getF1Races supplies the RACE
+  // session's time). parseMs pads missing seconds so the date always parses.
+  const target = parseMs(race.dateISO);
   const diff = now != null && target != null ? target - now : null;
   const isLive = race.state === "live" || (diff != null && diff <= 0);
   const dd = diff != null && diff > 0 ? Math.floor(diff / 86400000) : 0;

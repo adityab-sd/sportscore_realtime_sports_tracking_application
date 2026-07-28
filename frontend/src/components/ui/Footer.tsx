@@ -1,46 +1,44 @@
 import Link from "next/link";
 
+// FIXED: every link below points to a route that actually exists in app/.
+//  - removed "Cricket" (no /cricket route → dead link)
+//  - added Basketball & Baseball (real sections that were missing)
+//  - dropped the "Features" column: Radio Mode / Knowledge Assistant / Live
+//    Updates are in-app toggles, not pages, so those links just sent people
+//    to /football. They're still described in the brand blurb below.
+//  - the three columns are now parallel across all four sports, so every sport
+//    has a direct link to its hub, standings, and fixtures.
+// Ideally build this from the same sport registry the Navbar uses so routes
+// can't drift out of sync again — hardcoded here to keep it self-contained.
 const columns = [
-  // ============================================================================
-  // ADDRESSED: avoid hard-coded footer routes
-  // ----------------------------------------------------------------------------
-  // Footer links are maintained separately from the Navbar/SportCards configs, so
-  // unavailable sports or renamed routes can drift and produce dead navigation.
-  // Generate this from the same sport registry used by the primary navigation.
-  //
-  // EXAMPLE:
-  //   const columns = buildFooterColumns(SPORTS_NAV.filter((sport) => sport.enabled));
-  // ============================================================================
   {
     title: "Sports",
     links: [
       { label: "Football", href: "/football" },
-      { label: "Cricket", href: "/cricket" },
-      { label: "Rugby", href: "/rugby" },
+      { label: "Basketball", href: "/basketball" },
+      { label: "Baseball", href: "/baseball" },
       { label: "Formula 1", href: "/f1" },
     ],
   },
   {
-    title: "Football",
+    title: "Standings",
     links: [
-      { label: "Live Scores", href: "/football" },
-      { label: "Standings", href: "/football/standings" },
-      { label: "News", href: "/football/news" },
-      { label: "World Cup", href: "/football" },
+      { label: "Football", href: "/football/standings" },
+      { label: "Basketball", href: "/basketball/standings" },
+      { label: "Baseball", href: "/baseball/standings" },
+      { label: "Formula 1", href: "/f1/standings" },
     ],
   },
   {
-    title: "Features",
+    title: "Fixtures & Schedule",
     links: [
-      { label: "Radio Mode", href: "/football" },
-      { label: "Knowledge Assistant", href: "/football" },
-      { label: "Live Updates", href: "/football" },
-      { label: "Accessibility", href: "/" },
+      { label: "Football", href: "/football/fixtures" },
+      { label: "Basketball", href: "/basketball/fixtures" },
+      { label: "Baseball", href: "/baseball/fixtures" },
+      { label: "Formula 1", href: "/f1/schedule" }, // F1 uses /schedule, not /fixtures
     ],
   },
 ];
-
-const legal = ["Terms of Use", "Privacy Policy", "Cookie Policy", "Accessibility Statement"];
 
 export default function Footer() {
   return (
@@ -88,25 +86,18 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Legal bar */}
-      {/* <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+      {/* Bottom bar — copyright only; dropped the placeholder legal links
+          (Terms / Privacy / Cookie / Accessibility) since those pages don't exist. */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         <div className="container" style={{
           paddingTop: 20, paddingBottom: 20,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: 16, flexWrap: "wrap",
+          display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            {legal.map(item => (
-              <span key={item} className="hl" style={{
-                fontSize: 12, color: "rgba(255,255,255,0.6)", cursor: "pointer", transition: "color 120ms",
-              }}>{item}</span>
-            ))}
-          </div>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-            ©️ 2026 SportScore · Built for COMP47250
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+            © 2026 SportScore
           </span>
         </div>
-      </div> */}
+      </div>
     </footer>
   );
 }

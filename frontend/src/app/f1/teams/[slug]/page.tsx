@@ -7,6 +7,21 @@ import { TEAMS_2026, DRIVERS_2026, getTeamGradient, getTeamColor, driverSlug } f
 
 export const dynamic = "force-dynamic";
 
+// Mobile-only tweaks: nudge the hero content (car / title / bars / driver names)
+// down a little, and stack the driver cards one per row. Both revert at >=640px.
+const responsiveCss = `
+.team-hero-body { margin-top: 24px; }
+.team-drivers-grid { grid-template-columns: 1fr; }
+.team-driver-card { min-height: 190px; }
+.team-driver-pts { display: none; }
+@media (min-width: 640px) {
+  .team-hero-body { margin-top: 0; }
+  .team-drivers-grid { grid-template-columns: repeat(2, 1fr); }
+  .team-driver-card { min-height: 0; aspect-ratio: 2.4; }
+  .team-driver-pts { display: block; }
+}
+`;
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const team = TEAMS_2026.find((t) => t.slug === slug);
@@ -101,6 +116,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ slu
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: responsiveCss }} />
       <F1Tabs />
 
       {/* ── Official F1-Style Hero Banner ───────────────────── */}
@@ -157,8 +173,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ slu
             </div>
           </div>
 
-          {/* Centered Car Graphic */}
-          <div style={{ margin: "0 auto", maxWidth: "820px", textAlign: "center" }}>
+          {/* Centered Car Graphic (nudged down on mobile via .team-hero-body) */}
+          <div className="team-hero-body" style={{ marginLeft: "auto", marginRight: "auto", maxWidth: "820px", textAlign: "center" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={team.carImage}
@@ -305,7 +321,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ slu
           >
             Drivers
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+          <div className="team-drivers-grid" style={{ display: "grid", gap: 16 }}>
             {teamDrivers.map((d) => {
   const standing = teamDriverStandings.find((s) => s.driver.toLowerCase().includes(d.lastName.toLowerCase()));
   const teamColor = getTeamColor(team.name);
@@ -313,13 +329,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ slu
     <Link
       key={d.name}
       href={`/f1/drivers/${driverSlug(d.name)}`}
+      className="team-driver-card"
       style={{
         position: "relative",
         display: "block",
         borderRadius: 16,
         overflow: "hidden",
         background: `linear-gradient(to right, #36454F 0%, ${teamColor} 100%)`,
-        aspectRatio: "2.4",
         textDecoration: "none",
         color: "#fff",
       }}
@@ -352,7 +368,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ slu
           {d.number}
         </div>
         {standing && (
-          <div style={{ fontSize: 14, fontWeight: 800, marginTop: 6 }}>
+          <div className="team-driver-pts" style={{ fontSize: 14, fontWeight: 800, marginTop: 6 }}>
             {Math.round(standing.points)} PTS
           </div>
         )}
@@ -364,14 +380,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ slu
         bottom: 16,
         left: 24,
         zIndex: 3,
-        width: 30,
-        height: 30,
+        width: 24,
+        height: 24,
         borderRadius: "50%",
-        border: "2px solid rgba(255,255,255,0.8)",
+        border: "1.5px solid rgba(255,255,255,0.8)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: 43,
+        fontSize: 34,
         lineHeight: 1,
         overflow: "hidden",
       }}>

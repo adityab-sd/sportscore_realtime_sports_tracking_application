@@ -19,8 +19,6 @@ export default function F1DriversPage() {
           paddingBottom: 60,
           maxWidth: "100%", // Overrides global container max-width
           width: "100%",
-          paddingLeft: 94, // Optional edge padding so cards don't touch screen edges completely
-          paddingRight: 94,
         }}
       >
         <h1 className="f1-section-title" style={{ fontSize: "clamp(24px, 4vw, 36px)", marginBottom: 8 }}>
@@ -184,6 +182,19 @@ export default function F1DriversPage() {
             max-width: 360px;
             margin: 0 auto;
           }
+        }
+          .f1-drivers-container {
+          padding-left: 94px;
+          padding-right: 94px;
+        }
+        @media (max-width: 1024px) {
+          .f1-drivers-container { padding-left: 40px; padding-right: 40px; }
+        }
+        @media (max-width: 768px) {
+          .f1-drivers-container { padding-left: 20px; padding-right: 20px; }
+        }
+        @media (max-width: 480px) {
+          .f1-drivers-container { padding-left: 12px; padding-right: 12px; }
         }
       `}</style>
     </>

@@ -34,9 +34,14 @@ export interface DriverResult {
   position: number;
   driverId: string;
   driver: string;
+  team?: string | null;           // team name (for team colours / the Team column)
   country: string | null;
   flag: string | null;
   winner: boolean;
+  laps?: number;                  // laps completed this session
+  timeOrStatus?: string | null;   // "1:28:20.480", "+4.120s", "+1 Lap", "DNF", "Collision", ...
+  points?: number;                // points awarded for this session
+  isRetired?: boolean;            // styling helper for non-finishers
 }
 
 export interface SessionDto {
