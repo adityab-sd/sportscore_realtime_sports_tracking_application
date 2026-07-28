@@ -17,10 +17,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 //    failing. Use Integer/String if ids can be absent or non-numeric.
 // EXAMPLE: move this record to a `common` module both backend + functions depend on;
 //          declare @JsonProperty("id") String id.
+// UPDATE:
+// (2) fixed - id is now Integer, and every adapter validates the ESPN id is present
+// and numeric before building a Match (see CoreBaseballAdapter's pattern, now applied
+// to all four sports); a missing/bad id is skipped instead of silently becoming 0.
+// Integer (not String) was chosen deliberately: it keeps the JSON wire shape a number,
+// so the Azure Functions module's org.sportscore.model.Match (still `int id`) keeps
+// deserializing this payload correctly without a coordinated cross-module change.
+// (1) DRY/shared-module extraction is still open - real fix, bigger scope (new shared
+// Maven module both backend + functions depend on), tracked as follow-up.
 // ============================================================================
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Match(
-        @JsonProperty("id") int id,
+        @JsonProperty("id") Integer id,
         @JsonProperty("sport") String sport,
         @JsonProperty("status") String status,
         @JsonProperty("elapsed") Integer elapsed,
@@ -38,10 +47,17 @@ public record Match(
         @JsonProperty("events") List<MatchEvent> events) {
 
     // Original 10-arg football constructor, kept so football adapters compile unchanged.
-    public Match(int id, String status, Integer elapsed, String kickoff, String competition,
+    public Match(Integer id, String status, Integer elapsed, String kickoff, String competition,
                  Team homeTeam, Team awayTeam, Integer homeScore, Integer awayScore,
                  List<MatchEvent> events) {
         this(id, "football", status, elapsed, null, null, status, kickoff, competition,
                 homeTeam, awayTeam, homeScore, awayScore, null, null, events);
+    }
+
+    // add inside the Match record body, alongside the existing football constructor
+    public Match withEvents(List<MatchEvent> newEvents) {
+        return new Match(id, sport, status, elapsed, clock, period, statusDetail, kickoff,
+                competition, homeTeam, awayTeam, homeScore, awayScore,
+                homeScoreDisplay, awayScoreDisplay, newEvents);
     }
 }

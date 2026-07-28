@@ -1,150 +1,186 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getStandings, getNews, getFixtures, getLeaders } from "@/lib/api/espn";
-import { LEAGUES, leagueName } from "@/types/football";
-import NewsCard from "@/components/news/NewsCard";
-import StandingsTable from "@/components/football/StandingsTable";
-import LeagueMatchFeed from "@/components/football/LeagueMatchFeed";
-import FixtureCard from "@/components/football/FixtureCard";
-import TopScorers from "@/components/football/TopScorers";
+import {
+  getStandings, getNews, getFixtures, getTeamsList, getRawLeaders,
+  type ESPNNews, type RawJSON,
+} from "@/lib/api/espn";
+import { LEAGUES, Match } from "@/types/football";
+import LeaguePageClient from "@/components/football/LeaguePageClient";
 
 export const dynamic = "force-dynamic";
 interface Props { params: Promise<{ slug: string }> }
+
+function fixturesToMatches(fixtures: { results: any[]; upcoming: any[] }): Match[] {
+  return [...fixtures.results, ...fixtures.upcoming].map(f => ({
+    id: Number(f.id),
+    sport: "football",
+    status: f.status,
+    elapsed: null,
+    kickoff: f.kickoff,
+    competition: f.competition,
+    homeTeam: { id: Number(f.homeTeam.id), name: f.homeTeam.name, shortName: f.homeTeam.shortName, logo: f.homeTeam.logo },
+    awayTeam: { id: Number(f.awayTeam.id), name: f.awayTeam.name, shortName: f.awayTeam.shortName, logo: f.awayTeam.logo },
+    homeScore: f.homeScore,
+    awayScore: f.awayScore,
+    events: [],
+  }));
+}
+
+function parseTeams(raw: RawJSON | null): { id: string; name: string; logo: string | null }[] {
+  if (!raw) return [];
+  const items = (raw as any)?.sports?.[0]?.leagues?.[0]?.teams ?? (raw as any)?.teams ?? [];
+  return items.map((t: any) => {
+    const team = t?.team ?? t;
+    return { id: String(team?.id ?? ""), name: String(team?.displayName ?? team?.name ?? ""), logo: team?.logos?.[0]?.href ?? team?.logo ?? null };
+  }).filter((t: any) => t.id && t.name);
+}
+
+export interface LeaderEntry {
+  rank: number;
+  athleteId: string;
+  athleteName: string;
+  teamName: string;
+  teamLogo: string | null;
+  headshot: string | null;
+  displayValue: string;
+  value: number;
+}
+
+export interface LeaderCategory {
+  name: string;
+  displayName: string;
+  leaders: LeaderEntry[];
+}
+
+// Parse the raw Core API leaders response — resolves athlete names via backend
+async function parseRawLeaders(raw: RawJSON | null, slug: string, rows: any[]): Promise<LeaderCategory[]> {
+  if (!raw) return [];
+  const categories: any[] = (raw as any)?.categories ?? [];
+  
+  // Collect all unique athlete IDs across all categories
+  const athleteIds = new Set<string>();
+  const seen = new Set<string>();
+  const catData: { name: string; displayName: string; rawLeaders: any[] }[] = [];
+
+  for (const cat of categories) {
+    const displayName: string = cat.displayName ?? cat.name;
+    if (seen.has(displayName)) continue;
+    seen.add(displayName);
+    const rawLeaders: any[] = (cat.leaders ?? []).slice(0, 10);
+    for (const l of rawLeaders) {
+      const athleteRef: string = l?.athlete?.$ref ?? "";
+      const m = athleteRef.match(/athletes\/(\d+)/);
+      if (m?.[1]) athleteIds.add(m[1]);
+    }
+    catData.push({ name: cat.name, displayName, rawLeaders });
+  }
+
+  // Resolve athlete names by fetching rosters for all standings teams
+  const athleteNames = new Map<string, string>();
+  const athleteTeams = new Map<string, { name: string; logo: string | null }>();
+  try {
+    const BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8081/api/football';
+    // Step 1: build name map from ALL teams in standings
+    const teamIds = rows.map((r: any) => r.teamId).filter(Boolean);
+    const rosterResults = await Promise.allSettled(
+      teamIds.map((teamId: string) =>
+        fetch(`${BASE}/${slug}/teams/${teamId}/roster`, { next: { revalidate: 3600 } })
+          .then(r => r.ok ? r.json() : [])
+          .then((players: any[]) => ({ teamId, players }))
+          .catch(() => ({ teamId, players: [] }))
+      )
+    );
+    for (const result of rosterResults) {
+      if (result.status !== "fulfilled") continue;
+      const { teamId, players } = result.value;
+      if (!Array.isArray(players)) continue;
+      const teamRow = rows.find((r: any) => r.teamId === teamId);
+      for (const p of players) {
+        const pid = String(p.id ?? "");
+        if (pid && p.name) {
+          athleteNames.set(pid, p.name);
+          if (teamRow) athleteTeams.set(pid, { name: teamRow.shortName ?? teamRow.team ?? "", logo: teamRow.logo ?? null });
+        }
+      }
+    }
+    // Step 2: for any still-unresolved IDs, try ESPN Core API directly
+    const unresolved = [...athleteIds].filter(id => !athleteNames.has(id));
+    await Promise.allSettled(
+      unresolved.map(async (id) => {
+        try {
+          const res = await fetch(
+            `https://sports.core.api.espn.com/v2/sports/soccer/athletes/${id}?lang=en&region=us`,
+            {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json",
+              },
+              next: { revalidate: 86400 }
+            }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const name = data?.displayName ?? data?.fullName ?? data?.shortName;
+          if (name) athleteNames.set(id, name);
+        } catch {}
+      })
+    );
+  } catch {}
+
+  // Build output
+  const cats: LeaderCategory[] = [];
+  for (const { name, displayName, rawLeaders } of catData) {
+    const leaders: LeaderEntry[] = rawLeaders.map((l, i) => {
+      const athleteRef: string = l?.athlete?.$ref ?? "";
+      const athleteIdMatch = athleteRef.match(/athletes\/(\d+)/);
+      const athleteId = athleteIdMatch?.[1] ?? "";
+      const headshot = athleteId
+        ? `https://a.espncdn.com/i/headshots/soccer/players/full/${athleteId}.png`
+        : null;
+      return {
+        rank: i + 1,
+        athleteId,
+        athleteName: athleteNames.get(athleteId) ?? "",
+        teamName: athleteTeams.get(athleteId)?.name ?? "",
+        teamLogo: athleteTeams.get(athleteId)?.logo ?? null,
+        headshot,
+        displayValue: String(l?.value ?? ""),
+        value: Number(l?.value ?? 0),
+      };
+    });
+    if (leaders.length > 0) cats.push({ name, displayName, leaders });
+  }
+  return cats;
+}
 
 export default async function LeaguePage({ params }: Props) {
   const { slug } = await params;
   const league = LEAGUES.find(l => l.slug === slug);
   if (!league) return notFound();
 
-
-  // ============================================================================
-  // PLEASE review — Keep dependent navigation scoped to this league
-  // ----------------------------------------------------------------------------
-  // The header "Full Standings" link drops the current slug and lands on the default
-  // standings league, which is surprising from a league detail page.
-  //
-  // EXAMPLE:
-  //   <Link href={`/football/standings?league=${slug}`}>Full Standings →</Link>
-  // ============================================================================
-  const [rows, news, fixtures, leaders] = await Promise.all([
+  const currentYear = new Date().getFullYear();
+  // Try current year first, fall back to previous year (handles both MLS and European leagues)
+  const [rows, news, fixtures, teamsRaw, rawLeadersData] = await Promise.all([
     getStandings(slug),
-    getNews(slug, 6),
+    getNews(slug, 20),
     getFixtures(slug),
-    getLeaders(slug),
+    getTeamsList(slug),
+    getRawLeaders(slug, String(currentYear))
+      .catch(() => getRawLeaders(slug, String(currentYear - 1)).catch(() => null)),
   ]);
 
+  const seedMatches = fixturesToMatches(fixtures);
+  const teams = parseTeams(teamsRaw);
+  const leaderCategories = await parseRawLeaders(rawLeadersData, slug, rows);
 
-  // ============================================================================
-  // PLEASE review — Do not hide total league data failures
-  // ----------------------------------------------------------------------------
-  // The four league fetches all fall back to empty arrays, and the page simply hides
-  // sections. If every dataset is empty, users see a mostly blank league page instead
-  // of a recoverable error/empty state.
-  //
-  // EXAMPLE:
-  //   if (!rows.length && !news.length && !fixtures.results.length && !fixtures.upcoming.length && !leaders.length) throw new Error("League data unavailable");
-  // ============================================================================
   return (
-    <div className="container" style={{ paddingTop: 28, paddingBottom: 48 }}>
-
-      {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ fontSize: "clamp(22px,4vw,30px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>
-            {league.name}
-          </h1>
-          <div style={{ display: "flex", gap: 12 }}>
-            <Link href="/football" style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "none" }}>← All Football</Link>
-            <Link href="/football/standings" style={{ fontSize: 13, color: "var(--navy)", textDecoration: "none", fontWeight: 600 }}>Full Standings →</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Live Matches - from SignalR, filtered client-side */}
-      <section style={{ marginBottom: 40 }}>
-        <div className="section-label" style={{ marginBottom: 14 }}>Matches</div>
-        <LeagueMatchFeed leagueName={league.name} slug={slug} />
-      </section>
-
-      {/* Standings */}
-      {rows.length > 0 && (
-        <section style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div className="section-label" style={{ marginBottom: 0 }}>Table</div>
-            <Link href={`/football/standings?league=${slug}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>
-              Full table →
-            </Link>
-          </div>
-          <StandingsTable rows={rows} league={slug} limit={6} />
-          {rows.length > 6 && (
-            <Link href={`/football/standings?league=${slug}`} style={{ display: "block", textAlign: "center", padding: "12px 0 0", fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>
-              View all {rows.length} teams →
-            </Link>
-          )}
-        </section>
-      )}
-
-      {/* Top Scorers */}
-      <section style={{ marginBottom: 40 }}>
-        {leaders.length > 0 ? (
-          <TopScorers leaders={leaders} leagueLabel={league.name} />
-        ) : (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0, letterSpacing: "-0.3px" }}>Top Scorers</h2>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{league.name}</span>
-            </div>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
-              No scorer data yet — this usually means the season hasn&apos;t started or no goals have been recorded.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* Results + Upcoming */}
-      {(fixtures.results.length > 0 || fixtures.upcoming.length > 0) && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: -8 }}>
-            <Link href={`/football/fixtures?league=${slug}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>
-              View full fixtures →
-            </Link>
-          </div>
-          {/* PLEASE review — Add per-column empty states: when only results or upcoming exists, the other column renders a blank section. EXAMPLE: {fixtures.results.length === 0 ? <p>No recent results.</p> : fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}. */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginBottom: 40, marginTop: 20 }} className="page-split">
-            <section>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
-                <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Results</h2>
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.results.length}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {fixtures.results.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
-              </div>
-            </section>
-            <section>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--border)" }}>
-                <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Upcoming</h2>
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fixtures.upcoming.length}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {fixtures.upcoming.slice(0, 10).map(f => <FixtureCard key={f.id} fixture={f} leagueSlug={slug} />)}
-              </div>
-            </section>
-          </div>
-        </>
-      )}
-
-      {/* Latest News */}
-      {news.length > 0 && (
-        <section>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div className="section-label" style={{ marginBottom: 0 }}>Latest News</div>
-            <Link href="/football/news" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>All news →</Link>
-          </div>
-          <div className="news-grid">
-            {news.slice(0, 3).map(a => <NewsCard key={a.id} article={a} />)}
-          </div>
-        </section>
-      )}
-    </div>
+    <LeaguePageClient
+      league={league}
+      standings={rows}
+      news={news as ESPNNews[]}
+      leaderCategories={leaderCategories}
+      teams={teams}
+      seedMatches={seedMatches}
+      slug={slug}
+    />
   );
 }

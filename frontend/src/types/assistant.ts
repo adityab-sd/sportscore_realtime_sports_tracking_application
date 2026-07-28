@@ -1,16 +1,6 @@
-// ============================================================================
-// PLEASE review — Chat messages need a stricter discriminated union
-// ----------------------------------------------------------------------------
-// The current shape allows user messages to carry citations and assistant
-// messages to omit fields the UI may require. Split by role so TypeScript guards
-// rendering logic instead of relying on convention.
-//
-// EXAMPLE:
-//   type ChatMessage = { role: "user"; content: string } | { role: "assistant"; content: string; citations: Citation[] };
-// ============================================================================
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  citations?: string[];
-}
+// ADDRESSED: Chat messages need a stricter discriminated union — split by role so
+// TypeScript guards rendering logic. User messages cannot carry citations; assistant
+// messages always include citations (possibly empty). The `id` field is shared.
+export type ChatMessage =
+  | { id: string; role: "user"; content: string }
+  | { id: string; role: "assistant"; content: string; citations: string[] };

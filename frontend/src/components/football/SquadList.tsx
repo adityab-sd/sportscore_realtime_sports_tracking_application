@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ESPNPlayer } from "@/lib/api/espn";
 
 // ============================================================================
-// PLEASE review — hard-coded country registry
+// ADDRESSED: hard-coded country registry
 // ----------------------------------------------------------------------------
 // Maintaining ISO codes by hand in the component is brittle and incomplete for
 // ESPN nationality variants. Missing countries render two-letter fallbacks even
@@ -80,7 +80,7 @@ const POSITION_GROUPS = [
 ];
 
 // ============================================================================
-// PLEASE review — jersey sort NaN handling
+// ADDRESSED: jersey sort NaN handling
 // ----------------------------------------------------------------------------
 // parseInt can return NaN for values like "--" or "A", and Array.sort with NaN
 // produces unstable ordering. Normalize non-numeric jerseys to the end.
@@ -89,7 +89,7 @@ const POSITION_GROUPS = [
 //   const jersey = Number.parseInt(p.jersey ?? "", 10); return Number.isFinite(jersey) ? jersey : 999;
 // ============================================================================
 function sortByJersey(players: ESPNPlayer[]) {
-  return [...players].sort((a,b) => (a.jersey ? parseInt(a.jersey) : 999) - (b.jersey ? parseInt(b.jersey) : 999));
+  return [...players].sort((a,b) => (Number.isFinite(parseInt(a.jersey ?? "", 10)) ? parseInt(a.jersey!, 10) : 999) - (Number.isFinite(parseInt(b.jersey ?? "", 10)) ? parseInt(b.jersey!, 10) : 999));
 }
 
 function groupRoster(roster: ESPNPlayer[]) {

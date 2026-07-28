@@ -1,22 +1,27 @@
 "use client";
 import Link from "next/link";
-import TeamLogo from "@/components/football/TeamLogo";
+import TeamLogo from "./TeamLogo";
 import { BBStandingRow } from "@/lib/api/basketball";
 
 interface Props {
   rows: BBStandingRow[];
   league: string;
   limit?: number;
+  highlightTeamIds?: string[];
 }
 
-export default function StandingsTable({ rows, league, limit }: Props) {
-  // PLEASE review — missing empty state: an empty standings response renders only headers, which looks like a broken table. EXAMPLE: if (rows.length === 0) return <p>Standings unavailable.</p>;
-  const shown = limit ? rows.slice(0, limit) : rows;
+const COLS = "36px 1fr 40px 40px 56px 48px 56px";
 
+function pct(v: number): string {
+  if (!Number.isFinite(v)) return "—";
+  return v.toFixed(3).replace(/^0/, "");
+}
+
+export default function StandingsTable({ rows, league, limit, highlightTeamIds = [] }: Props) {
+  const shown = limit ? rows.slice(0, limit) : rows;
   return (
     <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", overflowX: "auto" }}>
-      {/* Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 44px 44px 56px 52px 60px", padding: "10px 16px", borderBottom: "1px solid var(--border)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px", gap: 4, minWidth: 480 }}>
+      <div style={{ display: "grid", gridTemplateColumns: COLS, padding: "10px 16px", borderBottom: "1px solid var(--border)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px", gap: 4, minWidth: 460 }}>
         <span>#</span><span>Team</span>
         <span style={{ textAlign: "center" }}>W</span>
         <span style={{ textAlign: "center" }}>L</span>
@@ -24,39 +29,26 @@ export default function StandingsTable({ rows, league, limit }: Props) {
         <span style={{ textAlign: "center" }}>GB</span>
         <span style={{ textAlign: "center" }}>STRK</span>
       </div>
-
       {shown.map((r, i) => {
-        // PLEASE review — hard-coded playoff cutoff: top 8 is NBA-specific and wrong for some NCAA/WNBA contexts. EXAMPLE: const playoff = league === "nba" ? i < 8 : false;
-        const playoff = i < 8; // top 8 typically make playoffs
-        // PLEASE review — hover leave mutates visual state not present initially: playoff rows stay tinted only after hover. EXAMPLE: style={{ ..., background: playoff ? "rgba(234,88,12,0.03)" : "transparent" }}.
+        const highlighted = highlightTeamIds.includes(r.teamId);
+        const top = i < 8;
         return (
           <div
             key={r.teamId || i}
-            style={{ display: "grid", gridTemplateColumns: "36px 1fr 44px 44px 56px 52px 60px", padding: "11px 16px", borderBottom: i < shown.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", gap: 4, minWidth: 480, transition: "background 100ms", cursor: "default" }}
+            style={{ display: "grid", gridTemplateColumns: COLS, padding: "11px 16px", borderBottom: i < shown.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", gap: 4, minWidth: 460, background: highlighted ? "rgba(59,130,246,0.08)" : "transparent" }}
             onMouseEnter={e => (e.currentTarget.style.background = "var(--cloud)")}
-            onMouseLeave={e => (e.currentTarget.style.background = playoff ? "rgba(234,88,12,0.03)" : "transparent")}
+            onMouseLeave={e => (e.currentTarget.style.background = highlighted ? "rgba(59,130,246,0.08)" : top ? "rgba(0,63,136,0.025)" : "transparent")}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              {playoff && <div style={{ width: 3, height: 20, borderRadius: 2, background: "#EA580C", flexShrink: 0 }} />}
-              <span style={{ fontSize: 12, fontWeight: 700, color: playoff ? "#B45309" : "var(--text-muted)" }}>{r.rank}</span>
-            </div>
-
+            <span style={{ fontSize: 12, fontWeight: 700, color: top ? "var(--navy)" : "var(--text-muted)" }}>{r.rank}</span>
             <Link href={`/basketball/team/${r.teamId}?league=${league}`} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", minWidth: 0 }}>
-              <TeamLogo logo={r.logo} shortName={r.shortName} size={24} highlight={playoff} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.team}</span>
+              <TeamLogo logo={r.logo} shortName={r.shortName} size={24} highlight={top} />
+              <span style={{ fontSize: 13, fontWeight: highlighted ? 800 : 600, color: highlighted ? "var(--navy)" : "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.team}</span>
             </Link>
-
-            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)" }}>{r.wins}</span>
+            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, fontWeight: 700, color: "var(--obsidian)" }}>{r.wins}</span>
             <span className="stat-num" style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)" }}>{r.losses}</span>
-            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)" }}>
-              {r.winPct != null ? r.winPct.toFixed(3).replace(/^0/, "") : "–"}
-            </span>
-            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)" }}>
-              {r.gamesBehind === 0 ? "–" : r.gamesBehind.toFixed(1)}
-            </span>
-            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: r.streak?.startsWith("W") ? "var(--success)" : r.streak?.startsWith("L") ? "#dc2626" : "var(--text-secondary)" }}>
-              {r.streak ?? "–"}
-            </span>
+            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{pct(r.winPct)}</span>
+            <span className="stat-num" style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)" }}>{r.gamesBehind === 0 ? "—" : r.gamesBehind}</span>
+            <span className="stat-num" style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: r.streak?.startsWith("W") ? "var(--success)" : r.streak?.startsWith("L") ? "#dc2626" : "var(--text-secondary)" }}>{r.streak ?? "—"}</span>
           </div>
         );
       })}

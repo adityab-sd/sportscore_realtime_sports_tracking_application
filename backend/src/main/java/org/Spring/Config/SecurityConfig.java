@@ -1,8 +1,12 @@
 package org.Spring.Config;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,9 +23,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * SINGLE SOURCE OF TRUTH for backend security.
@@ -52,19 +53,17 @@ public class SecurityConfig {
     @Value("${APP_USER_PASS}")
     private String userPass;
 
-    /**
-     * Comma-separated list of allowed frontend origins.
-     * Defaults to localhost:3000 if CORS_ALLOWED_ORIGINS is not set,
-     * so nothing breaks if the env var is missing during local dev.
-     * For prod/demo, set CORS_ALLOWED_ORIGINS=https://yourdomain.com
-     */
+
     @Value("${CORS_ALLOWED_ORIGINS:http://localhost:3000}")
     private String allowedOrigins;
 
     private final RateLimitFilter rateLimitFilter;
+    private final LockoutAwareAuthenticationEntryPoint lockoutAwareEntryPoint;
 
-    public SecurityConfig(RateLimitFilter rateLimitFilter) {
+    public SecurityConfig(RateLimitFilter rateLimitFilter,
+                           LockoutAwareAuthenticationEntryPoint lockoutAwareEntryPoint) {
         this.rateLimitFilter = rateLimitFilter;
+        this.lockoutAwareEntryPoint = lockoutAwareEntryPoint;
     }
 
     @Bean
@@ -73,13 +72,32 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(63072000)
+                )
+                .contentTypeOptions(Customizer.withDefaults())
+                .frameOptions(frame -> frame.deny())
+                .referrerPolicy(referrer -> referrer
+                    .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                )
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/public/**").permitAll()
+//                    .requestMatchers("/dev/**").permitAll()
+                    .requestMatchers("/api/football/**").permitAll()
+                .requestMatchers("/api/basketball/**").permitAll()
+                .requestMatchers("/api/baseball/**").permitAll()
+                .requestMatchers("/api/cricket/**").permitAll()
+                .requestMatchers("/api/f1/**").permitAll()
+                .requestMatchers("/api/rugby/**").permitAll()
+                .requestMatchers("/api/security/stats").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults())
+            .httpBasic(basic -> basic.authenticationEntryPoint(lockoutAwareEntryPoint))
             // Rate limiter runs before authentication so it protects
             // even unauthenticated / public endpoints from abuse.
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
@@ -111,11 +129,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService());
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
+    public AuthenticationProvider authenticationProvider(LoginAttemptService loginAttemptService) {
+        DaoAuthenticationProvider realProvider = new DaoAuthenticationProvider();
+        realProvider.setUserDetailsService(userDetailsService());
+        realProvider.setPasswordEncoder(passwordEncoder());
+
+        return new LockingAuthenticationProvider(realProvider, loginAttemptService);
     }
 
     @Bean

@@ -27,7 +27,12 @@ public class Main {
         dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
         // Note: no longer printing values to console - even in dev, avoid
         // logging secrets where they could end up in shared terminal output.
-
+    
+        // Bridge our .env naming convention to the exact property name Jasypt expects
+        String jasyptPassword = dotenv.get("JASYPT_ENCRYPTOR_PASSWORD");
+        if (jasyptPassword != null) {
+            System.setProperty("jasypt.encryptor.password", jasyptPassword);
+}
         List<String> missing = REQUIRED_KEYS.stream()
             .filter(key -> System.getProperty(key) == null || System.getProperty(key).isBlank())
             .collect(Collectors.toList());

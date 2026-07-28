@@ -21,10 +21,10 @@ interface NewsCardProps {
   article: NewsArticle;
   /**
    * Which sport this article belongs to.
-   * Determines the internal route: /football/news/[id] or /basketball/news/[id]
+   * Determines the internal route: /football/news/[id], /basketball/news/[id], etc.
    * Defaults to "football" so existing usages don't need updating.
    */
-  sport?: "football" | "basketball";
+  sport?: "football" | "basketball" | "baseball";
   /**
    * Optional extra classes merged onto the outer <Link>. Purely additive —
    * omit it and NewsCard behaves exactly as before. Used e.g. when stacking
@@ -60,7 +60,7 @@ const CAT_GRADIENTS: Record<string, string> = {
 
 function timeAgo(iso: string): string {
   // ============================================================================
-  // PLEASE review — avoid Date.now() in card render
+  // ADDRESSED: avoid Date.now() in card render
   // ----------------------------------------------------------------------------
   // Relative time is computed during render and then suppressed for hydration,
   // which can hide timezone/clock mismatches and leaves labels stale until some

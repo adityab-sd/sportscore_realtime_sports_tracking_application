@@ -44,14 +44,20 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
     public List<Match> toMatches(JsonNode root, String friendlyName) throws Exception {
         List<Match> matches = new ArrayList<>();
         for (JsonNode event : root.path("events")) {
-            matches.add(toMatch(event, friendlyName));
+            Match m = toMatch(event, friendlyName);
+            if (m != null) matches.add(m);
         }
         return matches;
     }
 
+    // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and
+    // can collapse distinct matches. Same fix as CoreBaseballAdapter, applied here for consistency.
     private Match toMatch(JsonNode event, String friendlyName) {
-        int id = event.path("id").asInt();
+        Integer id = parseId(event.path("id"));
+        if (id == null) return null;
+
         JsonNode comp = event.path("competitions").path(0);
+        if (comp.isMissingNode()) return null;
 
         // status.type.state ("pre"/"in"/"post") is the reliable signal; .detail holds
         // the kickoff date for unplayed games, so don't read status off that.
@@ -128,7 +134,7 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
 
     private Team toTeam(JsonNode t) {
         return new Team(
-                t.path("id").asInt(),
+                parseId(t.path("id")),
                 textOrNull(t.path("displayName")),
                 textOrNull(t.path("abbreviation")),
                 textOrNull(t.path("logo")));
@@ -146,7 +152,7 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
                 player = textOrNull(athletes.path(0).path("displayName"));
             }
             // this provider only lists the scorer in details, never the assist
-            int teamId = d.path("team").path("id").asInt();
+            Integer teamId = parseId(d.path("team").path("id"));
             events.add(new MatchEvent(minute, type, typeText, player, null, teamId));
         }
         return events;
@@ -154,11 +160,15 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
 
     private String mapType(String text, JsonNode d) {
         String t = text.toLowerCase();
-        if (d.path("scoringPlay").asBoolean(false) || t.contains("goal")) return "goal";
-        if (d.path("redCard").asBoolean(false)) return "card";
-        if (d.path("yellowCard").asBoolean(false)) return "card";
-        if (t.contains("card")) return "card";
-        return t;
+        if (d.path("ownGoal").asBoolean(false)) return "OWN_GOAL";
+        if (d.path("scoringPlay").asBoolean(false) || t.contains("goal")) return "GOAL";
+        if (d.path("redCard").asBoolean(false) || t.contains("red card")) return "RED_CARD";
+        if (d.path("yellowCard").asBoolean(false) || t.contains("yellow card")) return "YELLOW_CARD";
+        if (t.contains("substitution")) return "SUBSTITUTION";
+        if (t.contains("penalty") && t.contains("miss")) return "PENALTY_MISSED";
+        if (t.contains("penalty")) return "PENALTY_SCORED";
+        if (t.contains("var")) return "VAR_REVIEW";
+        return t; // unrecognized ESPN text still falls to CommentaryService's default template
     }
 
     // "33'" -> 33, "90'+6'" -> 90
@@ -174,6 +184,19 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
 
     private Integer intOrNull(JsonNode n) {
         return (n.isNull() || n.isMissingNode() || n.asText().isBlank()) ? null : n.asInt();
+    }
+
+    // Validates an ESPN id field is present and numeric before parsing it, so a
+    // missing/non-numeric id comes through as null instead of silently becoming 0
+    // (which could collapse two distinct matches/teams into the same id).
+    private Integer parseId(JsonNode idNode) {
+        String text = textOrNull(idNode);
+        if (text == null || !text.matches("\\d+")) return null;
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String textOrNull(JsonNode n) {

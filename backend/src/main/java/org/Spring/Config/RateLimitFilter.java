@@ -4,85 +4,74 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Duration;
 
-/**
- * Simple in-memory sliding-window rate limiter.
- *
- * WHY: protects the API from scraping and accidental traffic loops
- * (see architecture diagram, "Traffic Protection" box).
- *
- * HOW: tracks request counts per client IP within a fixed time window.
- * Once a client exceeds MAX_REQUESTS within WINDOW_MILLIS, further
- * requests get HTTP 429 (Too Many Requests) until the window resets.
- *
- * KNOWN LIMITATION (be upfront about this with the mentor):
- * this state lives in a single instance's memory. If the backend is
- * ever scaled to multiple instances, each instance would track its
- * own counts independently, so a client could get roughly N times the
- * limit by hitting different instances. The documented fix for that
- * is a shared store (e.g. Redis) so all instances see the same
- * counters — that's the natural next step, not a flaw to hide.
- */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    // Tune these two values together: MAX_REQUESTS per WINDOW_MILLIS.
-    private static final int MAX_REQUESTS = 60;       // requests allowed
-    private static final long WINDOW_MILLIS = 60_000;  // per 1 minute
+    private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
-    private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private static final int MAX_REQUESTS = 60;
+    private static final Duration WINDOW = Duration.ofSeconds(60);
+
+    private final StringRedisTemplate redisTemplate;
+    private final SecurityStatsService statsService;
+
+    @Autowired
+    public RateLimitFilter(StringRedisTemplate redisTemplate, SecurityStatsService statsService) {
+        this.redisTemplate = redisTemplate;
+        this.statsService = statsService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String clientId = resolveClientId(request);
-        Bucket bucket = buckets.computeIfAbsent(clientId, id -> new Bucket());
+        String key = "ratelimit:" + clientId;
 
-        if (bucket.tryConsume()) {
-            filterChain.doFilter(request, response);
-        } else {
-            response.setStatus(429); // 429 Too Many Requests
-            response.setContentType("application/json");
-            response.getWriter().write(
-                "{\"error\":\"rate_limit_exceeded\",\"message\":\"Too many requests. Please slow down and try again shortly.\"}"
-            );
+        try {
+            Long count = redisTemplate.opsForValue().increment(key);
+
+            if (count != null && count == 1L) {
+                redisTemplate.expire(key, WINDOW);
+            }
+
+            if (count != null && count > MAX_REQUESTS) {
+                statsService.incrementBlockedRequests();
+                response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write(
+                        "{\"error\":\"rate_limit_exceeded\",\"message\":\"Too many requests. Please slow down and try again shortly.\"}"
+                );
+                return;
+            }
+        } catch (Exception e) {
+            // Redis unreachable (or any other rate-limit infra failure): fail OPEN.
+            // A rate limiter being briefly unavailable should degrade to "no rate
+            // limiting" rather than taking down every request in the app -- this is
+            // exactly what was happening before this try/catch existed.
+            log.error("Rate limit check failed, allowing request through: {}", e.getMessage());
         }
+
+        filterChain.doFilter(request, response);
     }
 
-    /**
-     * Identifies the caller. Falls back through common proxy headers first,
-     * since in production this filter usually sits behind a reverse proxy
-     * or Azure Application Gateway which sets X-Forwarded-For.
-     */
     private String resolveClientId(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();
-    }
-
-    /** Fixed-window counter with automatic reset once the window elapses. */
-    private static class Bucket {
-        private final AtomicInteger count = new AtomicInteger(0);
-        private volatile long windowStart = System.currentTimeMillis();
-
-        synchronized boolean tryConsume() {
-            long now = System.currentTimeMillis();
-            if (now - windowStart > WINDOW_MILLIS) {
-                // window elapsed - reset
-                windowStart = now;
-                count.set(0);
-            }
-            return count.incrementAndGet() <= MAX_REQUESTS;
-        }
     }
 }

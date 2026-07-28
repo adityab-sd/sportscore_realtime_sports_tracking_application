@@ -14,7 +14,7 @@ export default function HomeLiveStrip() {
   const strip = [...live, ...upcoming].slice(0, 6);
 
   // ============================================================================
-  // PLEASE review — disconnected live empty state
+  // ADDRESSED: disconnected live empty state
   // ----------------------------------------------------------------------------
   // When SignalR is disconnected and there are no cached matches, this returns
   // null, so the home page gives no indication that the football feed is offline.

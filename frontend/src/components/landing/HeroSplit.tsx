@@ -249,7 +249,7 @@ export default function HeroSplit() {
           Your Ultimate Hub for{" "}
           <span className="text-[var(--color-accent,#f2c200)]">Football</span>,{" "}
           <span className="text-[var(--color-accent,#f2c200)]">Basketball</span>,{" "}
-          <span className="text-[var(--color-accent,#f2c200)]">F1</span> &amp; More.
+          <span className="text-[var(--color-accent,#f2c200)]">F1 </span> &amp; More
         </h1>
       </div>
     </section>

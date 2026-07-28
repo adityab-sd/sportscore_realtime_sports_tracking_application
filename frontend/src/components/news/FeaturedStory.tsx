@@ -12,7 +12,7 @@ import { NewsArticle } from "./NewsCard";
 interface FeaturedStoryProps {
   article: NewsArticle;
   side?: NewsArticle[];
-  sport?: "football" | "basketball";
+  sport?: "football" | "basketball" | "baseball";
 }
 
 const fallbackGradient = "linear-gradient(135deg, var(--navy) 0%, #0066ff 100%)";
@@ -43,7 +43,7 @@ function SideImage({ src }: { src: string | null }) {
 
 function timeAgo(iso: string): string {
   // ============================================================================
-  // PLEASE review — avoid Date.now() in featured story render
+  // ADDRESSED: avoid Date.now() in featured story render
   // ----------------------------------------------------------------------------
   // Rendering "Just now/2h ago" from Date.now() can differ at hydration time and
   // will not update on its own as the page sits open. Compute the label on the

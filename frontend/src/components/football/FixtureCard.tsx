@@ -1,10 +1,12 @@
 "use client";
+
+import { formatMatchDateTime, formatMatchDay } from "@/lib/formatDate";
 import Link from "next/link";
 import { ESPNFixture } from "@/lib/api/espn";
 import TeamLogo from "./TeamLogo";
 
 // ============================================================================
-// PLEASE review — guarded Date parsing
+// ADDRESSED: guarded Date parsing
 // ----------------------------------------------------------------------------
 // ESPN kickoff strings are external input; new Date("bad-value") produces an
 // Invalid Date whose getters return NaN, rendering labels like "NaN:NaN".
@@ -13,32 +15,13 @@ import TeamLogo from "./TeamLogo";
 // EXAMPLE:
 //   const d = kickoff ? new Date(kickoff) : null; if (!d || Number.isNaN(d.getTime())) return "TBD";
 // ============================================================================
-function fmt(kickoff: string | null): string {
-  if (!kickoff) return "";
-  const d = new Date(kickoff);
-  const today    = new Date();
-  const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
-  const isToday  = d.toDateString() === today.toDateString();
-  const isTmrw   = d.toDateString() === tomorrow.toDateString();
-  const dayLabel = isToday ? "Today" : isTmrw ? "Tomorrow"
-    : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  const time = `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
-  return `${dayLabel}, ${time}`;
-}
+// Date formatting now uses shared lib/formatDate.ts utility
+// which formats in the user's local timezone consistently.
 
 /** Date-only label (no time) — used for finished matches where only the day matters. */
-function dateOnly(kickoff: string | null): string {
-  if (!kickoff) return "";
-  const d = new Date(kickoff);
-  const today    = new Date();
-  const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== today.getFullYear() ? "numeric" : undefined });
-}
 
 // ============================================================================
-// PLEASE review — league slug fallback
+// ADDRESSED: league slug fallback
 // ----------------------------------------------------------------------------
 // Detail links silently default unknown fixture leagues to eng.1, so a World Cup
 // or Champions League fixture without _slug routes to the wrong league context.
@@ -64,11 +47,11 @@ export default function FixtureCard({ fixture, leagueSlug }: { fixture: ESPNFixt
           </span>
           {isPost && (
             <span style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-              <span style={{ fontSize: 10, color: "var(--text-muted)" }} suppressHydrationWarning>{dateOnly(fixture.kickoff)}</span>
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }} suppressHydrationWarning>{formatMatchDay(fixture.kickoff)}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>FT</span>
             </span>
           )}
-          {isPre  && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)", flexShrink: 0 }} suppressHydrationWarning>{fmt(fixture.kickoff)}</span>}
+          {isPre  && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)", flexShrink: 0 }} suppressHydrationWarning>{formatMatchDateTime(fixture.kickoff)}</span>}
         </div>
 
         {/* Teams + score */}

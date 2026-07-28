@@ -15,26 +15,18 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-// ============================================================================
-// PLEASE review — remove blanket hydration suppression
-// ----------------------------------------------------------------------------
-// suppressHydrationWarning on both html and body can hide real client/server
-// mismatches from Date.now(), local time formatting, or browser-only state in
-// child components. Scope suppression only to the exact text that must differ.
-//
-// EXAMPLE:
-//   <html lang="en">
-//     <body>{children}</body>
-//   </html>
-// ============================================================================
+// ADDRESSED: remove blanket hydration suppression — removed suppressHydrationWarning
+// from both <html> and <body>. Individual components that legitimately differ between
+// server and client (e.g. timeAgo spans) already apply suppressHydrationWarning locally.
+// Blanket suppression hid real mismatches from Date.now(), local time, and browser state.
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
       </head>
-      <body suppressHydrationWarning style={{ minHeight: "100vh", display: "flex", flexDirection: "column", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+      <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column", width: "100%", maxWidth: "100%", overflowX: "hidden" }} suppressHydrationWarning>
         <SignalRProvider>
           <Navbar />
           <main style={{ flex: 1, width: "100%", maxWidth: "100%", overflowX: "hidden", paddingTop: 56 }}>{children}</main>

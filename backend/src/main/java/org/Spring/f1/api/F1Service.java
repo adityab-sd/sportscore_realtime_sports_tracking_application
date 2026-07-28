@@ -1,18 +1,13 @@
 package org.Spring.f1.api;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.Spring.api.Dto;
+import org.Spring.api.EspnApiHelper;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 // Owns all ESPN Formula 1 reference-data parsing. Race-oriented: the scoreboard
 // returns GP weekends with sessions and driver grids; the calendar drives the
@@ -25,27 +20,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // of using shared beans, and its private get() has no retry/backoff proxy. This
 // diverges from EspnApiHelper and makes transient ESPN 5xx/timeouts fail once.
 //
-// EXAMPLE:
-//   @Service
-//   class F1Service {
-//       private final EspnHttpClient http;
-//       F1Service(EspnHttpClient http, ObjectMapper mapper) { this.http = http; }
-//       List<RaceWeekend> scoreboard() throws Exception {
-//           JsonNode raw = http.get(SITE + "/scoreboard");
-//           return parseScoreboard(raw);
-//       }
-//   }
-//
 // WHY: one shared HTTP/JSON infrastructure avoids duplicate connection pools and retry gaps.
+// UPDATE:
+// Now extends EspnApiHelper (same as Basketball/Football/Baseball) instead of building its
+// own HttpClient/ObjectMapper. get()/txt()/num()/str()/first()/bestImage() below all come
+// from the base class, and get() delegates to the injected EspnHttpClient bean, so
+// @Retryable actually crosses the Spring proxy boundary and F1's ESPN calls get the same
+// retry/backoff as every other sport (previously they had none).
 // ============================================================================
 @Service
-public class F1Service {
+public class F1Service extends EspnApiHelper {
 
     private static final String SITE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
+    // Standings live on the /apis/v2/ domain, NOT /apis/site/v2/. The site/v2 standings
+    // resource returns only a stub ({"fullViewLink": {...}}) with no entries, which is why
+    // driver standings previously fell through to the race-only compute fallback (no sprint
+    // points). This base is used solely for the standings call below.
+    private static final String SITE_V2 = "https://site.api.espn.com/apis/v2/sports/racing/f1";
     private static final String CORE = "https://sports.core.api.espn.com/v2/sports/racing/leagues/f1";
-
-    private final HttpClient   http   = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-    private final ObjectMapper mapper = new ObjectMapper();
 
     // manufacturerId -> team name. Names don't change mid-season, so cache one lookup each.
     private final java.util.Map<String, String> manufacturerNameCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -55,39 +47,98 @@ public class F1Service {
     // the same way as manufacturerNameCache.
     private final java.util.Map<String, String> driverTeamCache = new java.util.concurrent.ConcurrentHashMap<>();
 
+    // athleteId -> {fullName, flagHref, team}, resolved from the season athlete profile.
+    // Used when driver standings come from the core API (entries only carry an athlete
+    // $ref, not a display name). Cached the same way as the other lookups above.
+    private final java.util.Map<String, String[]> athleteInfoCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Last correct standings served. Championship points only ever increase across a season,
+    // so we never replace this with a lower-total (stale) or empty (failed) fetch — this stops
+    // the UI flipping between the correct core number and the race-only fallback.
+    private volatile F1Dto.Standings lastGoodStandings;
+
+    // The season requested by the current call. When null we use the live/current year.
+    // ThreadLocal keeps this correct under Spring's shared singleton service across requests.
+    private final ThreadLocal<Integer> reqYear = new ThreadLocal<>();
+
+    private int year() {
+        Integer y = reqYear.get();
+        return (y != null) ? y : java.time.LocalDate.now().getYear();
+    }
+
     // scoreboard (weekends + sessions + grids)
 
-    public List<F1Dto.RaceWeekend> scoreboard() throws Exception {
-        JsonNode raw = get(SITE + "/scoreboard");
+    public List<F1Dto.RaceWeekend> scoreboard() throws Exception { return scoreboard(null); }
+
+    public List<F1Dto.RaceWeekend> scoreboard(Integer requestedYear) throws Exception {
+        reqYear.set(requestedYear);
+        try {
+        int cur = java.time.LocalDate.now().getYear();
+        // Live scoreboard for the current season; a past season has no "current" weekend,
+        // so return the whole season's events instead.
+        JsonNode events = (requestedYear != null && requestedYear != cur)
+                ? seasonEvents()
+                : get(SITE + "/scoreboard").path("events");
         List<F1Dto.RaceWeekend> out = new ArrayList<>();
-        for (JsonNode e : raw.path("events")) {
+        for (JsonNode e : events) {
             F1Dto.RaceWeekend w = parseWeekend(e);
             if (w != null) out.add(w);
         }
         return out;
+        } finally {
+            reqYear.remove();
+        }
     }
 
-    public F1Dto.RaceWeekend results(String eventId) throws Exception {
+    public F1Dto.RaceWeekend results(String eventId) throws Exception { return results(eventId, null); }
+
+    public F1Dto.RaceWeekend results(String eventId, Integer requestedYear) throws Exception {
+        reqYear.set(requestedYear);
+        try {
+        F1Dto.RaceWeekend fromEvents = null;
         for (JsonNode e : seasonEvents()) {
-            if (eventId.equals(str(e.path("id")))) return parseWeekend(e);
+            if (eventId.equals(str(e.path("id")))) { fromEvents = parseWeekend(e); break; }
         }
+        // If the season-list event already carries session grids, use it. Otherwise fetch the
+        // per-event summary, which has full competitor grids (this is why some seasons showed
+        // the calendar but no winners — the list version had empty grids).
+        if (fromEvents != null && hasGrid(fromEvents)) return fromEvents;
+
         JsonNode summary = get(SITE + "/summary?event=" + eventId);
         JsonNode header  = summary.path("header");
         if (!header.isMissingNode() && !header.path("competitions").isMissingNode()) {
-            return parseWeekend(header);
+            F1Dto.RaceWeekend fromSummary = parseWeekend(header);
+            if (fromSummary != null && hasGrid(fromSummary)) return fromSummary;
         }
-        return null;
+        return fromEvents;   // best effort (may have empty grids if ESPN has none)
+        } finally {
+            reqYear.remove();
+        }
+    }
+
+    private boolean hasGrid(F1Dto.RaceWeekend w) {
+        if (w == null) return false;
+        for (F1Dto.SessionDto s : w.sessions()) {
+            if (s.grid() != null && !s.grid().isEmpty()) return true;
+        }
+        return false;
     }
 
     // The single /scoreboard only returns the nearest weekend, so query a season-wide
     // date range to get every weekend with full circuit + session data.
     private JsonNode seasonEvents() throws Exception {
-        int year = java.time.LocalDate.now().getYear();
+        int year = year();
         String range = year + "0101-" + year + "1231";
         JsonNode raw = get(SITE + "/scoreboard?dates=" + range + "&limit=100");
         JsonNode events = raw.path("events");
         if (events.isArray() && events.size() > 0) return events;
-        return get(SITE + "/scoreboard").path("events");
+        // Only fall back to the live scoreboard for the CURRENT season. For a past season an
+        // empty range means ESPN has no site-API data for it — returning the current weekend
+        // here is what mislabelled 2026 data as 2023/2024. Return the empty result instead.
+        if (year == java.time.LocalDate.now().getYear()) {
+            return get(SITE + "/scoreboard").path("events");
+        }
+        return events;
     }
 
     private F1Dto.RaceWeekend parseWeekend(JsonNode e) {
@@ -150,7 +201,11 @@ public class F1Service {
 
     // schedule (season calendar)
 
-    public List<F1Dto.ScheduleEntry> schedule() throws Exception {
+    public List<F1Dto.ScheduleEntry> schedule() throws Exception { return schedule(null); }
+
+    public List<F1Dto.ScheduleEntry> schedule(Integer requestedYear) throws Exception {
+        reqYear.set(requestedYear);
+        try {
         List<F1Dto.ScheduleEntry> out = new ArrayList<>();
 
         for (JsonNode e : seasonEvents()) {
@@ -177,6 +232,9 @@ public class F1Service {
                     weekendState(start, end)));
         }
         return out;
+        } finally {
+            reqYear.remove();
+        }
     }
 
     private String idFromRef(String ref) {
@@ -198,13 +256,28 @@ public class F1Service {
 
     // standings (drivers + constructors)
     //
-    // Drivers: try the site standings endpoint; if empty (ESPN's F1 site standings
-    // are unreliable), compute points from race results. Constructors: the site
-    // endpoint rarely carries them, so read the core API constructor standings
-    // (points/wins/rank inline per entry; team name behind a manufacturer $ref we cache).
+    // Drivers: read the /apis/v2/ standings tree (the /apis/site/v2/ one is a stub); if empty,
+    // compute points from race results as a last resort. Constructors: the site endpoint rarely
+    // carries them, so read the core API constructor standings (points/wins/rank inline per
+    // entry; team name behind a manufacturer $ref we cache).
 
-    public F1Dto.Standings standings() throws Exception {
-        JsonNode raw = get(SITE + "/standings");
+    public F1Dto.Standings standings() throws Exception { return standings(null); }
+
+    public F1Dto.Standings standings(Integer requestedYear) throws Exception {
+        reqYear.set(requestedYear);
+        try {
+        // Past seasons: ESPN's core standings tree returns the CURRENT F1 table regardless of the
+        // season in the URL, so it can't be trusted for history. Race results ARE year-specific,
+        // so compute the historical table from this season's own results (empty when ESPN has no
+        // race data for that year — honest, never the current season mislabelled).
+        if (requestedYear != null && requestedYear != java.time.LocalDate.now().getYear()) {
+            return new F1Dto.Standings(computeDriverStandingsFromResults(), new ArrayList<>());
+        }
+
+        // /apis/site/v2/.../standings returns only a {"fullViewLink"} stub with no entries.
+        // The full standings tree (official championship points, sprints included) is on
+        // the /apis/v2/ domain — see SITE_V2.
+        JsonNode raw = get(SITE_V2 + "/standings");
         List<F1Dto.DriverStanding> drivers = new ArrayList<>();
         List<F1Dto.ConstructorStanding> constructors = new ArrayList<>();
 
@@ -244,14 +317,43 @@ public class F1Service {
             }
         }
 
+        // ESPN serves no F1 driver standings via the site API (racing site API only has
+        // scoreboard + news). Read them from the core standings tree — the SAME source the
+        // constructors use, whose points already include sprints and are correct.
         if (drivers.isEmpty()) {
-            drivers = computeDriverStandingsFromResults();
+            drivers = fetchDriverStandingsFromCore();
         }
         if (constructors.isEmpty()) {
             constructors = fetchConstructorStandingsFromCore();
         }
 
+        // Only accept a fetch that (a) has drivers and (b) doesn't regress the points total.
+        // Season points are monotonic, so a lower total means ESPN handed us a stale snapshot;
+        // an empty list means the call failed. In both cases we serve the last good result
+        // rather than the race-only compute (which under-counts by omitting sprint points) —
+        // that swap is exactly what made the standings flip between 204 and 183 on refresh.
+        if (!drivers.isEmpty()) {
+            F1Dto.Standings fresh = new F1Dto.Standings(drivers, constructors);
+            // Explicit historical seasons are static — return directly, no monotonic cache.
+            if (reqYear.get() != null) {
+                return fresh;
+            }
+            if (lastGoodStandings == null
+                    || totalDriverPoints(fresh) >= totalDriverPoints(lastGoodStandings)) {
+                lastGoodStandings = fresh;
+            }
+            return lastGoodStandings;
+        }
+        if (reqYear.get() == null && lastGoodStandings != null) {
+            return lastGoodStandings;
+        }
+
+        // Cold start / empty historical fetch: compute race + sprint points from results.
+        drivers = computeDriverStandingsFromResults();
         return new F1Dto.Standings(drivers, constructors);
+        } finally {
+            reqYear.remove();
+        }
     }
 
     // Constructor standings from the core API. /standings is a chain of $ref links:
@@ -261,7 +363,7 @@ public class F1Service {
     private List<F1Dto.ConstructorStanding> fetchConstructorStandingsFromCore() {
         List<F1Dto.ConstructorStanding> out = new ArrayList<>();
         try {
-            int year = java.time.LocalDate.now().getYear();
+            int year = year();
             JsonNode top = get(CORE + "/seasons/" + year + "/types/2/standings");
             JsonNode seasonStandings = followRef(top);
             if (seasonStandings == null) return out;
@@ -278,7 +380,7 @@ public class F1Service {
 
             for (JsonNode entry : constructorGroup.path("standings")) {
                 JsonNode stats = entry.path("records").path(0).path("stats");
-                double points = statDouble(stats, "points");
+                double points = statDouble(stats, "points", "championshipPts");
                 int    wins   = statInt(stats, "wins");
                 int    rank   = statInt(stats, "rank");
 
@@ -300,6 +402,99 @@ public class F1Service {
             System.err.println("[f1 standings] constructor fetch failed: " + ex.getMessage());
         }
         return out;
+    }
+
+    // Driver standings from the core API — the same season standings tree as
+    // fetchConstructorStandingsFromCore(), just the sibling "Drivers" group. Entries
+    // carry an athlete $ref plus inline records[0].stats (points/wins/rank). Points here
+    // are the official championship total, so sprint points ARE included (unlike the
+    // race-only computeDriverStandingsFromResults fallback). Defensive: any failure
+    // returns empty so the caller can fall through.
+    private List<F1Dto.DriverStanding> fetchDriverStandingsFromCore() {
+        List<F1Dto.DriverStanding> out = new ArrayList<>();
+        try {
+            int year = year();
+            JsonNode top = get(CORE + "/seasons/" + year + "/types/2/standings");
+            JsonNode seasonStandings = followRef(top);
+            if (seasonStandings == null) { System.out.println("[f1 standings] core: no season standings"); return out; }
+
+            // Mirror fetchConstructorStandingsFromCore: the tree has sibling groups.
+            // Pick the drivers' group by name (anything that isn't constructors), then
+            // confirm it carries athlete entries. Log the group names either way.
+            java.util.List<String> groupNames = new ArrayList<>();
+            JsonNode driverGroup = null;
+            for (JsonNode item : seasonStandings.path("items")) {
+                JsonNode g = followRef(item);
+                if (g == null) continue;
+                String name = first(txt(g.path("name")), txt(g.path("displayName")), txt(item.path("name")), "").toLowerCase();
+                groupNames.add(name.isEmpty() ? "(unnamed)" : name);
+                boolean isConstructor = name.contains("constructor") || name.contains("manufacturer") || name.contains("team");
+                JsonNode firstEntry = g.path("standings").path(0);
+                boolean hasAthlete = !firstEntry.path("athlete").isMissingNode();
+                if ((!isConstructor && g.path("standings").isArray() && !g.path("standings").isEmpty()) || (hasAthlete && driverGroup == null)) {
+                    if (hasAthlete || name.contains("driver")) driverGroup = g;
+                }
+            }
+            System.out.println("[f1 standings] core standings groups: " + groupNames
+                    + " | driverGroup found: " + (driverGroup != null));
+            if (driverGroup == null) return out;
+
+            for (JsonNode entry : driverGroup.path("standings")) {
+                JsonNode stats = entry.path("records").path(0).path("stats");
+                double points = statDouble(stats, "points", "championshipPts");
+                int    wins   = statInt(stats, "wins");
+                int    rank   = statInt(stats, "rank");
+
+                JsonNode athNode = entry.path("athlete");
+                String athId = first(txt(athNode.path("id")), idFromAthleteRef(txt(athNode.path("$ref"))), null);
+                String[] info = resolveAthleteInfo(athId);   // {name, flagHref, team}
+
+                out.add(new F1Dto.DriverStanding(
+                        rank > 0 ? rank : out.size() + 1,
+                        athId,
+                        info[0],
+                        info[1],
+                        info[2],
+                        points,
+                        wins));
+            }
+            out.sort((x, y) -> Integer.compare(x.rank(), y.rank()));
+            System.out.println("[f1 standings] core drivers parsed: " + out.size()
+                    + (out.isEmpty() ? "" : " (top: " + out.get(0).driver() + " " + out.get(0).points() + " pts)"));
+        } catch (Exception ex) {
+            System.err.println("[f1 standings] driver core fetch failed: " + ex.getMessage());
+        }
+        return out;
+    }
+
+    private String idFromAthleteRef(String ref) {
+        if (ref == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("/athletes/(\\d+)").matcher(ref);
+        return m.find() ? m.group(1) : null;
+    }
+
+    // Resolves an athlete's display name, flag, and team from their season profile
+    // (one cached HTTP call each). vehicles[0].team is the same field resolveDriverTeam()
+    // reads, so the team name matches what the scoreboard-based path produces.
+    private String[] resolveAthleteInfo(String athId) {
+        if (athId == null) return new String[]{"-", null, null};
+        String[] cached = athleteInfoCache.get(athId);
+        if (cached != null) return cached;
+        String[] info = {"-", null, null};
+        try {
+            int year = year();
+            JsonNode a = get(CORE + "/seasons/" + year + "/athletes/" + athId);
+            JsonNode vehicle = a.path("vehicles").path(0);
+            info = new String[]{
+                    first(txt(a.path("fullName")), txt(a.path("displayName")), txt(a.path("shortName")), "-"),
+                    first(txt(a.path("flag").path("href")), null),
+                    first(txt(vehicle.path("team")), txt(vehicle.path("manufacturer")), null)
+            };
+        } catch (Exception ex) {
+            System.err.println("[f1 standings] athlete info lookup failed for " + athId + ": " + ex.getMessage());
+        }
+        athleteInfoCache.put(athId, info);
+        return info;
     }
 
     private String resolveManufacturerName(String ref, String id) {
@@ -347,7 +542,7 @@ public class F1Service {
         if (cached != null) return cached;
         String team = null;
         try {
-            int year = java.time.LocalDate.now().getYear();
+            int year = year();
             JsonNode a = get(CORE + "/seasons/" + year + "/athletes/" + driverId);
             JsonNode vehicle = a.path("vehicles").path(0);
             team = first(txt(vehicle.path("team")), txt(vehicle.path("manufacturer")), null);
@@ -359,39 +554,56 @@ public class F1Service {
     }
 
     private static final int[] POINTS = {25, 18, 15, 12, 10, 8, 6, 4, 2, 1};
+    // 2026 sprint points: P1..P8 = 8..1 (P9+ score nothing).
+    private static final int[] SPRINT_POINTS = {8, 7, 6, 5, 4, 3, 2, 1};
 
     // Sum championship points across every completed Race/Sprint session this season.
     private List<F1Dto.DriverStanding> computeDriverStandingsFromResults() {
         java.util.Map<String, double[]> pts = new java.util.HashMap<>();
         java.util.Map<String, String[]> meta = new java.util.HashMap<>();
+        // Diagnostic: every distinct completed session "typeId:abbreviation" we encounter.
+        // If sprints still don't count, this log reveals the exact sprint label to match.
+        java.util.Set<String> scoredTypes = new java.util.LinkedHashSet<>();
+        java.util.Set<String> skippedTypes = new java.util.LinkedHashSet<>();
         try {
             for (JsonNode e : seasonEvents()) {
                 for (JsonNode s : e.path("competitions")) {
-                    String type = first(txt(s.path("type").path("abbreviation")), txt(s.path("type").path("text")), "");
-                    boolean isRace  = type.toLowerCase().contains("race");
-                    boolean isSprint = type.toLowerCase().contains("sprint");
+                    JsonNode typeNode = s.path("type");
+                    String abbr = first(txt(typeNode.path("abbreviation")), txt(typeNode.path("text")), "");
+                    String typeId = txt(typeNode.path("id"));
+                    String lower = abbr.toLowerCase();
+
+                    // The Grand Prix race is type id "3" (abbreviation "Race"). The Sprint is a
+                    // separate scoring session; match it by name but exclude sprint qualifying.
+                    boolean isRace   = "3".equals(typeId) || lower.equals("race");
+                    boolean isSprint = (lower.contains("sprint") || lower.equals("sr") || lower.equals("spr"))
+                            && !lower.contains("qual") && !lower.equals("sq");
                     boolean done = "post".equals(s.path("status").path("type").path("state").asText(""));
-                    if ((!isRace && !isSprint) || !done) continue;
+                    if (!done) continue;
+                    if (!isRace && !isSprint) { skippedTypes.add(typeId + ":" + abbr); continue; }
+                    scoredTypes.add(typeId + ":" + abbr + (isSprint ? " (sprint)" : " (race)"));
 
                     List<JsonNode> grid = new ArrayList<>();
                     for (JsonNode c : s.path("competitors")) grid.add(c);
                     grid.sort((a, b) -> Integer.compare(a.path("order").asInt(999), b.path("order").asInt(999)));
 
-                    for (int i = 0; i < grid.size() && i < POINTS.length; i++) {
+                    int[] table = isSprint ? SPRINT_POINTS : POINTS;
+                    for (int i = 0; i < grid.size() && i < table.length; i++) {
                         JsonNode c   = grid.get(i);
                         JsonNode ath = c.path("athlete");
                         String id = first(txt(ath.path("id")), txt(c.path("id")), null);
                         if (id == null) continue;
-                        double award = isSprint ? Math.max(0, 8 - i) : POINTS[i];
                         double[] cur = pts.computeIfAbsent(id, k -> new double[2]);
-                        cur[0] += award;
-                        if (i == 0 && isRace) cur[1] += 1;
+                        cur[0] += table[i];
+                        if (i == 0 && isRace) cur[1] += 1;   // race wins only
                         meta.putIfAbsent(id, new String[]{
                                 first(txt(ath.path("fullName")), txt(ath.path("displayName")), "-"),
                                 txt(ath.path("flag").path("href"))});
                     }
                 }
             }
+            System.out.println("[f1 standings] scored sessions: " + scoredTypes
+                    + " | skipped: " + skippedTypes);
         } catch (Exception ex) {
             System.err.println("[f1 standings] compute-from-results failed: " + ex.getMessage());
         }
@@ -482,28 +694,31 @@ public class F1Service {
     //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
     //
     // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
+    // UPDATE:
+    // page/limit are now clamped centrally in EspnApiHelper.getPaged() (see that class),
+    // so every call below is bounded without repeating the clamp in each method.
     // ============================================================================
 
     public JsonNode teams(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/teams", page, limit);
+        return getPaged(CORE + "/teams", page, limit);
     }
 
     /** Every driver in the Core API (large - paginated). */
     public JsonNode drivers(int page, int limit, boolean activeOnly) throws Exception {
-        return getRawPaged(CORE + "/athletes?active=" + activeOnly, page, limit);
+        return getPaged(CORE + "/athletes?active=" + activeOnly, page, limit);
     }
 
     public JsonNode driverProfile(String driverId) throws Exception {
-        int year = java.time.LocalDate.now().getYear();
+        int year = year();
         return get(CORE + "/seasons/" + year + "/athletes/" + driverId);
     }
 
     public JsonNode circuits(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/circuits", page, limit);
+        return getPaged(CORE + "/circuits", page, limit);
     }
 
     public JsonNode venues(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/venues", page, limit);
+        return getPaged(CORE + "/venues", page, limit);
     }
 
     public JsonNode providers() throws Exception {
@@ -517,19 +732,66 @@ public class F1Service {
     }
 
     public JsonNode seasons(int page, int limit) throws Exception {
-        return getRawPaged(CORE + "/seasons", page, limit);
+        return getPaged(CORE + "/seasons", page, limit);
     }
 
     public JsonNode athleteNews(String athleteId, int limit) throws Exception {
         return get(SITE + "/athletes/" + athleteId + "/news?limit=" + limit);
     }
 
-    private JsonNode getRawPaged(String baseUrl, int page, int limit) throws Exception {
-        String sep = baseUrl.contains("?") ? "&" : "?";
-        return get(baseUrl + sep + "page=" + page + "&limit=" + limit);
+    // ADDED — constructors (Ferrari, Red Bull, etc.) for a given season. This was
+    // the one genuinely missing season-scoped resource every other sport already has.
+    public JsonNode manufacturers(String season, int page, int limit) throws Exception {
+        return getPaged(CORE + "/seasons/" + season + "/manufacturers", page, limit);
     }
 
+    // ADDED — current season, mirroring every other sport's currentSeason().
+    public JsonNode currentSeason() throws Exception {
+        return get(CORE + "/season");
+    }
+
+    // ADDED — league-wide media. Previously only per-athlete news existed
+    // (athleteNews() above), with no general F1 media feed.
+    public JsonNode media() throws Exception {
+        return get(CORE + "/media");
+    }
+
+    // ADDED — event/session-level passthrough. In this codebase's F1 model a race
+    // weekend is an "event" and each session (practice/qualifying/race) is a
+    // "competition" within it — same id pattern already used by resolveDriverTeam()
+    // and results() above, just exposed as raw Core API passthrough like the other
+    // long-tail resources in this section.
+
+    public JsonNode eventDetail(String eventId) throws Exception {
+        return get(CORE + "/events/" + eventId);
+    }
+
+    public JsonNode competitionDetail(String eventId, String competitionId) throws Exception {
+        return get(CORE + "/events/" + eventId + "/competitions/" + competitionId);
+    }
+
+    public JsonNode broadcasts(String eventId, String competitionId) throws Exception {
+        return get(CORE + "/events/" + eventId + "/competitions/" + competitionId + "/broadcasts");
+    }
+
+    public JsonNode competitionOdds(String eventId, String competitionId, int page, int limit) throws Exception {
+        return getPaged(CORE + "/events/" + eventId + "/competitions/" + competitionId + "/odds", page, limit);
+    }
+
+    public JsonNode officials(String eventId, String competitionId) throws Exception {
+        return get(CORE + "/events/" + eventId + "/competitions/" + competitionId + "/officials");
+    }
+
+    // getPaged(baseUrl, page, limit) is inherited from EspnApiHelper - it now also
+    // clamps page/limit to sane bounds (see EspnApiHelper), so every sport benefits.
+
     // shared helpers
+
+    private double totalDriverPoints(F1Dto.Standings s) {
+        double total = 0;
+        if (s != null) for (F1Dto.DriverStanding d : s.drivers()) total += d.points();
+        return total;
+    }
 
     private JsonNode stat(JsonNode stats, String... names) {
         for (String n : names) {
@@ -552,41 +814,7 @@ public class F1Service {
                 ? 0.0 : s.path("value").asDouble();
     }
 
-    private String bestImage(JsonNode images) {
-        String best = null; int bestW = -1;
-        for (JsonNode img : images) {
-            int    w   = img.path("width").asInt(0);
-            String src = first(txt(img.path("href")), txt(img.path("url")), null);
-            if (src != null && src.startsWith("http") && w > bestW) { best = src; bestW = w; }
-        }
-        return best;
-    }
-
-    private JsonNode get(String url) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SportScore/1.0").GET().build();
-        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-        if (res.statusCode() != 200) return mapper.createObjectNode();
-        return mapper.readTree(res.body());
-    }
-
-    private String txt(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull()) ? null : n.asText();
-    }
-
-    private Integer num(JsonNode n) {
-        return (n == null || n.isMissingNode() || n.isNull() || n.asText().isBlank())
-                ? null : (int) n.asDouble();
-    }
-
-    private String str(JsonNode n)                { return str(n, ""); }
-    private String str(JsonNode n, String fallback) {
-        String s = txt(n); return s != null ? s : fallback;
-    }
-
-    private String first(String... vals) {
-        for (String v : vals) if (v != null) return v;
-        return null;
-    }
+    // get()/txt()/num()/str()/first()/bestImage() are inherited from EspnApiHelper —
+    // same signatures this class used to define locally, now backed by the shared,
+    // retryable EspnHttpClient bean instead of a private HttpClient/ObjectMapper.
 }

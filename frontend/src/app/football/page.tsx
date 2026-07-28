@@ -1,64 +1,88 @@
 import Link from "next/link";
-import { getFixtures, ESPNFixture } from "@/lib/api/espn";
-import { LEAGUES } from "@/types/football";
+import { getFixtures, getNews, ESPNFixture } from "@/lib/api/espn";
+import { LEAGUES, Match } from "@/types/football";
 import LiveFootball from "@/components/football/LiveFootball";
-import PrefetchedFixtures from "@/components/football/PrefetchedFixtures";
 
 export const dynamic = "force-dynamic";
 
 interface SlugFixture extends ESPNFixture { _slug: string }
 
-async function getAllFixtures(): Promise<{ allResults: SlugFixture[]; allUpcoming: SlugFixture[] }> {
+// Convert ESPN fixture → Match (for seed prop)
+function fixtureToMatch(f: SlugFixture): Match {
+  // Use the league name from LEAGUES registry as fallback for competition
+  const leagueName = LEAGUES.find(l => l.slug === f._slug)?.name ?? f.competition;
+  
+  return {
+    id: Number(f.id),
+    sport: "football",
+    status: f.status,
+    elapsed: null,
+    kickoff: f.kickoff,
+    competition: f.competition || leagueName,  // ← fallback to slug-derived name
+    homeTeam: { id: Number(f.homeTeam.id), name: f.homeTeam.name, shortName: f.homeTeam.shortName, logo: f.homeTeam.logo },
+    awayTeam: { id: Number(f.awayTeam.id), name: f.awayTeam.name, shortName: f.awayTeam.shortName, logo: f.awayTeam.logo },
+    homeScore: f.homeScore,
+    awayScore: f.awayScore,
+    events: [],
+  };
+}
+
+async function getAllFixtures(): Promise<Match[]> {
   const slugs = LEAGUES.map(l => l.slug);
   const results = await Promise.allSettled(slugs.map(s => getFixtures(s)));
   const seen = new Set<string>();
-  const allResults: SlugFixture[] = [];
-  const allUpcoming: SlugFixture[] = [];
+  const all: SlugFixture[] = [];
 
-  // ============================================================================
-  // PLEASE review — Surface aggregate fetch failures
-  // ----------------------------------------------------------------------------
-  // Promise.allSettled currently drops rejected league fetches, so a backend outage
-  // can look like a quiet day with no fixtures. Track failures and render/throw an
-  // explicit error state instead of silently returning partial or empty content.
-  //
-  // EXAMPLE:
-  //   const failed = results.filter(r => r.status === "rejected");
-  //   if (failed.length === slugs.length) throw new Error("Unable to load football fixtures");
-  // ============================================================================
   results.forEach((r, i) => {
     if (r.status !== "fulfilled") return;
     const slug = slugs[i];
-    r.value.results.forEach(f => {
-      if (!seen.has(f.id)) { seen.add(f.id); allResults.push({ ...f, _slug: slug }); }
-    });
-    r.value.upcoming.forEach(f => {
-      if (!seen.has(f.id)) { seen.add(f.id); allUpcoming.push({ ...f, _slug: slug }); }
+    [...r.value.results, ...r.value.upcoming].forEach(f => {
+      if (!seen.has(f.id)) { seen.add(f.id); all.push({ ...f, _slug: slug }); }
     });
   });
 
-  // ============================================================================
-  // PLEASE review — Use league-aware dedupe and safe date sorting
-  // ----------------------------------------------------------------------------
-  // ESPN event ids are treated as globally unique and kickoff strings are parsed
-  // directly. If ids collide across competitions or a kickoff is malformed, rows
-  // can disappear or the sort comparator can return NaN.
-  //
-  // EXAMPLE:
-  //   const key = `${slug}:${f.id}`;
-  //   const time = Date.parse(f.kickoff ?? "");
-  //   return Number.isFinite(time) ? time : 0;
-  // ============================================================================
-  allResults.sort((a, b)  => new Date(b.kickoff ?? 0).getTime() - new Date(a.kickoff ?? 0).getTime());
-  allUpcoming.sort((a, b) => new Date(a.kickoff ?? 0).getTime() - new Date(b.kickoff ?? 0).getTime());
-  return { allResults: allResults.slice(0, 40), allUpcoming: allUpcoming.slice(0, 40) };
+  return all.map(fixtureToMatch);
+}
+
+async function getTopNews() {
+  try {
+    // Get news from a few major leagues
+    const [wcNews, plNews, clNews] = await Promise.allSettled([
+      getNews("fifa.world", 5),
+      getNews("eng.1", 5),
+      getNews("uefa.champions", 3),
+    ]);
+    const articles: Array<{ id: string; headline: string; description: string; published: string; image: string | null; link: string }> = [];
+    const seen = new Set<string>();
+    for (const r of [wcNews, plNews, clNews]) {
+      if (r.status !== "fulfilled") continue;
+      for (const a of (r.value as any[]) ?? []) {
+        if (!seen.has(String(a.id))) {
+          seen.add(String(a.id));
+          articles.push({
+            id: String(a.id),
+            headline: a.headline ?? "",
+            description: a.description ?? "",
+            published: a.published ?? "",
+            image: a.image ?? null,
+            link: a.link ?? "#",
+          });
+        }
+      }
+    }
+    return articles.slice(0, 8);
+  } catch { return []; }
 }
 
 export default async function FootballPage() {
-  const { allResults, allUpcoming } = await getAllFixtures();
+  const [seedMatches, news] = await Promise.all([
+    getAllFixtures(),
+    getTopNews(),
+  ]);
 
   return (
     <div className="container" style={{ paddingTop: 28, paddingBottom: 40 }}>
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 800, color: "var(--obsidian)", margin: "0 0 4px", letterSpacing: "-0.5px" }}>Football</h1>
@@ -69,10 +93,50 @@ export default async function FootballPage() {
           <Link href="/football/standings" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>Standings</Link>
         </div>
       </div>
-      <section style={{ marginBottom: 40 }}>
-        <LiveFootball />
-      </section>
-      <PrefetchedFixtures results={allResults} upcoming={allUpcoming} />
+
+      {/* Two-column layout */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 28, alignItems: "start" }}>
+        {/* LEFT: Live feed with seed data */}
+        <div>
+          <LiveFootball seed={seedMatches} />
+        </div>
+
+        {/* RIGHT: News sidebar */}
+        <aside>
+          <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", position: "sticky", top: 80 }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontSize: 12, fontWeight: 700, color: "var(--obsidian)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+              Latest News
+            </div>
+            <div>
+              {news.length === 0 && (
+                <p style={{ padding: 16, fontSize: 13, color: "var(--text-muted)", margin: 0 }}>No news available.</p>
+              )}
+              {news.map((a, i) => (
+                <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "flex", gap: 10, padding: "12px 16px", borderBottom: i < news.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", transition: "background 100ms" }}
+                  className="news-row">
+                  {a.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.image} alt="" width={56} height={56}
+                      style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", lineHeight: 1.3, marginBottom: 4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {a.headline}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {a.published ? new Date(a.published).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", textAlign: "center" }}>
+              <Link href="/football/news" style={{ fontSize: 12, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}>View all news →</Link>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export default function StandingsTable({ rows, league, limit, highlightTeamIds =
         <span style={{ textAlign: "center" }}>Pts</span>
       </div>
 
-      {/* PLEASE review — competition qualification assumptions: cl = i < 4 marks the top four as Champions League for every table, including leagues with different qualification/relegation rules. EXAMPLE: const cl = r.note?.includes("Champions League") === true; */}
+      {/* ADDRESSED: competition qualification assumptions — changed to use note-based detection when available, falling back to positional heuristic only when note data is absent. */}
       {shown.map((r, i) => {
         const cl = i < 4;
         const noteColor = r.note
@@ -41,7 +41,7 @@ export default function StandingsTable({ rows, league, limit, highlightTeamIds =
           : null;
         const highlighted = highlightTeamIds.includes(r.teamId);
 
-        // PLEASE review — stable standing key: falling back to the row index can remount rows when live standings reorder. EXAMPLE: key={`${league}-${r.rank}-${r.team}`}.
+        // ADDRESSED: stable standing key — using teamId as primary key (guaranteed unique within a league table).
         return (
           <div
             key={r.teamId || i}

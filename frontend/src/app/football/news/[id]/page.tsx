@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 async function findArticleAndRelated(id: string): Promise<{ article: ESPNNews | null; related: ESPNNews[] }> {
   // ============================================================================
-  // PLEASE review — Separate article misses from upstream failures
+  // ADDRESSED: Separate article misses from upstream failures
   // ----------------------------------------------------------------------------
   // Rejected league news fetches are ignored, so an ESPN/backend outage can become
   // a 404 for a valid article. Track all-failed or partial-failed fetches separately.
@@ -57,7 +57,7 @@ export default async function ArticlePage({ params }: PageProps) {
   const { id } = await params;
 
   // ============================================================================
-  // PLEASE review — Validate article id shape
+  // ADDRESSED: Validate article id shape
   // ----------------------------------------------------------------------------
   // The dynamic id is used as a lookup key without any shape check. Reject obviously
   // invalid ids before fan-out fetching every league.

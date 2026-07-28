@@ -47,7 +47,11 @@ public class CoreBasketballAdapter implements ScoreboardAdapter {
 
     private Match toMatch(JsonNode event) {
         // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and can collapse distinct matches. EXAMPLE: String id = textOrNull(event.path("id")); if (id == null) return null;
-        int id = event.path("id").asInt();
+        // UPDATE:
+        // Validate ESPN match IDs before parsing, same fix as CoreBaseballAdapter -
+        // a missing/non-numeric id now returns null (skipped) instead of becoming 0.
+        Integer id = parseId(event.path("id"));
+        if (id == null) return null;
         JsonNode comp = event.path("competitions").path(0);
         if (comp.isMissingNode()) return null;
 
@@ -140,7 +144,7 @@ public class CoreBasketballAdapter implements ScoreboardAdapter {
                 textOrNull(t.path("logos").path(0).path("href")),
                 null);
         return new Team(
-                t.path("id").asInt(),
+                parseId(t.path("id")),
                 first(textOrNull(t.path("displayName")), textOrNull(t.path("name")), null),
                 first(textOrNull(t.path("abbreviation")), textOrNull(t.path("shortDisplayName")), null),
                 logo);
@@ -149,6 +153,18 @@ public class CoreBasketballAdapter implements ScoreboardAdapter {
     private Integer intOrNull(JsonNode n) {
         return (n.isNull() || n.isMissingNode() || n.asText().isBlank())
                 ? null : (int) n.asDouble();
+    }
+
+    // Validates an ESPN id field is present and numeric before parsing it, so a
+    // missing/non-numeric id comes through as null instead of silently becoming 0.
+    private Integer parseId(JsonNode idNode) {
+        String text = textOrNull(idNode);
+        if (text == null || !text.matches("\\d+")) return null;
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String textOrNull(JsonNode n) {

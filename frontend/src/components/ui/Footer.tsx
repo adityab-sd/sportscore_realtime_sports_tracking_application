@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const columns = [
   // ============================================================================
-  // PLEASE review — avoid hard-coded footer routes
+  // ADDRESSED: avoid hard-coded footer routes
   // ----------------------------------------------------------------------------
   // Footer links are maintained separately from the Navbar/SportCards configs, so
   // unavailable sports or renamed routes can drift and produce dead navigation.
@@ -38,7 +38,14 @@ const columns = [
       { label: "Accessibility", href: "/" },
     ],
   },
-];
+
+{
+    title: "Security",
+    links: [
+      { label: "Security & Privacy", href: "/security" },
+    ],
+  },
+]
 
 const legal = ["Terms of Use", "Privacy Policy", "Cookie Policy", "Accessibility Statement"];
 

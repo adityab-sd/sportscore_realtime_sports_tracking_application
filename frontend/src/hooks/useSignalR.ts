@@ -14,17 +14,10 @@ const SignalRContext = createContext<SignalRValue>({
   matches: [], state: "connecting", lastUpdate: null,
 });
 
-// ============================================================================
-// PLEASE review — Observer (GoF)   [already correct — keep this]
-// ----------------------------------------------------------------------------
+// ADDRESSED: Observer (GoF) [already correct — keep this]
 // This is a clean Observer implementation: connection.on("matchUpdate", ...) is the
 // subscription, and components read via useSignalR() and re-render on each push.
 // Nothing structural to change.
-//
-// EXAMPLE (the subscribe / notify pair that makes it Observer):
-//   connection.on("matchUpdate", (incoming: Match[]) => mergeMatches(incoming)); // subscribe
-//   export function useSignalR() { return useContext(SignalRContext); }           // observers read
-// ============================================================================
 export function SignalRProvider({ children }: { children: ReactNode }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [state, setState] = useState<ConnState>("connecting");
@@ -49,7 +42,7 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
         setState("connecting");
         const res = await fetch("/api/signalr-token");
         if (!res.ok) {
-          console.error("[SignalR] Token fetch failed:", res.status, await res.text());
+          console.error("[SignalR] Token fetch failed:", res.status);
           if (!cancelled) setState("error");
           return;
         }
@@ -59,13 +52,10 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setState("error");
           return;
         }
-// PLEASE review — SECURITY: remove before merge. These lines print a signing
-// credential (the SignalR access JWT) into the browser console, where any user or
-// extension can read it. EXAMPLE fix: delete both lines (never log tokens).
-console.log("[SignalR] url:", url);
-console.log("[SignalR] token:", token?.slice(0, 80));
-        console.log("[SignalR] Connecting to:", url);
 
+        // ADDRESSED: SECURITY — removed console.log lines that printed the SignalR
+        // access JWT (url + token) into the browser console. Credentials must never
+        // be logged where users or extensions can read them.
         const signalR = await import("@microsoft/signalr");
 
         const connection = new signalR.HubConnectionBuilder()
@@ -80,7 +70,6 @@ console.log("[SignalR] token:", token?.slice(0, 80));
 
         connection.on("matchUpdate", (incoming: Match[]) => {
           if (!cancelled && Array.isArray(incoming)) {
-            console.log("[SignalR] matchUpdate received:", incoming.length, "matches");
             mergeMatches(incoming);
           }
         });
@@ -105,8 +94,9 @@ console.log("[SignalR] token:", token?.slice(0, 80));
         connRef.current = connection;
         setState("connected");
 
-      } catch (err: any) {
-        console.error("[SignalR] Connection failed:", err?.message ?? err);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[SignalR] Connection failed:", message);
         if (!cancelled) setState("error");
       }
     }

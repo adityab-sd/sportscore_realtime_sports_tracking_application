@@ -11,12 +11,12 @@ export default function TopScorers({ leaders, leagueLabel }: { leaders: ESPNLead
         {leagueLabel && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{leagueLabel}</span>}
       </div>
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-        {/* PLEASE review — leaderboard row identity: using the slice index as key can remount rows when live leader ordering changes. EXAMPLE: {leaders.slice(0, 10).map(l => <div key={`${l.player}-${l.team}`} />)}. */}
-        {/* PLEASE review — sliced list border math: i < 9 leaves a bottom border on the final row when fewer than ten scorers exist. EXAMPLE: borderBottom: i < Math.min(leaders.length, 10) - 1 ? "1px solid var(--border)" : "none". */}
+        {/* ADDRESSED: leaderboard row identity — replaced index key with player-team composite key. */}
+        {/* ADDRESSED: sliced list border math — fixed border condition to use actual array length. */}
         {leaders.slice(0, 10).map((l, i) => (
           <div
-            key={i}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i < 9 ? "1px solid var(--border)" : "none", transition: "background 100ms" }}
+            key={`${l.player}-${l.team}`}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i < Math.min(leaders.length, 10) - 1 ? "1px solid var(--border)" : "none", transition: "background 100ms" }}
             onMouseEnter={e => (e.currentTarget.style.background = "var(--cloud)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
