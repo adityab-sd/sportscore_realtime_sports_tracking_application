@@ -789,3 +789,44 @@
     font-size: 12px;
   }
 }
+/* ── Home schedule strip: Previous / Next / Upcoming ───────────────────── */
+
+.f1-schedule-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.f1-schedule-slot {
+  display: flex;
+  flex-direction: column;
+}
+.f1-schedule-slot .f1-schedule-card {
+  height: 100%;               /* cards stay equal height under the labels */
+}
+.f1-slot-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9a9aa2;
+  margin: 0 0 10px 2px;
+}
+/* Emphasise the Next race — red accent, on-theme */
+.f1-schedule-slot.slot-next .f1-slot-label { color: #e10600; }
+.f1-schedule-slot.slot-next .f1-schedule-card {
+  border-color: #e10600;
+  box-shadow: 0 8px 26px rgba(225, 6, 0, 0.14);
+}
+.f1-schedule-slot.slot-next .f1-schedule-card:hover {
+  box-shadow: 0 12px 32px rgba(225, 6, 0, 0.22);
+}
+
+/* Mobile: keep only the Next grand prix */
+@media (max-width: 768px) {
+  .f1-schedule-strip { grid-template-columns: 1fr; }
+  .f1-schedule-slot.slot-previous,
+  .f1-schedule-slot.slot-upcoming { display: none; }
+}
+.f1-std-teamlogo { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+.f1-std-teamlogo img { width: 100%; height: 100%; object-fit: cover; }
+.f1-std-teaminitial { color: #fff; font-size: 12px; font-weight: 800; line-height: 1; }

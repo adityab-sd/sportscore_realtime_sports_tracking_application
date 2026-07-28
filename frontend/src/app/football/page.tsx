@@ -52,7 +52,7 @@ async function getTopNews() {
       getNews("eng.1", 5),
       getNews("uefa.champions", 3),
     ]);
-    const articles: Array<{ id: string; headline: string; description: string; published: string; image: string | null; link: string }> = [];
+    const articles: Array<{ id: string; headline: string; description: string; published: string; image: string | null }> = [];
     const seen = new Set<string>();
     for (const r of [wcNews, plNews, clNews]) {
       if (r.status !== "fulfilled") continue;
@@ -65,7 +65,6 @@ async function getTopNews() {
             description: a.description ?? "",
             published: a.published ?? "",
             image: a.image ?? null,
-            link: a.link ?? "#",
           });
         }
       }
@@ -112,9 +111,9 @@ export default async function FootballPage() {
                 <p style={{ padding: 16, fontSize: 13, color: "var(--text-muted)", margin: 0 }}>No news available.</p>
               )}
               {news.map((a, i) => (
-                <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", gap: 10, padding: "12px 16px", borderBottom: i < news.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", transition: "background 100ms" }}
-                  className="news-row">
+               <Link key={a.id} href={`/football/news/${a.id}`}
+  style={{ display: "flex", gap: 10, padding: "12px 16px", borderBottom: i < news.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", transition: "background 100ms" }}
+  className="news-row">
                   {a.image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={a.image} alt="" width={56} height={56}
@@ -128,7 +127,7 @@ export default async function FootballPage() {
                       {a.published ? new Date(a.published).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
                     </div>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
             <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", textAlign: "center" }}>

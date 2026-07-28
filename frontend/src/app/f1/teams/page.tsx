@@ -11,19 +11,26 @@ export const metadata: Metadata = {
   description: "All 2026 Formula 1 teams and constructors.",
 };
 
+// One card per row on mobile; back to the two-up grid at >=640px.
+const gridCss = `
+.f1-teams-grid { grid-template-columns: 1fr; }
+@media (min-width: 640px) { .f1-teams-grid { grid-template-columns: repeat(2, 1fr); } }
+`;
+
 export default async function F1TeamsPage() {
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: gridCss }} />
       <F1Tabs />
       <div className="f1-container" style={{ paddingTop: 32, paddingBottom: 60 }}>
         <h1 className="f1-section-title" style={{ fontSize: "clamp(24px, 4vw, 36px)", marginBottom: 8 }}>
           F1 Teams 2026
         </h1>
         <p style={{ color: "black", fontSize: 14, margin: "0 0 32px" }}>
-          All the teams competing in the 2026 FIA Formula One World Championship™️
+          All the teams competing in the 2026 FIA Formula One World Championship
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18 }}>
+        <div className="f1-teams-grid" style={{ display: "grid", gap: 18 }}>
           {TEAMS_2026.map((team) => {
             const bg = getTeamGradient(team.name);
             const drivers = team.drivers

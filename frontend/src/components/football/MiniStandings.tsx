@@ -27,7 +27,7 @@ export default function MiniStandings({
       </div>
       <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
         {relevant.map((r, i) => (
-          <div key={r.teamId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: i === relevant.length - 1 ? "none" : "1px solid var(--border)" }}>
+          <div key={`${r.teamId}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: i === relevant.length - 1 ? "none" : "1px solid var(--border)" }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", width: 20 }}>{r.rank}</span>
             <TeamLogo logo={r.logo} shortName={r.shortName} size={22} />
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", flex: 1 }}>{r.team}</span>

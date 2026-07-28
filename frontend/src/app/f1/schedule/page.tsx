@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getSchedule, getScoreboard } from "@/lib/api/f1";
+import { getSchedule, getResults } from "@/lib/api/f1";
+import type { RaceWeekend } from "@/lib/api/f1";
 import F1Tabs from "@/components/f1/F1Tabs";
 import F1YearSelect from "@/components/f1/F1YearSelect";
 import ScheduleCard from "@/components/f1/ScheduleCard";
@@ -25,10 +26,20 @@ export default async function F1SchedulePage({
   const years = seasonYears();
   const parsed = yearParam ? Number(yearParam) : years[0];
   const year = years.includes(parsed) ? parsed : years[0];
-  const yq = year === years[0] ? undefined : year;
+  const isCurrentSeason = year === years[0];
+  const yq = isCurrentSeason ? undefined : year;
 
-  const [schedule, weekends] = await Promise.all([getSchedule(yq), getScoreboard(yq)]);
-  const weekendMap = new Map(weekends.map((w) => [w.id, w]));
+  const schedule = await getSchedule(yq);
+
+  // Scoreboard only carries the latest weekend, so podiums for earlier rounds
+  // come from each round's own results endpoint (cached per-URL). Long-term,
+  // add a `top3` array to the Spring getSchedule DTO to drop these calls.
+  const completed = schedule.filter((e) => e.statusState === "post");
+  const results = await Promise.all(completed.map((e) => getResults(e.id, yq)));
+  const weekendMap = new Map<string, RaceWeekend>();
+  for (const w of results) if (w) weekendMap.set(w.id, w);
+
+  const nextId = isCurrentSeason ? schedule.find((e) => e.statusState !== "post")?.id : undefined;
 
   return (
     <>
@@ -46,13 +57,16 @@ export default async function F1SchedulePage({
           <F1YearSelect years={years} current={year} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        {/* auto-fill keeps it responsive: 3 up on desktop, 2 on tablet, 1 on mobile */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
           {schedule.map((entry, i) => (
             <ScheduleCard
               key={entry.id}
               entry={entry}
               round={i + 1}
               weekend={weekendMap.get(entry.id)}
+              isNext={entry.id === nextId}
+              year={yq}
             />
           ))}
           {schedule.length === 0 && (

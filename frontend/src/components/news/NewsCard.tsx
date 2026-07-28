@@ -15,6 +15,7 @@ export interface NewsArticle {
   image: string | null;
   category: string;
   link?: string | null;
+  sport?: "football" | "basketball" | "baseball" | "f1";
 }
 
 interface NewsCardProps {
@@ -24,7 +25,7 @@ interface NewsCardProps {
    * Determines the internal route: /football/news/[id], /basketball/news/[id], etc.
    * Defaults to "football" so existing usages don't need updating.
    */
-  sport?: "football" | "basketball" | "baseball";
+  sport?: "football" | "basketball" | "baseball" | "f1";
   /**
    * Optional extra classes merged onto the outer <Link>. Purely additive —
    * omit it and NewsCard behaves exactly as before. Used e.g. when stacking
@@ -101,7 +102,7 @@ function ImageSlot({ src, category }: { src: string | null; category: string }) 
 }
 
 export default function NewsCard({ article, sport = "football", className }: NewsCardProps) {
-  const href = `/${sport}/news/${article.id}`;
+  const href = `/${article.sport ?? sport}/news/${article.id}`;
 
   return (
     <Link href={href} className={className} style={{ textDecoration: "none" }}>

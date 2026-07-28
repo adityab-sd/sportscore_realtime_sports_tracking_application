@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStandings, getNews, getSchedule, getResults, type RaceWeekend } from "@/lib/api/f1";
@@ -21,6 +22,76 @@ function seasonYears(): number[] {
   const current = new Date().getFullYear();
   return Array.from({ length: current - 2019 }, (_, i) => current - i);
 }
+
+// Hero + layout responsiveness. Mobile-first: centered stacked hero (photo over
+// the big ghosted number, name below), body stacks, stat cards go 2-up. At
+// >=900px it becomes the side-by-side desktop layout.
+//
+// Mobile composition is driven by a `.driver-hero-stage` wrapper: the ghosted
+// number is an absolutely-positioned overlay (inset:0 + flex-center) sitting
+// BEHIND the photo, so it stays centred on the driver at every width. The stage
+// collapses to `display:contents` at >=900px, which makes the number + photo
+// behave as independent siblings of `.driver-hero-inner` again — i.e. the
+// desktop side-by-side layout below is completely unchanged.
+const heroCss = `
+.driver-hero { position: relative; overflow: hidden; color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--team-color) 55%, #ffffff) 0%, var(--team-color) 40%, color-mix(in srgb, var(--team-color) 55%, #061512) 100%); }
+.driver-hero-dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(0,0,0,0.2) 18%, transparent 19%); background-size: 10px 10px; opacity: 0.5; pointer-events: none; z-index: 1; }
+.driver-hero-bars { position: absolute; left: 50%; transform: translateX(-50%); display: none; gap: 10px; z-index: 1; pointer-events: none; }
+.driver-hero-bars span { width: 8px; background: #fff; }
+.driver-hero-bars-top { top: 0; }
+.driver-hero-bars-top span:nth-child(1) { height: 70px; }
+.driver-hero-bars-top span:nth-child(2) { height: 48px; }
+.driver-hero-bars-bottom { bottom: 0; }
+.driver-hero-bars-bottom span:nth-child(1) { height: 48px; }
+.driver-hero-bars-bottom span:nth-child(2) { height: 70px; }
+
+.driver-hero-inner { position: relative; z-index: 2; max-width: 1280px; margin: 0 auto; padding: 40px 16px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+/* Mobile: number + photo share a "stage" so the ghost number is always centred
+   on the driver, at any width. Collapses (display:contents) at >=900px so the
+   desktop layout further down is untouched. */
+.driver-hero-stage { order: 1; position: relative; display: flex; justify-content: center; width: 100%; }
+
+.driver-hero-number { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; font-family: 'Impact','Arial Black',sans-serif; font-style: italic; font-weight: 900; color: rgba(0,0,0,0.28); line-height: 1; white-space: nowrap; user-select: none; pointer-events: none; font-size: clamp(300px, 92vw, 460px); }
+
+.driver-hero-photo { position: relative; z-index: 3; width: clamp(230px, 70vw, 340px); height: clamp(320px, 92vw, 430px); overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%); mask-image: linear-gradient(to bottom, #000 68%, transparent 100%); }
+.driver-hero-photo img { width: 100%; height: 112%; object-fit: cover; object-position: top center; position: absolute; top: 0; left: 0; filter: contrast(1.05) brightness(1.02); }
+
+.driver-hero-info { order: 2; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
+.driver-hero-first { font-family: 'Caveat','Dancing Script',cursive,sans-serif; font-size: clamp(30px, 9vw, 48px); font-weight: 500; line-height: 0.9; }
+.driver-hero-last { font-size: clamp(36px, 12vw, 64px); font-weight: 900; text-transform: uppercase; letter-spacing: -1px; line-height: 0.88; margin: 0; font-family: 'Montserrat','Arial Black',sans-serif; }
+.driver-hero-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-top: 4px; }
+.driver-hero-flag { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 25px; border-radius: 50%; border: 2px solid #fff; font-size: 34px; line-height: 1; overflow: hidden; flex-shrink: 0; }
+.driver-hero-meta .sep { opacity: 0.4; }
+
+.driver-body-grid { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; }
+.driver-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 32px; }
+
+@media (min-width: 640px) {
+  .driver-stat-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (min-width: 900px) {
+  .driver-hero-inner { flex-direction: row; justify-content: space-between; align-items: stretch; height: 480px; padding: 0 32px; text-align: left; }
+  .driver-hero-bars { left: 12%; transform: none; display: flex; }
+  .driver-hero-bars-top span:nth-child(1) { height: 140px; }
+  .driver-hero-bars-top span:nth-child(2) { height: 100px; }
+  .driver-hero-bars-bottom span:nth-child(1) { height: 100px; }
+  .driver-hero-bars-bottom span:nth-child(2) { height: 140px; }
+
+  /* keep the original desktop diagonal (dark → team colour); only mobile gets the vertical fade */
+  .driver-hero { background: linear-gradient(105deg, #15151e 0%, #15151e 15%, var(--team-color) 100%); }
+
+  /* stage collapses so number + photo become independent siblings again */
+  .driver-hero-stage { display: contents; }
+
+  .driver-hero-info { order: 1; align-self: center; align-items: flex-start; padding-left: 60px; text-align: left; margin-top: 0; }
+  .driver-hero-number { display: block; top: auto; right: 130px; bottom: 70px; left: auto; transform: none; line-height: 0.6; font-size: clamp(300px, 40vw, 550px); }
+  .driver-hero-photo { order: 3; width: 380px; height: 480px; align-self: flex-end; margin: 0; -webkit-mask-image: none; mask-image: none; }
+  .driver-hero-photo img { height: 190%; }
+  .driver-body-grid { grid-template-columns: 1fr 320px; gap: 32px; }
+}
+`;
 
 export default async function DriverDetailPage({
   params,
@@ -54,6 +125,16 @@ export default async function DriverDetailPage({
   const team = findTeamByDriver(driver.name);
   const bg = getTeamGradient(driver.team);
   const teamColor = getTeamColor(driver.team);
+
+  // Team-colour → dark gradient for on-white text, so light team colours
+  // (Mercedes teal, McLaren papaya, etc.) stay readable on every device.
+  const teamTextStyle: CSSProperties = {
+    backgroundImage: `linear-gradient(120deg, ${teamColor} 0%, #15151e 130%)`,
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    color: "transparent",
+    WebkitTextFillColor: "transparent",
+  };
 
   const weekendMap = new Map(
     weekends.filter((w): w is RaceWeekend => w != null).map((w) => [w.id, w])
@@ -119,182 +200,45 @@ export default async function DriverDetailPage({
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: heroCss }} />
       <F1Tabs />
 
-      {/* ── Hero Banner (F1-style, team-colored) ───────────────────── */}
-<div
-  className="f1-hero"
-  style={{
-    position: "relative",
-    width: "100%",
-    height: "480px",
-    background: `linear-gradient(105deg, #15151e 0%, #15151e 15%, ${teamColor} 100%)`,
-    overflow: "hidden",
-    color: "#ffffff",
-  }}
->
-  {/* Halftone dot overlay */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      backgroundImage: "radial-gradient(rgba(0, 0, 0, 0.2) 18%, transparent 19%)",
-      backgroundSize: "10px 10px",
-      opacity: 0.5,
-      pointerEvents: "none",
-      zIndex: 1,
-    }}
-  />
+      {/* ── Hero Banner (F1-style, team-colored, responsive) ───────── */}
+      <div className="driver-hero" style={{ "--team-color": teamColor } as CSSProperties}>
+        <div className="driver-hero-dots" />
+        <div className="driver-hero-bars driver-hero-bars-top"><span /><span /></div>
+        <div className="driver-hero-bars driver-hero-bars-bottom"><span /><span /></div>
 
-  {/* ── F1-style vertical accent bars — top pair ── */}
-  <div style={{ position: "absolute", left: "12%", top: 0, display: "flex", gap: "10px", zIndex: 3, pointerEvents: "none" }}>
-    <div style={{ width: "8px", height: "140px", background: "#fff" }} />
-    <div style={{ width: "8px", height: "100px", background: "#fff" }} />
-  </div>
-  {/* ── F1-style vertical accent bars — bottom pair ── */}
-  <div style={{ position: "absolute", left: "12%", bottom: 0, display: "flex", gap: "10px", zIndex: 3, pointerEvents: "none" }}>
-    <div style={{ width: "8px", height: "100px", background: "#fff" }} />
-    <div style={{ width: "8px", height: "140px", background: "#fff" }} />
-  </div>
+        <div className="driver-hero-inner">
+          {/* stage: on mobile the ghost number is centred BEHIND the photo;
+              at >=900px this wrapper collapses (display:contents) so number +
+              photo become independent siblings for the desktop layout */}
+          <div className="driver-hero-stage">
+            {/* giant number (ghosted, behind) */}
+            <div className="driver-hero-number">{driver.number}</div>
 
-  <div
-    className="f1-container"
-    style={{
-      position: "relative",
-      zIndex: 2,
-      width: "100%",
-      maxWidth: "1280px",
-      margin: "0 auto",
-      padding: "0 32px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "stretch",
-      height: "100%",
-    }}
-  >
-    {/* Left: driver info */}
-    <div style={{ display: "flex", alignItems: "center", zIndex: 3, paddingLeft: "60px" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "12px" }}>
-        {/* Cursive first name */}
-        <span
-          style={{
-            fontFamily: "'Caveat', 'Dancing Script', cursive, sans-serif",
-            fontSize: "clamp(36px, 5vw, 54px)",
-            fontWeight: 500,
-            color: "#ffffff",
-            lineHeight: 0.9,
-            marginLeft: "4px",
-          }}
-        >
-          {driver.firstName}
-        </span>
+            {/* photo */}
+            <div className="driver-hero-photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={driver.image} alt={driver.name} />
+            </div>
+          </div>
 
-        {/* Bold last name */}
-        <h1
-          style={{
-            fontSize: "clamp(42px, 6vw, 72px)",
-            fontWeight: 900,
-            textTransform: "uppercase",
-            letterSpacing: "-1px",
-            lineHeight: 0.85,
-            margin: 0,
-            fontFamily: "'Montserrat', 'Arial Black', sans-serif",
-          }}
-        >
-          {driver.lastName}
-        </h1>
-
-        {/* Metadata: flag in white-outline circle, nationality, team, number */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            fontSize: "14px",
-            fontWeight: 600,
-            color: "#ffffff",
-            marginTop: "4px",
-          }}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "25px",
-              height: "25px",
-              borderRadius: "50%",
-              border: "2px solid #ffffff",
-              background: "transparent",
-              fontSize: "40px",
-              lineHeight: 1,
-              flexShrink: 0,
-              overflow: "hidden",
-            }}
-          >
-            {driver.flagEmoji}
-          </span>
-          <span>{driver.nationality}</span>
-          <span style={{ opacity: 0.4 }}>|</span>
-          <span>{driver.team}</span>
-          <span style={{ opacity: 0.4 }}>|</span>
-          <span>{driver.number}</span>
+          {/* name + meta */}
+          <div className="driver-hero-info">
+            <span className="driver-hero-first">{driver.firstName}</span>
+            <h1 className="driver-hero-last">{driver.lastName}</h1>
+            <div className="driver-hero-meta">
+              <span className="driver-hero-flag">{driver.flagEmoji}</span>
+              <span>{driver.nationality}</span>
+              <span className="sep">|</span>
+              <span>{driver.team}</span>
+              <span className="sep">|</span>
+              <span>{driver.number}</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-
-    {/* Giant number — inside container for alignment, outside photo div to avoid clip */}
-    <div
-      style={{
-        position: "absolute",
-        right: "130px",
-        bottom: "70px",
-        fontSize: "550px",
-        fontWeight: 900,
-        fontStyle: "italic",
-        color: "rgba(0,0,0,0.52)",
-        lineHeight: 0.6,
-        whiteSpace: "nowrap",
-        userSelect: "none",
-        pointerEvents: "none",
-        zIndex: 2,
-        fontFamily: "'Impact', 'Arial Black', sans-serif",
-      }}
-    >
-      {driver.number}
-    </div>
-
-    {/* Right: Driver photo */}
-    <div
-      style={{
-        position: "relative",
-        width: "380px",
-        height: "480px",
-        overflow: "hidden",
-        zIndex: 3,
-        alignSelf: "flex-end",
-        flexShrink: 0,
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={driver.image}
-        alt={driver.name}
-        style={{
-          width: "100%",
-          height: "190%",
-          objectFit: "cover",
-          objectPosition: "top center",
-          position: "absolute",
-          top: "0",
-          left: "0",
-          zIndex: 2,
-          filter: "contrast(1.05) brightness(1.02)",
-        }}
-      />
-    </div>
-  </div>
-</div>
 
       <div className="f1-container" style={{ paddingTop: 32, paddingBottom: 60 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
@@ -303,11 +247,11 @@ export default async function DriverDetailPage({
           </span>
           <F1YearSelect years={years} current={year} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, alignItems: "start" }}>
+        <div className="driver-body-grid">
           <div>
             {/* ── Season Stats ──────────────────────────────── */}
             {standing && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+              <div className="driver-stat-grid">
                 {[
                   { label: "Position", value: standing.rank },
                   { label: "Points", value: Math.round(standing.points) },
@@ -316,13 +260,13 @@ export default async function DriverDetailPage({
                 ].map((stat) => (
                   <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "16px 20px", border: "1px solid #e8e8e8" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#67676d", textTransform: "uppercase", letterSpacing: "0.5px" }}>{stat.label}</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4, color: teamColor }}>{stat.value}</div>
+                    <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4, ...teamTextStyle }}>{stat.value}</div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* ── 2026 Season Statistics (computed from session grids) ──── */}
+            {/* ── Season Statistics (computed from session grids) ──── */}
             {stats.races > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <h2 className="f1-section-title" style={{ fontSize: 18 }}>{year} Season Statistics</h2>
@@ -370,7 +314,7 @@ export default async function DriverDetailPage({
             {/* ── Race-by-Race Results ──────────────────────── */}
             {raceResults.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <h2 className="f1-section-title" style={{ fontSize: 18 }}>2026 Results</h2>
+                <h2 className="f1-section-title" style={{ fontSize: 18 }}>{year} Results</h2>
                 <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid #e8e8e8" }}>
                   <table className="f1-standings-table">
                     <thead><tr><th>Grand Prix</th><th>Position</th></tr></thead>
@@ -436,7 +380,7 @@ export default async function DriverDetailPage({
               >
                 <div style={{ padding: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#67676d", textTransform: "uppercase", marginBottom: 4 }}>Team</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, fontStyle: "italic", color: teamColor }}>{team.name}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, fontStyle: "italic", ...teamTextStyle }}>{team.name}</div>
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={team.carImage} alt={team.name} style={{ width: "100%", height: 120, objectFit: "contain", padding: "0 16px" }} />

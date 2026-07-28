@@ -81,7 +81,7 @@ export const DRIVERS_2026: DriverInfo[] = [
   { name: "Oliver Bearman", firstName: "Oliver", lastName: "Bearman", team: "Haas", teamSlug: "haas", number: 87, nationality: "British", nationalityCode: "GBR", flagEmoji: "🇬🇧", image: "/f1/drivers/haasolibea.jpeg" },
   { name: "Gabriel Bortoleto", firstName: "Gabriel", lastName: "Bortoleto", team: "Audi", teamSlug: "audi", number: 5, nationality: "Brazilian", nationalityCode: "BRA", flagEmoji: "🇧🇷", image: "/f1/drivers/audigabbor.jpeg" },
   { name: "Nico Hülkenberg", firstName: "Nico", lastName: "Hülkenberg", team: "Audi", teamSlug: "audi", number: 27, nationality: "German", nationalityCode: "GER", flagEmoji: "🇩🇪", image: "/f1/drivers/audinichul.jpeg" },
-  { name: "Sergio Perez", firstName: "Sergio", lastName: "Perez", team: "Cadillac", teamSlug: "cadillac", number: 11, nationality: "Mexican", nationalityCode: "MEX", flagEmoji: "🇲🇽", image: "/f1/drivers/cadillacserper.jpeg" },
+  { name: "Sergio Pérez", firstName: "Sergio", lastName: "Pérez", team: "Cadillac", teamSlug: "cadillac", number: 11, nationality: "Mexican", nationalityCode: "MEX", flagEmoji: "🇲🇽", image: "/f1/drivers/cadillacserper.jpeg" },
   { name: "Valtteri Bottas", firstName: "Valtteri", lastName: "Bottas", team: "Cadillac", teamSlug: "cadillac", number: 77, nationality: "Finnish", nationalityCode: "FIN", flagEmoji: "🇫🇮", image: "/f1/drivers/cadillacvalbot.jpeg" },
 ];
 
