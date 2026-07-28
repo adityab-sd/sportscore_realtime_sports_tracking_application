@@ -50,6 +50,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             if (count != null && count > MAX_REQUESTS) {
                 statsService.incrementBlockedRequests();
                 response.setStatus(429);
+                response.setHeader("Retry-After", "60");
                 response.setContentType("application/json");
                 response.getWriter().write(
                         "{\"error\":\"rate_limit_exceeded\",\"message\":\"Too many requests. Please slow down and try again shortly.\"}"
