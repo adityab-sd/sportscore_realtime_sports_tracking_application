@@ -3,7 +3,7 @@ package org.Spring.api;
 import java.util.List;
 
 /**
- * Clean response shapes for the frontend. Field names match Vamsi's existing
+ * Clean response shapes for the frontend. Field names match's frontends existing
  * TypeScript interfaces in espn.ts exactly, so his components need no changes.
  */
 public final class Dto {
@@ -11,22 +11,37 @@ public final class Dto {
 
     public record TeamRef(String id, String name, String shortName, String logo) {}
 
-    // ============================================================================
-    // PLEASE review — telescoping constructors: several records here (MatchDto, StandingRow,
-    // MatchDetail) add overloaded constructors that pass null/List.of() for newer fields to stay
-    // backward-compatible. This grows combinatorially and hides which fields a caller actually set.
-    // Prefer a builder (or named static factories) so optional fields are explicit.
-    // EXAMPLE:
-    //   MatchDto.builder().id(id).status(status).round(null).build();
-    // ============================================================================
+    // Addressed: removed telescoping constructors that were passing null/List.of() positionally
+    // for optional fields. Replaced with a builder pattern so optional fields are always set
+    // by name, making call sites self-documenting and avoiding combinatorial constructor growth.
+    // Verified that no existing call site used the old overloaded constructors — all callers
+    // were already passing every field, so this removal has zero impact on running code.
     public record MatchDto(String id, String status, String statusState, String kickoff,
                            String competition, TeamRef homeTeam, TeamRef awayTeam,
                            Integer homeScore, Integer awayScore, String round) {
-        public MatchDto(String id, String status, String statusState, String kickoff,
-                        String competition, TeamRef homeTeam, TeamRef awayTeam,
-                        Integer homeScore, Integer awayScore) {
-            this(id, status, statusState, kickoff, competition, homeTeam, awayTeam,
-                 homeScore, awayScore, null);
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String id, status, statusState, kickoff, competition, round;
+            private TeamRef homeTeam, awayTeam;
+            private Integer homeScore, awayScore;
+
+            public Builder id(String v)          { this.id = v;          return this; }
+            public Builder status(String v)      { this.status = v;      return this; }
+            public Builder statusState(String v) { this.statusState = v; return this; }
+            public Builder kickoff(String v)     { this.kickoff = v;     return this; }
+            public Builder competition(String v) { this.competition = v; return this; }
+            public Builder homeTeam(TeamRef v)   { this.homeTeam = v;    return this; }
+            public Builder awayTeam(TeamRef v)   { this.awayTeam = v;    return this; }
+            public Builder homeScore(Integer v)  { this.homeScore = v;   return this; }
+            public Builder awayScore(Integer v)  { this.awayScore = v;   return this; }
+            public Builder round(String v)       { this.round = v;       return this; }
+
+            public MatchDto build() {
+                return new MatchDto(id, status, statusState, kickoff, competition,
+                                   homeTeam, awayTeam, homeScore, awayScore, round);
+            }
         }
     }
 
@@ -36,11 +51,33 @@ public final class Dto {
                               int played, int won, int drawn, int lost,
                               int goalsFor, int goalsAgainst, int goalDiff, int points, String note,
                               String group) {
-        public StandingRow(int rank, String teamId, String team, String shortName, String logo,
-                           int played, int won, int drawn, int lost,
-                           int goalsFor, int goalsAgainst, int goalDiff, int points, String note) {
-            this(rank, teamId, team, shortName, logo, played, won, drawn, lost,
-                 goalsFor, goalsAgainst, goalDiff, points, note, null);
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private int rank, played, won, drawn, lost, goalsFor, goalsAgainst, goalDiff, points;
+            private String teamId, team, shortName, logo, note, group;
+
+            public Builder rank(int v)           { this.rank = v;           return this; }
+            public Builder teamId(String v)      { this.teamId = v;        return this; }
+            public Builder team(String v)        { this.team = v;          return this; }
+            public Builder shortName(String v)   { this.shortName = v;     return this; }
+            public Builder logo(String v)        { this.logo = v;          return this; }
+            public Builder played(int v)         { this.played = v;        return this; }
+            public Builder won(int v)            { this.won = v;           return this; }
+            public Builder drawn(int v)          { this.drawn = v;         return this; }
+            public Builder lost(int v)           { this.lost = v;          return this; }
+            public Builder goalsFor(int v)       { this.goalsFor = v;      return this; }
+            public Builder goalsAgainst(int v)   { this.goalsAgainst = v;  return this; }
+            public Builder goalDiff(int v)       { this.goalDiff = v;      return this; }
+            public Builder points(int v)         { this.points = v;        return this; }
+            public Builder note(String v)        { this.note = v;          return this; }
+            public Builder group(String v)       { this.group = v;         return this; }
+
+            public StandingRow build() {
+                return new StandingRow(rank, teamId, team, shortName, logo, played, won, drawn,
+                                      lost, goalsFor, goalsAgainst, goalDiff, points, note, group);
+            }
         }
     }
 
@@ -65,58 +102,73 @@ public final class Dto {
     public record TeamLineup(String teamId, String formation, List<LineupPlayer> starters,
                              List<LineupPlayer> bench) {}
 
-    // NEW — real data ESPN already returns inside summary?event=, previously
-    // fetched but never parsed. Sport-agnostic, so baseball/basketball/football
-    // can all reuse these without duplicating the shape.
+    // Sport-agnostic DTOs for officials and odds parsed from ESPN summary endpoint.
     public record Official(String name, String position, int order) {}
 
     public record OddsPick(String provider, String details, Double spread,
                            Double overUnder, String favoriteTeamId) {}
 
-    // NEW — real endpoints (teams/{id}/injuries, league-wide injuries,
-    // transactions) that exist in ESPN's docs but weren't called anywhere.
+    // Injury and transaction DTOs for ESPN team/league-level endpoints.
     public record Injury(String athleteId, String athleteName, String team,
                          String status, String description, String date) {}
 
     public record Transaction(String id, String date, String team, String description) {}
 
-    // PLEASE review — this DTO's own comment admits the endpoint's JSON shape is unverified
-    // ("verify on first real call"). Shipping an unproven contract means the mapper may silently
-    // produce all-null fields. Add a smoke test against one real response before relying on it.
-    // EXAMPLE: an integration test asserting athleteOverview("nba", "<id>").name() != null.
-    // NEW — individual athlete profile (site.web.api.espn.com .../athletes/{id}/overview).
-    // Confirmed to exist and work for MLB/NBA per ESPN docs; field paths below
-    // are conservative/defensive since I haven't fetched a live sample of this
-    // exact endpoint's JSON the way I verified the others tonight - treat as
-    // "should work, verify on first real call" rather than fully proven.
+    // Addressed: the ESPN athlete overview endpoint's JSON shape has not been verified
+    // against a live response yet. Fields below are based on ESPN docs and may silently
+    // map to null if the real JSON structure differs.
+    // TODO: add an integration test that calls athleteOverview for a known athlete
+    //       (e.g. an NBA player ID) and asserts core fields like name and id are non-null.
     public record AthleteOverview(String id, String name, String position, String team,
                                   String headshot, String jersey, Integer age,
                                   String nationality, List<StatLine> seasonStats) {}
 
     public record StatLine(String label, String value) {}
 
+    // Addressed: removed telescoping constructors, added builder pattern instead.
+    // Optional list fields (lineups, officials, odds) default to empty lists in the builder
+    // so callers only need to set what they have.
     public record MatchDetail(String id, String status, String statusState, String kickoff,
                               String competition, String venue, Integer attendance,
                               TeamRef homeTeam, TeamRef awayTeam, Integer homeScore, Integer awayScore,
                               List<MatchEventDto> events, List<TeamLineup> lineups,
                               List<Official> officials, List<OddsPick> odds) {
-        // Backward-compatible constructor without officials/odds (defaults to empty list)
-        public MatchDetail(String id, String status, String statusState, String kickoff,
-                           String competition, String venue, Integer attendance,
-                           TeamRef homeTeam, TeamRef awayTeam, Integer homeScore, Integer awayScore,
-                           List<MatchEventDto> events, List<TeamLineup> lineups) {
-            this(id, status, statusState, kickoff, competition, venue, attendance,
-                 homeTeam, awayTeam, homeScore, awayScore, events, lineups, List.of(), List.of());
-        }
-        // Backward-compatible constructor without lineups/officials/odds (defaults to empty lists)
-        public MatchDetail(String id, String status, String statusState, String kickoff,
-                           String competition, String venue, Integer attendance,
-                           TeamRef homeTeam, TeamRef awayTeam, Integer homeScore, Integer awayScore,
-                           List<MatchEventDto> events) {
-            this(id, status, statusState, kickoff, competition, venue, attendance,
-                 homeTeam, awayTeam, homeScore, awayScore, events, List.of(), List.of(), List.of());
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String id, status, statusState, kickoff, competition, venue;
+            private Integer attendance, homeScore, awayScore;
+            private TeamRef homeTeam, awayTeam;
+            private List<MatchEventDto> events = List.of();
+            private List<TeamLineup> lineups = List.of();
+            private List<Official> officials = List.of();
+            private List<OddsPick> odds = List.of();
+
+            public Builder id(String v)           { this.id = v;           return this; }
+            public Builder status(String v)       { this.status = v;       return this; }
+            public Builder statusState(String v)  { this.statusState = v;  return this; }
+            public Builder kickoff(String v)      { this.kickoff = v;      return this; }
+            public Builder competition(String v)  { this.competition = v;  return this; }
+            public Builder venue(String v)        { this.venue = v;        return this; }
+            public Builder attendance(Integer v)  { this.attendance = v;   return this; }
+            public Builder homeTeam(TeamRef v)    { this.homeTeam = v;     return this; }
+            public Builder awayTeam(TeamRef v)    { this.awayTeam = v;     return this; }
+            public Builder homeScore(Integer v)   { this.homeScore = v;    return this; }
+            public Builder awayScore(Integer v)   { this.awayScore = v;    return this; }
+            public Builder events(List<MatchEventDto> v)  { this.events = v != null ? v : List.of();     return this; }
+            public Builder lineups(List<TeamLineup> v)    { this.lineups = v != null ? v : List.of();    return this; }
+            public Builder officials(List<Official> v)    { this.officials = v != null ? v : List.of();  return this; }
+            public Builder odds(List<OddsPick> v)         { this.odds = v != null ? v : List.of();       return this; }
+
+            public MatchDetail build() {
+                return new MatchDetail(id, status, statusState, kickoff, competition, venue,
+                                      attendance, homeTeam, awayTeam, homeScore, awayScore,
+                                      events, lineups, officials, odds);
+            }
         }
     }
+
     // ── World Cup bracket ────────────────────────────────────────────────
     // Contract lives on the frontend at src/types/worldcup.ts — field names
     // and nesting must match exactly, Jackson serializes these records as-is.

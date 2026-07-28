@@ -1,0 +1,89 @@
+{
+  "events": [
+    {
+      "id": "401773123",
+      "date": "2026-05-10T14:00Z",
+      "competitions": [
+        {
+          "status": {
+            "displayClock": "67'",
+            "type": { "state": "in", "name": "STATUS_FIRST_HALF" }
+          },
+          "league": { "name": "English Premier League" },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "2",
+              "team": {
+                "id": "359",
+                "displayName": "Arsenal",
+                "abbreviation": "ARS",
+                "logo": "https://a.espncdn.com/arsenal.png"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "1",
+              "team": {
+                "id": "360",
+                "displayName": "Chelsea",
+                "abbreviation": "CHE",
+                "logo": "https://a.espncdn.com/chelsea.png"
+              }
+            }
+          ],
+          "details": [
+            {
+              "clock": { "displayValue": "23'" },
+              "type": { "text": "Goal" },
+              "scoringPlay": true,
+              "athletesInvolved": [ { "displayName": "Bukayo Saka" } ],
+              "team": { "id": "359" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401773999",
+      "date": "2026-05-09T12:30Z",
+      "competitions": [
+        {
+          "status": {
+            "displayClock": "0'",
+            "type": { "state": "post", "name": "STATUS_FULL_TIME" }
+          },
+          "league": { "name": "English Premier League" },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "0",
+              "team": { "id": "382", "displayName": "Liverpool", "abbreviation": "LIV", "logo": "https://a.espncdn.com/liverpool.png" }
+            },
+            {
+              "homeAway": "away",
+              "score": "3",
+              "team": { "id": "364", "displayName": "Manchester City", "abbreviation": "MCI", "logo": "https://a.espncdn.com/mancity.png" }
+            }
+          ],
+          "details": []
+        }
+      ]
+    },
+    {
+      "id": "not-a-number",
+      "date": "2026-05-11T16:00Z",
+      "competitions": [
+        {
+          "status": { "type": { "state": "pre", "name": "STATUS_SCHEDULED" } },
+          "league": { "name": "English Premier League" },
+          "competitors": [
+            { "homeAway": "home", "score": "0", "team": { "id": "1", "displayName": "Team A" } },
+            { "homeAway": "away", "score": "0", "team": { "id": "2", "displayName": "Team B" } }
+          ],
+          "details": []
+        }
+      ]
+    }
+  ]
+}

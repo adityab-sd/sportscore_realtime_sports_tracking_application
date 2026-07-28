@@ -1,0 +1,52 @@
+{
+  "events": [
+    {
+      "id": "401581",
+      "date": "2026-05-10T23:05Z",
+      "competitions": [
+        {
+          "status": {
+            "period": 5,
+            "type": { "state": "in", "name": "STATUS_IN_PROGRESS", "shortDetail": "Top 5th" }
+          },
+          "league": { "name": "Major League Baseball" },
+          "competitors": [
+            { "homeAway": "home", "score": "3", "team": { "id": "10", "displayName": "New York Yankees", "abbreviation": "NYY" } },
+            { "homeAway": "away", "score": "2", "team": { "id": "15", "displayName": "Boston Red Sox", "abbreviation": "BOS" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401999",
+      "date": "2026-05-09T22:00Z",
+      "competitions": [
+        {
+          "status": {
+            "period": 9,
+            "type": { "state": "post", "name": "STATUS_FINAL", "shortDetail": "Final" }
+          },
+          "league": { "name": "Major League Baseball" },
+          "competitors": [
+            { "homeAway": "home", "score": "5", "team": { "id": "20", "displayName": "Los Angeles Dodgers", "abbreviation": "LAD" } },
+            { "homeAway": "away", "score": "4", "team": { "id": "25", "displayName": "San Francisco Giants", "abbreviation": "SF" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bad-id",
+      "date": "2026-05-11T20:00Z",
+      "competitions": [
+        {
+          "status": { "type": { "state": "pre", "name": "STATUS_SCHEDULED" } },
+          "league": { "name": "Major League Baseball" },
+          "competitors": [
+            { "homeAway": "home", "score": "0", "team": { "id": "1", "displayName": "Team A" } },
+            { "homeAway": "away", "score": "0", "team": { "id": "2", "displayName": "Team B" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

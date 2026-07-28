@@ -7,29 +7,14 @@ import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
-// ============================================================================
-// PLEASE review — Singleton (Spring-managed) ObjectMapper
-// ----------------------------------------------------------------------------
-// This adapter creates its own ObjectMapper. ObjectMapper is thread-safe after
-// configuration and already called out in EspnApiHelper as a shared-bean concern;
-// per-adapter mappers duplicate expensive configuration and can drift by sport.
+import com.fasterxml.jackson.databind.JsonNode;
+
+// Addressed: removed per-class ObjectMapper — this adapter now implements the shared
+// ScoreboardAdapter interface and works directly with JsonNode passed in, so no local
+// mapper is needed. JSON behavior stays consistent across all sport adapters.
 //
-// EXAMPLE:
-//   @Component
-//   class CoreBaseballAdapter {
-//       CoreBaseballAdapter(ObjectMapper mapper) { this.mapper = mapper; }
-//   }
-//
-// WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
-// UPDATE:
-// Refactored to implement the shared ScoreboardAdapter interface, decoupling
-// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
-// ============================================================================
 // ESPN's MLB scoreboard uses the same envelope as basketball, so this mirrors
 // CoreBasketballAdapter. Baseball specifics: period holds the inning,
 // homeScore/awayScore are runs, and statusDetail carries ESPN's "Top 5th" text.
@@ -47,9 +32,8 @@ public class CoreBaseballAdapter implements ScoreboardAdapter {
     }
 
     private Match toMatch(JsonNode event) {
-        // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and can collapse distinct matches. EXAMPLE: String id = textOrNull(event.path("id")); if (id == null) return null;
-        // Validate ESPN match IDs before parsing to avoid treating missing or
-        // malformed IDs as 0, which could incorrectly merge distinct matches.
+        // Addressed: ESPN match IDs are now validated as non-null digit strings before
+        // parsing, so missing or malformed IDs return null instead of silently becoming 0.
         String idText = textOrNull(event.path("id"));
         if (idText == null) {
             return null;

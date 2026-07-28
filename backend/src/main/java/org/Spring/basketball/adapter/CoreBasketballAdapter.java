@@ -7,29 +7,13 @@ import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
-// ============================================================================
-// PLEASE review — Singleton (Spring-managed) ObjectMapper
-// ----------------------------------------------------------------------------
-// This adapter creates its own ObjectMapper. ObjectMapper is thread-safe after
-// configuration and already called out in EspnApiHelper as a shared-bean concern;
-// per-adapter mappers duplicate expensive configuration and can drift by sport.
+import com.fasterxml.jackson.databind.JsonNode;
+
+// Addressed: removed per-class ObjectMapper — now implements ScoreboardAdapter and works
+// directly with JsonNode passed in, keeping JSON behavior consistent across adapters.
 //
-// EXAMPLE:
-//   @Component
-//   class CoreBasketballAdapter {
-//       CoreBasketballAdapter(ObjectMapper mapper) { this.mapper = mapper; }
-//   }
-//
-// WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
-// UPDATE:
-// Refactored to implement the shared ScoreboardAdapter interface, decoupling
-// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
-// ============================================================================
 // Maps ESPN's basketball scoreboard into our Match model.
 // Live status is period-aware: HT, Q1-Q4, then OT for period 5+.
 @Component
@@ -46,10 +30,8 @@ public class CoreBasketballAdapter implements ScoreboardAdapter {
     }
 
     private Match toMatch(JsonNode event) {
-        // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and can collapse distinct matches. EXAMPLE: String id = textOrNull(event.path("id")); if (id == null) return null;
-        // UPDATE:
-        // Validate ESPN match IDs before parsing, same fix as CoreBaseballAdapter -
-        // a missing/non-numeric id now returns null (skipped) instead of becoming 0.
+        // Addressed: ESPN match IDs are validated as non-null digit strings before parsing,
+        // so missing or malformed IDs return null instead of silently becoming 0.
         Integer id = parseId(event.path("id"));
         if (id == null) return null;
         JsonNode comp = event.path("competitions").path(0);

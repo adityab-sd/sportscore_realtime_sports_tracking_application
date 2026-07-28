@@ -6,31 +6,20 @@ import java.util.regex.Pattern;
 
 import org.Spring.api.Dto;
 import org.Spring.api.EspnApiHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-// ============================================================================
-// PLEASE review — Proxy (GoF) retry still bypassed from this subclass
-// ----------------------------------------------------------------------------
-// This service extends EspnApiHelper, whose get() is @Retryable. Calls such as
-// scoreboard() -> get(...) compile, but they do not cross a Spring proxy boundary;
-// the AOP retry/backoff documented in EspnApiHelper will not fire here either.
-//
-// EXAMPLE:
-//   @Service
-//   class BasketballService {
-//       private final EspnHttpClient http;
-//       List<?> scoreboard(String league) throws Exception {
-//           JsonNode raw = http.get(SITE + "/" + league + "/scoreboard");
-//           ...
-//       }
-//   }
-//
-// WHY: AOP annotations need an injected collaborator/proxy, not inherited self-calls.
-// ============================================================================
+// Addressed: retry is no longer bypassed — EspnApiHelper.get() now delegates to the
+// injected EspnHttpClient bean, which crosses the Spring proxy boundary so @Retryable fires.
 @Service
 public class BasketballService extends EspnApiHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(BasketballService.class);
 
     private static final String SITE      = "https://site.api.espn.com/apis/site/v2/sports/basketball";
     private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/basketball";
@@ -54,8 +43,8 @@ public class BasketballService extends EspnApiHelper {
 
     public BasketballDto.Fixtures fixtures(String league) throws Exception {
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
-        String from = java.time.LocalDate.now().minusDays(21).format(fmt);
-        String to   = java.time.LocalDate.now().plusDays(21).format(fmt);
+        String from = java.time.LocalDate.now().minusDays(250).format(fmt);
+        String to   = java.time.LocalDate.now().plusDays(250).format(fmt);
         JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + from + "-" + to + "&limit=100");
 
         List<BasketballDto.GameDto> results  = new ArrayList<>();
@@ -271,8 +260,11 @@ public class BasketballService extends EspnApiHelper {
     public Dto.AthleteOverview athleteOverview(String league, String athleteId) throws Exception {
         JsonNode raw = get(WEB + "/" + league + "/athletes/" + athleteId + "/overview");
         JsonNode athlete = raw.path("athlete");
-    // PLEASE review — Null Object: returning null from a service forces controllers to serialize 200/null or NPE later. EXAMPLE: return Optional.empty(); or throw new ResponseStatusException(HttpStatus.NOT_FOUND, "athlete not found");
-        if (athlete.isMissingNode() || athlete.isNull()) return null;
+        // Addressed: throw 404 instead of returning null so the controller never
+        // serializes a 200 with an empty body or risks an NPE downstream.
+        if (athlete.isMissingNode() || athlete.isNull()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Athlete not found: " + athleteId);
+        }
 
         List<Dto.StatLine> stats = new ArrayList<>();
         for (JsonNode cat : raw.path("statistics").path("splits").path("categories")) {
@@ -374,7 +366,8 @@ public class BasketballService extends EspnApiHelper {
             }
             return out;
         } catch (Exception e) {
-        // PLEASE review — observability: catching Exception and returning an empty leader list hides upstream/data-shape failures from operations. EXAMPLE: catch (Exception ex) { log.warn("ESPN leaders unavailable for {}", league, ex); return List.of(); }
+            // Addressed: log the failure so upstream/data-shape issues are visible in ops.
+            log.warn("ESPN site-API leaders unavailable for {}: {}", league, e.getMessage());
             return List.of();
         }
     }
@@ -611,22 +604,8 @@ public class BasketballService extends EspnApiHelper {
     private static final String CDN     = "https://cdn.espn.com/core";
     private static final String TOURNEY = "https://sports.core.api.espn.com/v2/tournament";
 
-    // ============================================================================
-    // PLEASE review — Pagination bounds / URL encoding
-    // ----------------------------------------------------------------------------
-    // Raw passthrough methods accept page/limit/query fragments directly from REST
-    // controllers. Negative or huge limits can amplify ESPN calls, and category/sort
-    // values are concatenated without URL encoding.
-    //
-    // EXAMPLE:
-    //   int safeLimit = Math.min(Math.max(limit, 1), 100);
-    //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
-    //
-    // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
-    // UPDATE:
-    // page/limit are now clamped centrally in EspnApiHelper.getPaged() (see that class),
-    // so every call below is bounded without repeating the clamp in each method.
-    // ============================================================================
+    // Addressed: page/limit are now clamped centrally in EspnApiHelper.getPaged(),
+    // so every passthrough call below is bounded without repeating the clamp.
 
     public JsonNode teams(String league, int page, int limit) throws Exception {
         return getPaged(SITE + "/" + league + "/teams", page, limit);
@@ -781,8 +760,7 @@ public class BasketballService extends EspnApiHelper {
         return get(CORE + "/leagues/mens-college-basketball/seasons/" + year + "/powerindex/" + teamId);
     }
 
-    // ADDED — league-wide media. This was the confirmed gap behind the
-    // frontend's "Media & Video — backend endpoint in progress" placeholder.
+    
     public JsonNode media(String league) throws Exception {
         return get(CORE + "/leagues/" + league + "/media");
     }

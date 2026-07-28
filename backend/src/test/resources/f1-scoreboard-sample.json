@@ -1,0 +1,74 @@
+{
+  "events": [
+    {
+      "id": "600001",
+      "name": "Monaco Grand Prix",
+      "shortName": "MON",
+      "date": "2026-05-24T13:00Z",
+      "competitions": [
+        {
+          "type": { "text": "Practice 1" },
+          "date": "2026-05-22T11:30Z",
+          "status": { "type": { "state": "post", "name": "STATUS_FINAL" } },
+          "competitors": []
+        },
+        {
+          "type": { "text": "Race" },
+          "date": "2026-05-24T13:00Z",
+          "status": { "type": { "state": "in", "name": "STATUS_IN_PROGRESS", "shortDetail": "Lap 30/78" } },
+          "competitors": [
+            {
+              "order": 2,
+              "athlete": {
+                "id": "4001",
+                "fullName": "Max Verstappen",
+                "flag": { "alt": "Netherlands", "href": "https://a.espncdn.com/nl.png" }
+              }
+            },
+            {
+              "order": 1,
+              "athlete": {
+                "id": "4002",
+                "fullName": "Lando Norris",
+                "flag": { "alt": "United Kingdom", "href": "https://a.espncdn.com/uk.png" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bad-id",
+      "name": "Ghost Grand Prix",
+      "date": "2026-05-31T13:00Z",
+      "competitions": [
+        {
+          "type": { "text": "Race" },
+          "date": "2026-05-31T13:00Z",
+          "status": { "type": { "state": "pre", "name": "STATUS_SCHEDULED" } },
+          "competitors": []
+        }
+      ]
+    },
+    {
+      "id": "600003",
+      "name": "Spanish Grand Prix",
+      "shortName": "ESP",
+      "date": "2026-06-14T13:00Z",
+      "competitions": [
+        {
+          "type": { "text": "Qualifying" },
+          "date": "2026-06-13T14:00Z",
+          "status": { "type": { "state": "pre", "name": "STATUS_SCHEDULED" } },
+          "competitors": []
+        },
+        {
+          "type": { "text": "Practice 1" },
+          "date": "2026-06-12T10:00Z",
+          "status": { "type": { "state": "pre", "name": "STATUS_SCHEDULED" } },
+          "competitors": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "events": [
+    {
+      "id": "40155",
+      "date": "2026-05-10T23:30Z",
+      "competitions": [
+        {
+          "status": {
+            "period": 3,
+            "displayClock": "5:42",
+            "type": { "state": "in", "name": "STATUS_IN_PROGRESS", "shortDetail": "Q3 5:42" }
+          },
+          "league": { "name": "National Basketball Association" },
+          "competitors": [
+            { "homeAway": "home", "score": "68", "team": { "id": "13", "displayName": "Los Angeles Lakers", "abbreviation": "LAL" } },
+            { "homeAway": "away", "score": "72", "team": { "id": "9", "displayName": "Golden State Warriors", "abbreviation": "GSW" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "40199",
+      "date": "2026-05-09T21:00Z",
+      "competitions": [
+        {
+          "status": {
+            "period": 4,
+            "type": { "state": "post", "name": "STATUS_FINAL", "shortDetail": "Final" }
+          },
+          "league": { "name": "National Basketball Association" },
+          "competitors": [
+            { "homeAway": "home", "score": "110", "team": { "id": "2", "displayName": "Boston Celtics", "abbreviation": "BOS" } },
+            { "homeAway": "away", "score": "104", "team": { "id": "17", "displayName": "Miami Heat", "abbreviation": "MIA" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xyz",
+      "date": "2026-05-11T19:00Z",
+      "competitions": [
+        {
+          "status": { "type": { "state": "pre", "name": "STATUS_SCHEDULED" } },
+          "league": { "name": "National Basketball Association" },
+          "competitors": [
+            { "homeAway": "home", "score": "0", "team": { "id": "1", "displayName": "Team A" } },
+            { "homeAway": "away", "score": "0", "team": { "id": "2", "displayName": "Team B" } }
+          ]
+        }
+      ]
+    }
+  ]
+}
