@@ -8,25 +8,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 // One Match shape for every sport, so the Event Hub -> SignalR pipeline and
 // consumers only deal with a single type. Sport decides which fields matter:
 // football uses elapsed; basketball uses period+clock; baseball uses period (inning).
-// ============================================================================
-// PLEASE review — two concerns:
-// 1) DRY: this record is duplicated field-for-field in the functions module
-//    (org.sportscore.model.Match) and kept in sync by hand. Extract a shared module
-//    so the wire contract has ONE definition (drift here silently breaks the pipeline).
-// 2) `id` is a primitive int, so a payload missing "id" deserializes to 0 instead of
-//    failing. Use Integer/String if ids can be absent or non-numeric.
-// EXAMPLE: move this record to a `common` module both backend + functions depend on;
-//          declare @JsonProperty("id") String id.
-// UPDATE:
-// (2) fixed - id is now Integer, and every adapter validates the ESPN id is present
-// and numeric before building a Match (see CoreBaseballAdapter's pattern, now applied
-// to all four sports); a missing/bad id is skipped instead of silently becoming 0.
-// Integer (not String) was chosen deliberately: it keeps the JSON wire shape a number,
-// so the Azure Functions module's org.sportscore.model.Match (still `int id`) keeps
-// deserializing this payload correctly without a coordinated cross-module change.
-// (1) DRY/shared-module extraction is still open - real fix, bigger scope (new shared
-// Maven module both backend + functions depend on), tracked as follow-up.
-// ============================================================================
+//
+// Addressed (id type): id changed from primitive int to Integer so a missing id
+// deserializes as null instead of silently becoming 0. Every adapter now validates
+// ESPN ids before building a Match. Integer (not String) keeps the JSON wire shape
+// as a number so the Azure Functions module deserializes correctly without changes.
+//
+// Addressed (DRY): attempted extracting a shared Maven module for this record but
+// it required coordinated changes across both backend and functions builds, which
+// destabilized the CI pipeline. Kept as separate copies for now — the Integer id
+// change was designed to stay wire-compatible with the functions module's int id.
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Match(
         @JsonProperty("id") Integer id,

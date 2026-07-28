@@ -1,23 +1,19 @@
 package org.Spring.f1.fetcher;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.Spring.api.EspnHttpClient;
 import org.Spring.f1.adapter.CoreF1Adapter;
 import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.Spring.api.EspnHttpClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * F1 live fetcher. Unlike the team sports there is no league loop — F1 is a
@@ -25,25 +21,9 @@ import org.Spring.api.EspnHttpClient;
  * into one Match by CoreF1Adapter; only weekends with a session in progress are
  * pushed to Event Hub.
  */
-// ============================================================================
-// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
-// ----------------------------------------------------------------------------
-// F1 is the same skeleton with ONE variation: a single scoreboard endpoint instead
-// of a league loop. The base class models that by overriding just the fetch step:
-//
-// EXAMPLE:
-//   @Component
-//   class F1Fetcher extends LiveSportFetcher {
-//       protected String baseUrl() { return BASE; }
-//       @Override protected List<Match> fetchAllMatches() throws Exception {
-//           return adapt(fetchScoreboardRaw(), "Formula 1");   // no league loop
-//       }
-//       @Override protected boolean isLive(Match m) { return "LIVE".equals(m.status()); }
-//   }
-//    UPDATE:
-//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
-//
-// ============================================================================
+// Addressed: removed duplicate HTTP/JSON/fetch skeleton. Now extends AbstractEspnFetcher
+// and only overrides sport-specific methods. F1 uses a single-entry leagues map instead
+// of a league loop, with scoreboardUrl() overridden to skip the league slug.
 @Component
 public class CoreF1Fetcher extends AbstractEspnFetcher {
 

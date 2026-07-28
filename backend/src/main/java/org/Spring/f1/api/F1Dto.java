@@ -10,34 +10,42 @@ import java.util.List;
 public final class F1Dto {
     private F1Dto() {}
 
-    // ============================================================================
-    // PLEASE review — Null Object / immutability for nested DTO lists
-    // ----------------------------------------------------------------------------
-    // RaceWeekend, SessionDto, and Standings carry List components but records do
-    // not copy them. Mutable grids/sessions can be changed after construction and
-    // null lists make frontend consumers branch on every response.
-    //
-    // EXAMPLE:
-    //   public RaceWeekend {
-    //       sessions = List.copyOf(sessions == null ? List.of() : sessions);
-    //   }
-    //
-    // WHY: DTO records should be immutable value snapshots, not mutable views.
-    // ============================================================================
+    // Addressed: added compact constructors with List.copyOf on all records that carry
+    // list fields (SessionDto, RaceWeekend, Standings) so null becomes an empty list
+    // and mutable lists passed by callers cannot be mutated after construction.
 
-    /** One driver's line in a session classification. */
+    /**
+     * One driver's line in a session classification.
+     *
+     * laps / timeOrStatus / points / isRetired are only populated for completed
+     * RACE and SPRINT sessions (ESPN returns an empty statistics array for
+     * practice/qualifying). laps and points are boxed so they serialize as null
+     * — not 0 — when absent, letting the frontend render "—" instead of a
+     * misleading zero. timeOrStatus is the finish time / gap / retirement string
+     * (e.g. "1:28:20.480", "+4.120", "+1 Lap", "DNF").
+     */
     public record DriverResult(int position, String driverId, String driver,
-                               String country, String flag, boolean winner) {}
+                               String country, String flag, boolean winner,
+                               Integer laps, String timeOrStatus, Integer points,
+                               boolean isRetired) {}
 
     /** A single session within a weekend (FP1 / FP2 / FP3 / Qualifying / Race). */
     public record SessionDto(String id, String type, String label, String date,
                              String statusState, String statusDetail,
-                             List<DriverResult> grid) {}
+                             List<DriverResult> grid) {
+        public SessionDto {
+            grid = List.copyOf(grid == null ? List.of() : grid);
+        }
+    }
 
     /** A whole Grand Prix weekend with its sessions. */
     public record RaceWeekend(String id, String name, String circuit, String city, String country,
                               String startDate, String endDate, String statusState,
-                              List<SessionDto> sessions) {}
+                              List<SessionDto> sessions) {
+        public RaceWeekend {
+            sessions = List.copyOf(sessions == null ? List.of() : sessions);
+        }
+    }
 
     /** A calendar entry for the season schedule. */
     public record ScheduleEntry(String id, String name, String circuit, String city, String country,
@@ -49,5 +57,10 @@ public final class F1Dto {
     public record ConstructorStanding(int rank, String teamId, String team, String logo,
                                       double points, int wins) {}
 
-    public record Standings(List<DriverStanding> drivers, List<ConstructorStanding> constructors) {}
+    public record Standings(List<DriverStanding> drivers, List<ConstructorStanding> constructors) {
+        public Standings {
+            drivers      = List.copyOf(drivers      == null ? List.of() : drivers);
+            constructors = List.copyOf(constructors == null ? List.of() : constructors);
+        }
+    }
 }

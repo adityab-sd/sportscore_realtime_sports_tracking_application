@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.Spring.api.Dto;
 import org.Spring.api.EspnApiHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,14 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 // season schedule; standings come from the standings endpoints (site for drivers,
 // core API for constructors). Same helper conventions as the other services.
 // ============================================================================
-// PLEASE review — Singleton + Proxy (GoF) missing for ESPN I/O
-// ----------------------------------------------------------------------------
-// F1Service repeats the per-class HttpClient/ObjectMapper anti-pattern instead
-// of using shared beans, and its private get() has no retry/backoff proxy. This
-// diverges from EspnApiHelper and makes transient ESPN 5xx/timeouts fail once.
-//
-// WHY: one shared HTTP/JSON infrastructure avoids duplicate connection pools and retry gaps.
-// UPDATE:
 // Now extends EspnApiHelper (same as Basketball/Football/Baseball) instead of building its
 // own HttpClient/ObjectMapper. get()/txt()/num()/str()/first()/bestImage() below all come
 // from the base class, and get() delegates to the injected EspnHttpClient bean, so
@@ -30,6 +24,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 // ============================================================================
 @Service
 public class F1Service extends EspnApiHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(F1Service.class);
 
     private static final String SITE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
     // Standings live on the /apis/v2/ domain, NOT /apis/site/v2/. The site/v2 standings
@@ -97,20 +93,17 @@ public class F1Service extends EspnApiHelper {
         try {
         F1Dto.RaceWeekend fromEvents = null;
         for (JsonNode e : seasonEvents()) {
-            if (eventId.equals(str(e.path("id")))) { fromEvents = parseWeekend(e); break; }
+            if (eventId.equals(str(e.path("id")))) { fromEvents = parseWeekend(e, true); break; }
         }
-        // If the season-list event already carries session grids, use it. Otherwise fetch the
-        // per-event summary, which has full competitor grids (this is why some seasons showed
-        // the calendar but no winners — the list version had empty grids).
-        if (fromEvents != null && hasGrid(fromEvents)) return fromEvents;
+        if (fromEvents != null && hasGrid(fromEvents)) return fromEvents;   // back to plain hasGrid
 
         JsonNode summary = get(SITE + "/summary?event=" + eventId);
         JsonNode header  = summary.path("header");
         if (!header.isMissingNode() && !header.path("competitions").isMissingNode()) {
-            F1Dto.RaceWeekend fromSummary = parseWeekend(header);
+            F1Dto.RaceWeekend fromSummary = parseWeekend(header, true);
             if (fromSummary != null && hasGrid(fromSummary)) return fromSummary;
         }
-        return fromEvents;   // best effort (may have empty grids if ESPN has none)
+        return fromEvents;  // best effort (may have empty grids if ESPN has none)
         } finally {
             reqYear.remove();
         }
@@ -122,6 +115,37 @@ public class F1Service extends EspnApiHelper {
             if (s.grid() != null && !s.grid().isEmpty()) return true;
         }
         return false;
+    }
+    private boolean hasStats(F1Dto.RaceWeekend w) {
+        if (w == null) return false;
+        for (F1Dto.SessionDto s : w.sessions())
+            if (s.grid() != null)
+                for (F1Dto.DriverResult d : s.grid())
+                    if (d.points() != null || d.laps() != null || d.timeOrStatus() != null) return true;
+        return false;
+    }
+    // Summary per-competitor stats are usually strings under displayValue (the standings
+    // tree uses numeric value); read either, and return null when the stat is absent so the
+    // UI shows "—" rather than a misleading 0.
+    private String statText(JsonNode stats, String... names) {
+        JsonNode s = stat(stats, names);
+        String dv = txt(s.path("displayValue"));
+        if (dv != null) return dv;
+        return (s.path("value").isMissingNode() || s.path("value").isNull()) ? null : s.path("value").asText();
+    }
+
+    private Integer statBoxedInt(JsonNode stats, String... names) {
+        JsonNode s = stat(stats, names);
+        if (!s.path("value").isMissingNode() && !s.path("value").isNull())
+            return (int) s.path("value").asDouble();
+        String dv = txt(s.path("displayValue"));
+        if (dv != null) {
+            String digits = dv.replaceAll("[^0-9-]", "");
+            if (!digits.isEmpty() && !"-".equals(digits)) {
+                try { return Integer.parseInt(digits); } catch (NumberFormatException ignore) {}
+            }
+        }
+        return null;
     }
 
     // The single /scoreboard only returns the nearest weekend, so query a season-wide
@@ -140,8 +164,8 @@ public class F1Service extends EspnApiHelper {
         }
         return events;
     }
-
-    private F1Dto.RaceWeekend parseWeekend(JsonNode e) {
+    private F1Dto.RaceWeekend parseWeekend(JsonNode e) { return parseWeekend(e, false); }
+    private F1Dto.RaceWeekend parseWeekend(JsonNode e, boolean enrich) {
         String id   = str(e.path("id"));
         String name = first(txt(e.path("name")), txt(e.path("shortName")), "Grand Prix");
         JsonNode circuitNode = e.path("circuit").isMissingNode()
@@ -156,7 +180,7 @@ public class F1Service extends EspnApiHelper {
         List<F1Dto.SessionDto> sessions = new ArrayList<>();
         String startDate = null, endDate = null;
         for (JsonNode s : e.path("competitions")) {
-            F1Dto.SessionDto sd = parseSession(s);
+            F1Dto.SessionDto sd = parseSession(s, id, enrich);
             if (sd != null) {
                 sessions.add(sd);
                 if (sd.date() != null) {
@@ -171,7 +195,7 @@ public class F1Service extends EspnApiHelper {
                 startDate, endDate, state, sessions);
     }
 
-    private F1Dto.SessionDto parseSession(JsonNode s) {
+private F1Dto.SessionDto parseSession(JsonNode s, String eventId, boolean enrich) {
         JsonNode st = s.path("status").path("type");
         String type  = first(txt(s.path("type").path("abbreviation")), txt(s.path("type").path("text")), "");
         String label = first(txt(s.path("type").path("text")), txt(s.path("name")), type);
@@ -182,23 +206,39 @@ public class F1Service extends EspnApiHelper {
         for (JsonNode c : s.path("competitors")) comps.add(c);
         comps.sort((a, b) -> Integer.compare(a.path("order").asInt(999), b.path("order").asInt(999)));
 
+        // laps / points / finish-time come from the CORE API — the site payload's
+        // competitor statistics are always empty. Only fetch for a completed
+        // Race/Sprint, and only on the single-event results() call (enrich=true),
+        // never for the season-wide scoreboard/schedule.
+        String sessionId = str(s.path("id"));
+        String tl = (type == null) ? "" : type.toLowerCase();
+        boolean raceOrSprint = tl.contains("race") || tl.equals("sprint") || tl.equals("spr");
+        java.util.Map<String, StatLine> stats =
+                (enrich && raceOrSprint) ? competitionStats(eventId, sessionId, "post".equals(state))
+                                         : java.util.Map.of();
+
         List<F1Dto.DriverResult> grid = new ArrayList<>();
         int pos = 1;
         for (JsonNode c : comps) {
             JsonNode ath = c.path("athlete");
             int position = c.path("order").canConvertToInt() ? c.path("order").asInt() : pos;
+            String driverId = str(ath.has("id") ? ath.path("id") : c.path("id"));
+            StatLine sl = stats.get(driverId);
             grid.add(new F1Dto.DriverResult(
                     position,
-                    str(ath.has("id") ? ath.path("id") : c.path("id")),
+                    driverId,
                     first(txt(ath.path("fullName")), txt(ath.path("displayName")), txt(c.path("displayName")), "-"),
                     first(txt(ath.path("flag").path("alt")), txt(c.path("flag").path("alt")), null),
                     first(txt(ath.path("flag").path("href")), txt(c.path("flag").path("href")), null),
-                    c.path("winner").asBoolean(false)));
+                    c.path("winner").asBoolean(false),
+                    sl != null ? sl.laps() : null,
+                    sl != null ? sl.timeOrStatus() : null,
+                    sl != null ? sl.points() : null,
+                    sl != null && sl.retired()));
             pos++;
         }
-        return new F1Dto.SessionDto(str(s.path("id")), type, label, txt(s.path("date")), state, detail, grid);
+        return new F1Dto.SessionDto(sessionId, type, label, txt(s.path("date")), state, detail, grid);
     }
-
     // schedule (season calendar)
 
     public List<F1Dto.ScheduleEntry> schedule() throws Exception { return schedule(null); }
@@ -398,8 +438,7 @@ public class F1Service extends EspnApiHelper {
             }
             out.sort((x, y) -> Integer.compare(x.rank(), y.rank()));
         } catch (Exception ex) {
-        // PLEASE review — observability: System.err is not structured, correlated, or level-controlled by Spring logging. EXAMPLE: private static final Logger log = LoggerFactory.getLogger(F1Service.class); log.warn("F1 constructor standings unavailable", ex);
-            System.err.println("[f1 standings] constructor fetch failed: " + ex.getMessage());
+            log.warn("Constructor standings unavailable", ex);
         }
         return out;
     }
@@ -416,7 +455,7 @@ public class F1Service extends EspnApiHelper {
             int year = year();
             JsonNode top = get(CORE + "/seasons/" + year + "/types/2/standings");
             JsonNode seasonStandings = followRef(top);
-            if (seasonStandings == null) { System.out.println("[f1 standings] core: no season standings"); return out; }
+            if (seasonStandings == null) { log.info("Core standings: no season standings found"); return out; }
 
             // Mirror fetchConstructorStandingsFromCore: the tree has sibling groups.
             // Pick the drivers' group by name (anything that isn't constructors), then
@@ -435,8 +474,7 @@ public class F1Service extends EspnApiHelper {
                     if (hasAthlete || name.contains("driver")) driverGroup = g;
                 }
             }
-            System.out.println("[f1 standings] core standings groups: " + groupNames
-                    + " | driverGroup found: " + (driverGroup != null));
+            log.info("Core standings groups: {} | driverGroup found: {}", groupNames, driverGroup != null);
             if (driverGroup == null) return out;
 
             for (JsonNode entry : driverGroup.path("standings")) {
@@ -459,10 +497,10 @@ public class F1Service extends EspnApiHelper {
                         wins));
             }
             out.sort((x, y) -> Integer.compare(x.rank(), y.rank()));
-            System.out.println("[f1 standings] core drivers parsed: " + out.size()
-                    + (out.isEmpty() ? "" : " (top: " + out.get(0).driver() + " " + out.get(0).points() + " pts)"));
+            log.info("Core drivers parsed: {}{}", out.size(),
+                    out.isEmpty() ? "" : " (top: " + out.get(0).driver() + " " + out.get(0).points() + " pts)");
         } catch (Exception ex) {
-            System.err.println("[f1 standings] driver core fetch failed: " + ex.getMessage());
+            log.warn("Driver core fetch failed", ex);
         }
         return out;
     }
@@ -491,7 +529,7 @@ public class F1Service extends EspnApiHelper {
                     first(txt(vehicle.path("team")), txt(vehicle.path("manufacturer")), null)
             };
         } catch (Exception ex) {
-            System.err.println("[f1 standings] athlete info lookup failed for " + athId + ": " + ex.getMessage());
+            log.warn("Athlete info lookup failed for {}", athId, ex);
         }
         athleteInfoCache.put(athId, info);
         return info;
@@ -508,7 +546,7 @@ public class F1Service extends EspnApiHelper {
             name = first(txt(m.path("displayName")), txt(m.path("name")),
                          txt(m.path("shortDisplayName")), txt(m.path("abbreviation")), "-");
         } catch (Exception ex) {
-            System.err.println("[f1 standings] manufacturer name lookup failed: " + ex.getMessage());
+            log.warn("Manufacturer name lookup failed", ex);
         }
         manufacturerNameCache.put(key, name);
         return name;
@@ -528,7 +566,7 @@ public class F1Service extends EspnApiHelper {
         try {
             return get(ref);
         } catch (Exception ex) {
-            System.err.println("[f1 standings] $ref follow failed: " + ex.getMessage());
+            log.warn("$ref follow failed", ex);
             return null;
         }
     }
@@ -547,7 +585,7 @@ public class F1Service extends EspnApiHelper {
             JsonNode vehicle = a.path("vehicles").path(0);
             team = first(txt(vehicle.path("team")), txt(vehicle.path("manufacturer")), null);
         } catch (Exception ex) {
-            System.err.println("[f1 standings] driver team lookup failed for " + driverId + ": " + ex.getMessage());
+            log.warn("Driver team lookup failed for {}", driverId, ex);
         }
         if (team != null) driverTeamCache.put(driverId, team);
         return team;
@@ -602,14 +640,13 @@ public class F1Service extends EspnApiHelper {
                     }
                 }
             }
-            System.out.println("[f1 standings] scored sessions: " + scoredTypes
-                    + " | skipped: " + skippedTypes);
+            log.info("Scored sessions: {} | skipped: {}", scoredTypes, skippedTypes);
         } catch (Exception ex) {
-            System.err.println("[f1 standings] compute-from-results failed: " + ex.getMessage());
+            log.warn("Compute-from-results failed", ex);
         }
 
     // ============================================================================
-    // PLEASE review — N+1 HTTP calls in a loop
+    // TODO — N+1 HTTP calls in a loop
     // ----------------------------------------------------------------------------
     // Computing fallback driver standings resolves each driver's team by calling
     // resolveDriverTeam() inside the stream. On a cold cache that is one blocking
@@ -663,7 +700,96 @@ public class F1Service extends EspnApiHelper {
         }
         return out;
     }
+    // ── Per-competitor race/sprint stats from the CORE API ──────────────────
+    // Site scoreboard/summary return empty competitor statistics, so laps/points/
+    // finish-time live only in the core API behind one $ref per driver. Fetch the
+    // competitors list (1 call) + each driver's statistics ($ref), merge, and cache
+    // per competition — but only once the session is FINAL and non-empty, so an
+    // in-progress or failed fetch is never pinned.
+    private record StatLine(Integer laps, Integer points, String timeOrStatus, boolean retired) {}
 
+    private final java.util.Map<String, java.util.Map<String, StatLine>> compStatsCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+private java.util.Map<String, StatLine> competitionStats(String eventId, String sessionId, boolean isFinal) {
+        String key = year() + ":" + eventId + ":" + sessionId;
+        java.util.Map<String, StatLine> cached = compStatsCache.get(key);
+        if (cached != null) return cached;
+        try {
+            JsonNode items = get(CORE + "/events/" + eventId + "/competitions/" + sessionId + "/competitors").path("items");
+            if (!items.isArray() || items.isEmpty()) return java.util.Map.of();
+
+            record Raw(String id, int order, boolean winner, Integer laps, Integer points,
+                       double totalMs, String totalDisplay) {}
+            java.util.List<Raw> raws = new java.util.ArrayList<>();
+            for (JsonNode c : items) {
+                String ref = txt(c.path("statistics").path("$ref"));
+                Integer laps = null, points = null; double totalMs = 0; String totalDisplay = null;
+                if (ref != null) {
+                    JsonNode st = firstStats(get(ref.replaceFirst("^http://", "https://")));
+                    laps   = statNum(st, "lapsCompleted");
+                    points = statNum(st, "championshipPts", "points");
+                    JsonNode tt = stat(st, "totalTime");
+                    totalMs = tt.path("value").asDouble(0);
+                    totalDisplay = txt(tt.path("displayValue"));
+                }
+                raws.add(new Raw(str(c.path("id")), c.path("order").asInt(0),
+                                 c.path("winner").asBoolean(false), laps, points, totalMs, totalDisplay));
+            }
+
+            Raw win = raws.stream().filter(r -> r.winner() || r.order() == 1).findFirst().orElse(null);
+            double winMs    = (win != null) ? win.totalMs() : 0;
+            int    winnerLaps = (win != null && win.laps() != null) ? win.laps() : 0;
+
+            java.util.Map<String, StatLine> out = new java.util.HashMap<>();
+            for (Raw r : raws) {
+                int laps = (r.laps() != null) ? r.laps() : 0;
+                boolean leadLap = winnerLaps > 0 && laps == winnerLaps;
+                // F1 "90% rule": completing >=90% of the leader's laps = classified
+                // finisher (gap or "+N lap"), even if lapped. Below that = retired (DNF).
+                boolean classified = winnerLaps > 0 && laps >= Math.ceil(0.9 * winnerLaps);
+
+                String t; boolean retired = false;
+                if (r.winner() || r.order() == 1) {
+                    t = r.totalDisplay();                          // winner: total race time
+                } else if (!classified) {
+                    t = "DNF"; retired = true;                     // retired / not classified
+                } else if (!leadLap) {
+                    int d = winnerLaps - laps;                     // lapped but classified
+                    t = "+" + d + " lap" + (d > 1 ? "s" : "");
+                } else if (r.totalMs() > 0 && winMs > 0) {
+                    t = "+" + fmtGap(r.totalMs() - winMs);         // same-lap gap
+                } else {
+                    t = null;
+                }
+                out.put(r.id(), new StatLine(r.laps(), r.points(), t, retired));
+            }
+            if (isFinal && !out.isEmpty()) compStatsCache.put(key, out);
+            return out;
+        } catch (Exception ex) {
+            return java.util.Map.of();
+        }
+    }
+
+    private JsonNode firstStats(JsonNode root) {
+        JsonNode cats = root.path("splits").path("categories");
+        for (JsonNode cat : cats)
+            if ("general".equalsIgnoreCase(txt(cat.path("name")))) return cat.path("stats");
+        return cats.path(0).path("stats");
+    }
+
+    private Integer statNum(JsonNode stats, String... names) {   // nullable, unlike statInt
+        JsonNode s = stat(stats, names);
+        if (s.path("value").isMissingNode() || s.path("value").isNull()) return null;
+        return (int) Math.round(s.path("value").asDouble());
+    }
+
+    private String fmtGap(double ms) {
+        double sec = ms / 1000.0;
+        if (sec < 60) return String.format("%.3f", sec);
+        long m = (long) (sec / 60);
+        return m + ":" + String.format("%06.3f", sec - m * 60);
+    }
     private String newsCategory(JsonNode cats) {
         String team = null, other = null;
         for (JsonNode c : cats) {
@@ -681,23 +807,6 @@ public class F1Service extends EspnApiHelper {
     // reference-data passthrough (raw ESPN JSON - no bespoke DTO yet; these are
     // long-tail resources whose exact shape hasn't been verified against a live
     // sample, unlike scoreboard/standings/news above)
-
-    // ============================================================================
-    // PLEASE review — Pagination bounds / URL encoding
-    // ----------------------------------------------------------------------------
-    // Raw passthrough methods accept page/limit/date fragments directly from REST
-    // controllers. Negative or huge limits can amplify ESPN calls, and dates are
-    // concatenated without URL encoding.
-    //
-    // EXAMPLE:
-    //   int safeLimit = Math.min(Math.max(limit, 1), 100);
-    //   URI uri = UriComponentsBuilder.fromHttpUrl(base).queryParam("limit", safeLimit).build().toUri();
-    //
-    // WHY: Adapters to upstream APIs should enforce bounds before making blocking I/O.
-    // UPDATE:
-    // page/limit are now clamped centrally in EspnApiHelper.getPaged() (see that class),
-    // so every call below is bounded without repeating the clamp in each method.
-    // ============================================================================
 
     public JsonNode teams(int page, int limit) throws Exception {
         return getPaged(CORE + "/teams", page, limit);
@@ -739,8 +848,7 @@ public class F1Service extends EspnApiHelper {
         return get(SITE + "/athletes/" + athleteId + "/news?limit=" + limit);
     }
 
-    // ADDED — constructors (Ferrari, Red Bull, etc.) for a given season. This was
-    // the one genuinely missing season-scoped resource every other sport already has.
+    // ADDED — constructors (Ferrari, Red Bull, etc.) for a given season. 
     public JsonNode manufacturers(String season, int page, int limit) throws Exception {
         return getPaged(CORE + "/seasons/" + season + "/manufacturers", page, limit);
     }

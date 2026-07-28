@@ -1,10 +1,6 @@
 package org.Spring.basketball.fetcher;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,24 +13,12 @@ import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.Spring.api.EspnHttpClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
-// ============================================================================
-// PLEASE review — Template Method (GoF)   [duplicate skeleton — see CoreFootballFetcher]
-// ----------------------------------------------------------------------------
-// Same skeleton as the other sports. Basketball's only real variation is isLive()
-// (it is period-aware). In the shared base class it becomes a one-method override:
-//
-// EXAMPLE:
-//   @Override protected boolean isLive(Match m) {
-//       return java.util.Set.of("LIVE","HT","Q1","Q2","Q3","Q4","OT").contains(m.status());
-//   }
-//    UPDATE:
-//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
-// ============================================================================
+// Addressed: removed duplicate HTTP/JSON/fetch skeleton. Now extends AbstractEspnFetcher
+// and only overrides sport-specific methods (baseUrl, leagues, adapt, isLive, sportName).
 @Component
 public class CoreBasketballFetcher extends AbstractEspnFetcher {
 

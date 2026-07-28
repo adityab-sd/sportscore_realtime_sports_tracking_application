@@ -1,26 +1,29 @@
 package org.Spring.Config;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.time.Duration;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
-    private static final int MAX_REQUESTS = 60;
+    // 300 requests per minute per IP. A single page load fires several API calls
+    // (scoreboard + standings + news + ...), so 60/min tripped during normal
+    // browsing. 300 leaves room for real users while still stopping abusive floods.
+    private static final int MAX_REQUESTS = 300;
     private static final Duration WINDOW = Duration.ofSeconds(60);
 
     private final StringRedisTemplate redisTemplate;
