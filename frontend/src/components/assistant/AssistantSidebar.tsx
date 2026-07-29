@@ -103,8 +103,8 @@ export default function AssistantSidebar({ open, onClose }: Props) {
               <Bot size={16} color="#fff" />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--obsidian)" }}>Knowledge Assistant</div>
-              <div style={{ fontSize: 11, color: "var(--indigo-text)" }}>Powered by Azure OpenAI</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--obsidian)" }}>Benchwarmer</div>
+              <div style={{ fontSize: 11, color: "var(--indigo-text)" }}>Warming the bench, watching every game.</div>
             </div>
           </div>
           {/* PLEASE review — icon-only close button needs an accessible name. EXAMPLE: <button type="button" aria-label="Close assistant" onClick={onClose}>...</button>. */}
@@ -136,7 +136,7 @@ export default function AssistantSidebar({ open, onClose }: Props) {
               }}>
                 {msg.content}
               </div>
-              {msg.citations?.map((c, i) => (
+              {msg.role === "assistant" && msg.citations?.map((c, i) => (
                 <div key={i} style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ fontSize: 10 }}>📎</span> {c}
                 </div>

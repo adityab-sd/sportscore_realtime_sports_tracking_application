@@ -488,7 +488,7 @@ export default function TeamPageClient({
                   <section>
                     <div className="section-label"><span style={{ width:7, height:7, borderRadius:"50%", background:"#ff4d4d" }} />Live Now</div>
                     <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                      {liveM.map(m => <MatchCard key={m.id} match={m} />)}
+                      {liveM.map(m => <MatchCard key={m.id} match={m} league={league} />)}
                     </div>
                   </section>
                 )}

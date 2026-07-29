@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExpandableCard } from "@/components/football/ExpandableCard";
+import { ExpandableCard } from "@/components/ui/ExpandableCard";
 import type { ESPNPlayer } from "@/lib/api/espn";
 
 const POSITION_GROUPS = [

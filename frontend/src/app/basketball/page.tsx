@@ -30,7 +30,6 @@ async function getAllGames(): Promise<BBGame[]> {
       if (!byId.has(g.id)) byId.set(g.id, { ...g, _slug: slugs[i] });
     }
   });
-  // In getAllGames(), before returning:
   return Array.from(byId.values()).map(g => {
     if (!g.competition || g.competition === "Basketball") {
       const league = LEAGUES.find(l => l.slug === g._slug);
@@ -67,9 +66,9 @@ export default async function BasketballPage() {
           <Link href="/basketball/standings" style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", background: "var(--navy-light)", padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>Standings</Link>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 28, alignItems: "start" }} className="page-split">
-        <div><LiveBasketball seed={seedGames} /></div>
-        <aside>
+      <div className="sport-layout">
+        <div className="sport-layout__main"><LiveBasketball seed={seedGames} /></div>
+        <aside className="sport-layout__sidebar">
           <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", position: "sticky", top: 80 }}>
             <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontSize: 12, fontWeight: 700, color: "var(--obsidian)", textTransform: "uppercase", letterSpacing: "0.6px" }}>Latest News</div>
             <div>
@@ -93,6 +92,13 @@ export default async function BasketballPage() {
           </div>
         </aside>
       </div>
+      <style>{`
+        .sport-layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
+        .sport-layout__main { min-width: 0; }
+        .sport-layout__sidebar { min-width: 0; }
+        @media (max-width: 960px) { .sport-layout { grid-template-columns: 1fr 260px; gap: 20px; } }
+        @media (max-width: 720px) { .sport-layout { grid-template-columns: 1fr; gap: 24px; } .sport-layout__sidebar > div { position: static !important; } }
+      `}</style>
     </div>
   );
 }

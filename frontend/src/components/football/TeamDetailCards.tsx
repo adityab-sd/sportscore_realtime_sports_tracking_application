@@ -24,7 +24,7 @@ function parseSchedule(data: RawJSON): ParsedScheduleGame[] {
   const events = data?.events ?? data?.schedule ?? [];
   if (!Array.isArray(events)) return [];
 
-  return events.map((e: RawJSON) => {
+  return events.map((e: any) => {
     const comp = e.competitions?.[0] ?? {};
     const competitors = comp.competitors ?? [];
     const team0 = competitors[0];
@@ -112,7 +112,7 @@ export function TeamRecordCard({ data }: { data: RawJSON }) {
   return (
     <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 0 }}>
-        {items.map((item: RawJSON, i: number) => (
+        {items.map((item: any, i: number) => (
           <div key={item.type ?? i} style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)" }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>
               {item.description ?? item.displayName ?? item.name ?? item.type ?? "Record"}
@@ -122,10 +122,10 @@ export function TeamRecordCard({ data }: { data: RawJSON }) {
             </div>
             {item.stats && Array.isArray(item.stats) && (
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                {(item.stats as RawJSON[])
-                  .filter((s: RawJSON) => s.displayName && s.displayValue)
+                {(item.stats as any[])
+                  .filter((s: any) => s.displayName && s.displayValue)
                   .slice(0, 3)
-                  .map((s: RawJSON) => `${s.displayName}: ${s.displayValue}`)
+                  .map((s: any) => `${s.displayName}: ${s.displayValue}`)
                   .join(" · ")}
               </div>
             )}
@@ -182,7 +182,7 @@ export function DepthChart({ data }: { data: RawJSON }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {items.map((pos: RawJSON, pi: number) => {
+      {items.map((pos: any, pi: number) => {
         const posName = pos.position?.displayName ?? pos.position?.name ?? pos.name ?? `Position ${pi + 1}`;
         const athletes = pos.athletes ?? [];
 
@@ -192,7 +192,7 @@ export function DepthChart({ data }: { data: RawJSON }) {
               {posName}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {Array.isArray(athletes) && athletes.map((a: RawJSON, ai: number) => (
+              {Array.isArray(athletes) && athletes.map((a: any, ai: number) => (
                 <div key={ai} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: ai === 0 ? "#EA580C" : "var(--text-muted)", minWidth: 14 }}>
                     {ai + 1}

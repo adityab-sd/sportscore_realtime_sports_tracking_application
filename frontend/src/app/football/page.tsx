@@ -9,7 +9,6 @@ interface SlugFixture extends ESPNFixture { _slug: string }
 
 // Convert ESPN fixture → Match (for seed prop)
 function fixtureToMatch(f: SlugFixture): Match {
-  // Use the league name from LEAGUES registry as fallback for competition
   const leagueName = LEAGUES.find(l => l.slug === f._slug)?.name ?? f.competition;
   
   return {
@@ -18,7 +17,7 @@ function fixtureToMatch(f: SlugFixture): Match {
     status: f.status,
     elapsed: null,
     kickoff: f.kickoff,
-    competition: f.competition || leagueName,  // ← fallback to slug-derived name
+    competition: f.competition || leagueName,
     homeTeam: { id: Number(f.homeTeam.id), name: f.homeTeam.name, shortName: f.homeTeam.shortName, logo: f.homeTeam.logo },
     awayTeam: { id: Number(f.awayTeam.id), name: f.awayTeam.name, shortName: f.awayTeam.shortName, logo: f.awayTeam.logo },
     homeScore: f.homeScore,
@@ -46,11 +45,12 @@ async function getAllFixtures(): Promise<Match[]> {
 
 async function getTopNews() {
   try {
-    // Get news from a few major leagues
     const [wcNews, plNews, clNews] = await Promise.allSettled([
-      getNews("fifa.world", 5),
-      getNews("eng.1", 5),
+      getNews("fifa.world", 1),
+      getNews("eng.1", 2),
+      getNews("spa.1", 3),
       getNews("uefa.champions", 3),
+      getNews("bra.1", 2),
     ]);
     const articles: Array<{ id: string; headline: string; description: string; published: string; image: string | null }> = [];
     const seen = new Set<string>();
@@ -93,15 +93,13 @@ export default async function FootballPage() {
         </div>
       </div>
 
-      {/* Two-column layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 28, alignItems: "start" }}>
-        {/* LEFT: Live feed with seed data */}
-        <div>
+      {/* Two-column layout — stacks on mobile */}
+      <div className="football-layout">
+        <div className="football-layout__main">
           <LiveFootball seed={seedMatches} />
         </div>
 
-        {/* RIGHT: News sidebar */}
-        <aside>
+        <aside className="football-layout__sidebar">
           <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", position: "sticky", top: 80 }}>
             <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontSize: 12, fontWeight: 700, color: "var(--obsidian)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
               Latest News
@@ -111,9 +109,9 @@ export default async function FootballPage() {
                 <p style={{ padding: 16, fontSize: 13, color: "var(--text-muted)", margin: 0 }}>No news available.</p>
               )}
               {news.map((a, i) => (
-               <Link key={a.id} href={`/football/news/${a.id}`}
-  style={{ display: "flex", gap: 10, padding: "12px 16px", borderBottom: i < news.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", transition: "background 100ms" }}
-  className="news-row">
+                <Link key={a.id} href={`/football/news/${a.id}`}
+                  style={{ display: "flex", gap: 10, padding: "12px 16px", borderBottom: i < news.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", transition: "background 100ms" }}
+                  className="news-row">
                   {a.image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={a.image} alt="" width={56} height={56}
@@ -136,6 +134,25 @@ export default async function FootballPage() {
           </div>
         </aside>
       </div>
+
+      {/* Responsive grid */}
+      <style>{`
+        .football-layout {
+          display: grid;
+          grid-template-columns: 1fr 300px;
+          gap: 28px;
+          align-items: start;
+        }
+        .football-layout__main { min-width: 0; }
+        .football-layout__sidebar { min-width: 0; }
+        @media (max-width: 960px) {
+          .football-layout { grid-template-columns: 1fr 260px; gap: 20px; }
+        }
+        @media (max-width: 720px) {
+          .football-layout { grid-template-columns: 1fr; gap: 24px; }
+          .football-layout__sidebar > div { position: static !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -50,7 +50,7 @@ export default function LeagueBanner({ name, slug: passedSlug, showViewLink = tr
         padding: "10px 14px",
         borderRadius: 10,
         marginBottom: 12,
-        background: bgImage,
+        backgroundImage: bgImage,
         backgroundSize: "cover",
         backgroundPosition: "center",
         boxShadow: `inset 0 0 0 1px ${darken(accent, 0.7)}33`,

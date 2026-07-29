@@ -26,8 +26,8 @@ const BASKETBALL_BG: Record<string, string> = {
 };
 
 const BASEBALL_BG: Record<string, string> = {
-  "mlb":              "/carousel/baseball/baseball-1.jpg",
-  "college-baseball": "/carousel/baseball/baseball-3.jpg",
+  "mlb":              "/cards/mlb.jpeg",
+  "college-baseball": "/cards/ncaa.jpeg",
 };
 
 /* ------------------------------------------------------------------ */
@@ -37,11 +37,11 @@ const BASEBALL_BG: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 
 const AESTHETICS_ROW1: AestheticCard[] = [
-  { type: "aesthetic", image: "/cards/worldcup.jpeg",    label: "World Cup 2026",   href: "/football/world-cup" },
+  { type: "aesthetic", image: "/cards/worldcup.jpeg",    label: "World Cup 2026",   href: "/football/league/fifa.world" },
   { type: "aesthetic", image: "/cards/aes-ucl.jpeg",     label: "Champions League", href: "/football/league/uefa.champions" },
   { type: "aesthetic", image: "/cards/aes-pl.jpeg",      label: "Premier League",   href: "/football/league/eng.1" },
   { type: "aesthetic", image: "/cards/aes-nba-1.jpeg",   label: "NBA",              href: "/basketball/league/nba" },
-  { type: "aesthetic", image: "/carousel/baseball/baseball-2.jpg", label: "MLB",     href: "/baseball/league/mlb" },
+  { type: "aesthetic", image: "/cards/aes-mlb-1.jpeg",   label: "MLB",             href: "/baseball/league/mlb" },
   { type: "aesthetic", image: "/cards/aes-f1-1.jpeg",    label: "Formula 1",        href: "/f1" },
 ];
 
@@ -49,7 +49,7 @@ const AESTHETICS_ROW2: AestheticCard[] = [
   { type: "aesthetic", image: "/cards/aes-seriea.jpeg",  label: "Serie A",     href: "/football/league/ita.1" },
   { type: "aesthetic", image: "/cards/aes-bayern.jpeg",  label: "Bundesliga",  href: "/football/league/ger.1" },
   { type: "aesthetic", image: "/cards/aes-nba-2.jpeg",   label: "NBA",         href: "/basketball/league/nba" },
-  { type: "aesthetic", image: "/carousel/baseball/baseball-4.jpg", label: "MLB", href: "/baseball/league/mlb" },
+  { type: "aesthetic", image: "/cards/aes-mlb-2.jpeg", label: "MLB", href: "/baseball/league/mlb" },
   { type: "aesthetic", image: "/cards/aes-f1-2.jpeg",    label: "Formula 1",   href: "/f1" },
 ];
 
@@ -57,7 +57,7 @@ const AESTHETICS_ROW3: AestheticCard[] = [
   { type: "aesthetic", image: "/cards/aes-laliga.jpeg",  label: "La Liga",    href: "/football/league/esp.1" },
   { type: "aesthetic", image: "/cards/aes-ligue1.jpeg",  label: "Ligue 1",    href: "/football/league/fra.1" },
   { type: "aesthetic", image: "/cards/aes-nba-3.jpeg",   label: "NBA",         href: "/basketball/league/nba" },
-  { type: "aesthetic", image: "/carousel/baseball/baseball-5.jpg", label: "NCAA Baseball", href: "/baseball/league/college-baseball" },
+  { type: "aesthetic", image: "/cards/aes-mlb-3.jpeg",   label: "MLB",        href: "/baseball/league/mlb" },
   { type: "aesthetic", image: "/cards/aes-f1-3.jpeg",    label: "Formula 1",   href: "/f1" },
 ];
 

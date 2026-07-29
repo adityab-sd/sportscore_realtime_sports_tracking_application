@@ -88,6 +88,16 @@ const CAROUSEL_INTERVAL_MS = 5000;
 const CROSSFADE_DURATION_S = 1.1;
 const PREMIUM_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
+/** Fisher–Yates shuffle (returns a new array; input untouched). */
+function shuffle<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 /* ================================================================== */
 /* SINGLE SPORT COLUMN                                                 */
 /* ================================================================== */
@@ -107,20 +117,38 @@ function SportColumn({ sport, intervalMs, initialDelayMs }: SportColumnProps) {
     // Nothing to rotate through — render a single static frame.
     if (images.length < 2) return;
 
-    // Self-scheduling with setTimeout (rather than setInterval) so the FIRST
-    // tick can use a different delay (`initialDelayMs`) than every tick
-    // after it (`intervalMs`). Every column gets its own offset — see how
-    // `initialDelayMs` is computed in <HeroSplit> — so no two columns ever
-    // crossfade on the same millisecond and the wall always feels alive.
-    let timeoutId: ReturnType<typeof setTimeout>;
+    // Shuffle-bag ordering: play through a randomized queue of all indices,
+    // then reshuffle for the next cycle. Every image shows once per cycle
+    // (nothing starved), but the order changes each cycle and never repeats
+    // an image back-to-back — so there's no sequence a viewer can predict.
+    // Randomness lives here in the effect (client-only), so the SSR frame
+    // stays deterministic (index 0) and there's no hydration mismatch.
+    let current = 0;            // mirrors the initial useState(0)
+    let queue: number[] = [];
 
-    const scheduleNext = (delay: number) => {
-      timeoutId = setTimeout(() => {
-        setIndex((prev: number) => (prev + 1) % images.length);
-        scheduleNext(intervalMs); // every tick after the first uses the shared interval
-      }, delay);
+    const refill = () => {
+      const next = shuffle(images.map((_, i) => i));
+      // Avoid the same image twice across the reshuffle boundary.
+      if (next[0] === current && next.length > 1) [next[0], next[1]] = [next[1], next[0]];
+      queue = next;
     };
 
+    const nextIndex = () => {
+      if (queue.length === 0) refill();
+      current = queue.shift()!;
+      return current;
+    };
+
+    // Self-scheduling setTimeout so the FIRST tick can use `initialDelayMs`
+    // (a per-column offset — see <HeroSplit>) and every tick after it uses
+    // the shared `intervalMs`, keeping columns desynced.
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const scheduleNext = (delay: number) => {
+      timeoutId = setTimeout(() => {
+        setIndex(nextIndex());
+        scheduleNext(intervalMs);
+      }, delay);
+    };
     scheduleNext(initialDelayMs);
 
     return () => clearTimeout(timeoutId);
@@ -136,24 +164,12 @@ function SportColumn({ sport, intervalMs, initialDelayMs }: SportColumnProps) {
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/*
-        NOTE on <img> vs next/image:
-        We use a plain <img> wrapped by Framer Motion's `motion.img` here
-        rather than next/image, so Framer can animate a real DOM node
-        directly (animating next/image needs `motion.create(Image)` plus
-        extra ref-forwarding care). These files are local, in `public/`,
-        already optimized/portrait-cropped assets — so we lose little of
-        next/image's benefit here. If you later move these to a remote CDN,
-        add the host to next.config.ts and switch to `motion.create(Image)`.
+        <img> (via motion.img) instead of next/image so Framer can animate a
+        real DOM node directly. Files are local, already portrait-cropped.
 
-        NOTE on the trailing "!" (important) on h-full/w-full/object-cover:
-        globals.css has a blanket `img, svg, video { height: auto }` reset
-        that sits OUTSIDE any @layer block. Unlayered author CSS always
-        beats Tailwind's own (layered) utility classes, regardless of
-        specificity — so without `!important` here, every image was
-        rendering at its natural aspect ratio (auto height) instead of
-        stretching to fill its column, which is exactly what was causing
-        the empty space under the photos. The `!` suffix marks these
-        utilities `!important`, which outranks that unlayered reset.
+        The trailing "!" on h-full/w-full/object-cover overrides globals.css's
+        unlayered `img { height: auto }` reset, which otherwise beats Tailwind's
+        layered utilities and left empty space under the photos.
       */}
       <AnimatePresence initial={false}>
         <motion.img
@@ -185,18 +201,11 @@ export default function HeroSplit() {
   );
 
   // ------------------------------------------------------------------
-  // GRID SHAPE — this is the scalability hook. Two CSS custom properties
-  // drive the entire layout, both derived purely from how many sports are
-  // active right now:
-  //
-  //   --sport-count  → desktop: exactly one column per active sport.
-  //   --mobile-rows  → mobile: ceil(count / 2) rows per side, so the
-  //                    sports split into two vertical groups (left/right)
-  //                    that each stack their own share top-to-bottom.
-  //
-  // Add a 5th sport to SPORTS_CONFIG and both numbers update automatically
-  // — desktop grows to 5 even columns, mobile becomes a 3-and-2 split
-  // across the two sides. No other code changes.
+  // GRID SHAPE — two CSS custom properties, both derived from the active
+  // sport count, drive the whole layout:
+  //   --sport-count  → desktop: one column per active sport.
+  //   --mobile-rows  → mobile: ceil(count / 2) rows per side (two vertical
+  //                    groups). Add a 5th sport and both update automatically.
   // ------------------------------------------------------------------
   const gridVars = {
     "--sport-count": activeSports.length,
@@ -204,21 +213,13 @@ export default function HeroSplit() {
   } as CSSProperties;
 
   return (
-    // app/layout.tsx now applies paddingTop:56 to <main> globally (to clear
-    // the fixed Navbar on every page), so this section no longer needs its
-    // own top offset — it just fills the remaining viewport height.
+    // layout.tsx applies paddingTop:56 to <main> to clear the fixed Navbar,
+    // so this section just fills the remaining viewport height.
     <section className="relative h-[calc(100vh-56px)] w-full overflow-hidden bg-black">
       {/*
-        Mobile (<1024px, Tailwind's `lg` cutoff): `grid-flow-col` fills each
-        implicit column top-to-bottom before starting the next one. With
-        `grid-template-rows` fixed at `--mobile-rows`, that naturally yields
-        exactly TWO columns (two vertical groups side by side) for any
-        sport count — the first group takes the ceil half, the second
-        group takes the rest.
-
-        Desktop (`lg:`): switches to a single row with one explicit column
-        per active sport (`--sport-count`), same as a plain side-by-side
-        split — this is the layout unchanged from before.
+        Mobile (<lg): grid-flow-col + fixed --mobile-rows fills top-to-bottom,
+        yielding two vertical groups side by side for any sport count.
+        Desktop (lg): one row, one column per active sport (--sport-count).
       */}
       <div
         style={gridVars}
@@ -229,21 +230,18 @@ export default function HeroSplit() {
             key={sport.key}
             sport={sport}
             intervalMs={CAROUSEL_INTERVAL_MS}
-            // Spread every column's first tick evenly across one full interval
-            // (e.g. 4 sports @ 5000ms → offsets 0, 1250, 2500, 3750ms) so no
-            // two columns ever crossfade at the same moment.
+            // Spread each column's first tick evenly across one interval so no
+            // two columns crossfade at the same moment.
             initialDelayMs={(i * CAROUSEL_INTERVAL_MS) / activeSports.length}
           />
         ))}
       </div>
 
-      {/* Flat black tint over the whole scene — no glassmorphism.
-          Sits above the columns, below the title. */}
+      {/* Flat black tint over the scene — above columns, below the title. */}
       <div className="pointer-events-none absolute inset-0 z-10 bg-black/45" />
 
-      {/* Centerpiece title — dead center, just z-indexed above the tint,
-          no card/border/blur behind it. Drop-shadow alone keeps it
-          readable over any frame passing underneath. */}
+      {/* Centerpiece title — dead center, drop-shadow keeps it readable over
+          any frame passing underneath. */}
       <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 text-center">
         <h1 className="max-w-4xl text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.15] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.9)]">
           Your Ultimate Hub for{" "}

@@ -3,4 +3,4 @@
 // messages always include citations (possibly empty). The `id` field is shared.
 export type ChatMessage =
   | { id: string; role: "user"; content: string }
-  | { id: string; role: "assistant"; content: string; citations: string[] };
+  | { id: string; role: "assistant"; content: string; citations?: string[] };

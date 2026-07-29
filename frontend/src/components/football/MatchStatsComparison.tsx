@@ -1,12 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
-import type { ESPNStatCategory, ESPNStatValue } from "@/lib/api/espn";
 
 interface StatDef {
   category: string;
   key: string;
   label: string;
   isPercent?: boolean;
+}
+interface ESPNStatValue {
+  name: string;
+  value?: number;
+  displayValue?: string;
+}
+interface ESPNStatCategory {
+  name: string;
+  stats: ESPNStatValue[];
 }
 
 const HEADLINE_STATS: StatDef[] = [
