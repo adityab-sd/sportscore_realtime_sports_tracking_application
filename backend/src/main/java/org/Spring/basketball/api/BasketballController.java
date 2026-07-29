@@ -57,9 +57,9 @@ public class BasketballController {
     }
 
     @GetMapping("/{league}/fixtures")
-    public BasketballDto.Fixtures fixtures(@PathVariable String league) throws Exception {
-        validateLeague(league);
-        return service.fixtures(league);
+    public BasketballDto.Fixtures fixtures(@PathVariable String league,
+                                        @RequestParam(required = false) String date) throws Exception {
+        return service.fixtures(league, date);
     }
 
     @GetMapping("/{league}/standings")

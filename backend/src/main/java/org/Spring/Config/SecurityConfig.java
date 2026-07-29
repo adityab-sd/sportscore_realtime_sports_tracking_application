@@ -95,6 +95,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/security/stats").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/ask/**").permitAll()
                 .anyRequest().authenticated()
             )
             .httpBasic(basic -> basic.authenticationEntryPoint(lockoutAwareEntryPoint))

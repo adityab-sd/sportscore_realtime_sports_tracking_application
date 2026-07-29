@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -90,9 +91,9 @@ public class FootballController {
     }
 
     @GetMapping("/{league}/fixtures")
-    public Dto.Fixtures fixtures(@PathVariable String league) throws Exception {
-        validateLeague(league);   // reject bad league slugs early
-        return service.fixtures(league);
+    public Dto.Fixtures fixtures(@PathVariable String league,
+                                 @RequestParam(required = false) String date) throws Exception {
+        return service.fixtures(league, date);
     }
 
     @GetMapping("/{league}/standings")
@@ -381,4 +382,5 @@ public class FootballController {
     public List<Dto.BracketMatchDto> worldCupBracket() throws Exception {
         return service.worldCupBracket();
     }
+    
 }

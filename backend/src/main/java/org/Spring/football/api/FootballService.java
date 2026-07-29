@@ -38,26 +38,46 @@ public class FootballService extends EspnApiHelper {
         }
         return out;
     }
+public Dto.Fixtures fixtures(String league) throws Exception {
+        return fixtures(league, null);
+    }
 
-    public Dto.Fixtures fixtures(String league) throws Exception {
-        DateTimeFormatter fmt  = DateTimeFormatter.ofPattern("yyyyMMdd");
-        String from = LocalDate.now().minusDays(30).format(fmt);
-        String to   = LocalDate.now().plusDays(250).format(fmt);
-        JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + from + "-" + to + "&limit=1000");
+    public Dto.Fixtures fixtures(String league, String date) throws Exception {
+        String datesParam;
+        if (date != null && !date.isBlank()) {
+            datesParam = date;                                          // single day: yyyyMMdd
+        } else {
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+            datesParam = LocalDate.now().minusDays(30).format(fmt) + "-"
+                       + LocalDate.now().plusDays(250).format(fmt);
+        }
+        JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + datesParam + "&limit=1000");
+
+        // League name from the scoreboard root — used as a fallback when an
+        // individual event has no competition label (plain league fixtures often don't).
+        String leagueName = txt(raw.path("leagues").path(0).path("name"));
 
         List<Dto.MatchDto> results  = new ArrayList<>();
         List<Dto.MatchDto> upcoming = new ArrayList<>();
         for (JsonNode e : raw.path("events")) {
-            Dto.MatchDto m = parseEvent(e);
+            Dto.MatchDto m = parseEvent(e, leagueName);
             if (m == null) continue;
-            if ("post".equals(m.statusState()))      results.add(m);
-            else if ("pre".equals(m.statusState()))  upcoming.add(m);
+            if (date != null && !date.isBlank()) {
+                String d = m.kickoff() == null ? "" : m.kickoff().substring(0, 10).replace("-", "");
+                if (!date.equals(d)) continue;
+            }
+            if ("post".equals(m.statusState())) results.add(m);
+            else                                upcoming.add(m);   // pre AND live ("in") — was dropping live before
         }
         java.util.Collections.reverse(results); // most recent first
         return new Dto.Fixtures(results, upcoming);
     }
 
     private Dto.MatchDto parseEvent(JsonNode e) {
+        return parseEvent(e, null);
+    }
+
+    private Dto.MatchDto parseEvent(JsonNode e, String leagueNameFallback) {
         JsonNode comp = e.path("competitions").path(0);
         if (comp.isMissingNode()) return null;
         JsonNode st   = comp.path("status").path("type");
@@ -68,8 +88,10 @@ public class FootballService extends EspnApiHelper {
         String status      = first(txt(st.path("shortDetail")), txt(st.path("detail")), txt(st.path("name")), "");
         String state       = txt(st.path("state")) != null ? txt(st.path("state")) : "pre";
         String competition = first(
+                txt(comp.path("tournament").path("name")),
+                leagueNameFallback,                                  // ← "Liga Profesional", "Premier League", etc.
                 txt(e.path("season").path("type").path("name")),
-                txt(comp.path("tournament").path("name")), "");
+                "");
 
         // Knockout round label (Round of 16, Quarterfinal, Semifinal, Final, Group Stage...).
         // ESPN puts this in competitions[0].notes[0].headline for tournament fixtures;
@@ -81,7 +103,6 @@ public class FootballService extends EspnApiHelper {
                 teamRef(home.path("team")), teamRef(away.path("team")),
                 num(home.path("score")), num(away.path("score")), round);
     }
-
     // standings
 
     public List<Dto.StandingRow> standings(String league) throws Exception {
