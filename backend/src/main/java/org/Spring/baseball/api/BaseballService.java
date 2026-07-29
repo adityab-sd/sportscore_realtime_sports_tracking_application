@@ -1,7 +1,5 @@
 package org.Spring.baseball.api;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -72,23 +70,32 @@ public class BaseballService extends EspnApiHelper {
         return out;
     }
 
-    public BaseballDto.Fixtures fixtures(String league) throws Exception {
-        DateTimeFormatter fmt  = DateTimeFormatter.ofPattern("yyyyMMdd");
-        String from = LocalDate.now().minusDays(250).format(fmt);
-        String to   = LocalDate.now().plusDays(250).format(fmt);
-        JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + from + "-" + to + "&limit=100");
+    public BaseballDto.Fixtures fixtures(String league) throws Exception { return fixtures(league, null); }
 
-        List<BaseballDto.GameDto> results  = new ArrayList<>();
-        List<BaseballDto.GameDto> upcoming = new ArrayList<>();
-        for (JsonNode e : raw.path("events")) {
-            BaseballDto.GameDto g = parseEvent(e);
-            if (g == null) continue;
-            if ("post".equals(g.statusState()))     results.add(g);
-            else if ("pre".equals(g.statusState())) upcoming.add(g);
+public BaseballDto.Fixtures fixtures(String league, String date) throws Exception {
+    java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
+    String datesParam;
+    if (date != null && !date.isBlank()) datesParam = date;
+    else datesParam = java.time.LocalDate.now().minusDays(21).format(fmt) + "-"
+                    + java.time.LocalDate.now().plusDays(250).format(fmt);
+
+    JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + datesParam + "&limit=1000");
+
+    List<BaseballDto.GameDto> results  = new ArrayList<>();
+    List<BaseballDto.GameDto> upcoming = new ArrayList<>();
+    for (JsonNode e : raw.path("events")) {
+        BaseballDto.GameDto g = parseEvent(e);
+        if (g == null) continue;
+        if (date != null && !date.isBlank()) {
+            String d = g.firstPitch() == null ? "" : g.firstPitch().substring(0, 10).replace("-", "");
+            if (!date.equals(d)) continue;
         }
-        java.util.Collections.reverse(results);
-        return new BaseballDto.Fixtures(results, upcoming);
+        if ("post".equals(g.statusState())) results.add(g);
+        else                                upcoming.add(g);
     }
+    java.util.Collections.reverse(results);
+    return new BaseballDto.Fixtures(results, upcoming);
+}
 
     private BaseballDto.GameDto parseEvent(JsonNode e) {
         JsonNode comp = e.path("competitions").path(0);

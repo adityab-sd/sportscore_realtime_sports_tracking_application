@@ -41,23 +41,32 @@ public class BasketballService extends EspnApiHelper {
         return out;
     }
 
-    public BasketballDto.Fixtures fixtures(String league) throws Exception {
-        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
-        String from = java.time.LocalDate.now().minusDays(250).format(fmt);
-        String to   = java.time.LocalDate.now().plusDays(250).format(fmt);
-        JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + from + "-" + to + "&limit=100");
+    public BasketballDto.Fixtures fixtures(String league) throws Exception { return fixtures(league, null); }
 
-        List<BasketballDto.GameDto> results  = new ArrayList<>();
-        List<BasketballDto.GameDto> upcoming = new ArrayList<>();
-        for (JsonNode e : raw.path("events")) {
-            BasketballDto.GameDto g = parseEvent(e);
-            if (g == null) continue;
-            if ("post".equals(g.statusState()))     results.add(g);
-            else if ("pre".equals(g.statusState())) upcoming.add(g);
+public BasketballDto.Fixtures fixtures(String league, String date) throws Exception {
+    java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
+    String datesParam;
+    if (date != null && !date.isBlank()) datesParam = date;
+    else datesParam = java.time.LocalDate.now().minusDays(21).format(fmt) + "-"
+                    + java.time.LocalDate.now().plusDays(250).format(fmt);
+
+    JsonNode raw = get(SITE + "/" + league + "/scoreboard?dates=" + datesParam + "&limit=1000");
+
+    List<BasketballDto.GameDto> results  = new ArrayList<>();
+    List<BasketballDto.GameDto> upcoming = new ArrayList<>();
+    for (JsonNode e : raw.path("events")) {
+        BasketballDto.GameDto g = parseEvent(e);
+        if (g == null) continue;
+        if (date != null && !date.isBlank()) {
+            String d = g.tipoff() == null ? "" : g.tipoff().substring(0, 10).replace("-", "");
+            if (!date.equals(d)) continue;
         }
-        java.util.Collections.reverse(results);
-        return new BasketballDto.Fixtures(results, upcoming);
+        if ("post".equals(g.statusState())) results.add(g);
+        else                                upcoming.add(g);
     }
+    java.util.Collections.reverse(results);
+    return new BasketballDto.Fixtures(results, upcoming);
+}
 
     private BasketballDto.GameDto parseEvent(JsonNode e) {
         JsonNode comp = e.path("competitions").path(0);
