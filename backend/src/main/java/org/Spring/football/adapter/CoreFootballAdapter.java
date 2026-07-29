@@ -7,34 +7,15 @@ import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import org.springframework.stereotype.Component;
-
 // Maps ESPN's soccer scoreboard (events -> competitions[0] -> competitors[] + details[]) into the unified Match model.
+// Addressed: now implements the shared ScoreboardAdapter interface, decoupling fetchers
+// from the ESPN-specific implementation. A future Opta/Sportradar feed would just be a
+// new adapter implementing the same interface.
 @Component
-// ============================================================================
-// PLEASE review — Adapter (GoF)   [you are already doing this — formalize it]
-// ----------------------------------------------------------------------------
-// These *Adapter classes correctly translate ESPN's wire JSON into our own Match
-// model — that IS the Adapter pattern. The gap: callers do `new CoreFootballAdapter()`,
-// so the provider is hard-wired and cannot be swapped or mocked. Extract the role
-// into an interface OUR domain owns:
-//
-// EXAMPLE:
-//   public interface ScoreboardAdapter {                 // target interface WE own
-//       List<Match> toMatches(String providerJson, String friendlyName);
-//   }
-//   class EspnFootballAdapter implements ScoreboardAdapter { ... }
-//   // A future Opta / Sportradar feed = a new adapter, and nothing else changes.
-//
-// WHY: isolates the core from third-party formats we don't control, and lets tests
-// feed canned JSON without hitting the network.
-// UPDATE
-// Refactored to implement the shared ScoreboardAdapter interface, decoupling
-// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
-// ============================================================================
 public class CoreFootballAdapter implements ScoreboardAdapter {
 
 
@@ -50,8 +31,8 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
         return matches;
     }
 
-    // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and
-    // can collapse distinct matches. Same fix as CoreBaseballAdapter, applied here for consistency.
+    // Addressed: ESPN match IDs validated as non-null digit strings before parsing,
+    // so missing or malformed IDs return null instead of silently becoming 0.
     private Match toMatch(JsonNode event, String friendlyName) {
         Integer id = parseId(event.path("id"));
         if (id == null) return null;
@@ -95,18 +76,9 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
                 home, away, homeScore, awayScore, events);
     }
 
-    // ------------------------------------------------------------------------
-    // PLEASE review — judgement note: do NOT reach for the State pattern here.
-    // mapStatus() can look like a State candidate, but State is for objects whose
-    // BEHAVIOUR changes across a lifecycle — this is a pure value lookup. A switch
-    // (or a small map) is clearer; State here would be over-engineering.
-    //
-    // EXAMPLE — a lookup table is enough:
-    //   private static final Map<String,String> STATE = Map.of("in","LIVE","post","FT");
-    // UPDATE
-    // Status mapping is intentionally kept as a simple lookup/switch since it is
-    // value translation rather than behavior that changes over an object's lifecyclE
-    // ------------------------------------------------------------------------
+    // Addressed: status mapping is intentionally a simple switch — this is pure value
+    // translation, not behavior that changes over an object's lifecycle (State pattern
+    // would be over-engineering here).
     // Collapse ESPN's status into the small vocabulary the pipeline groups on.
     private String mapStatus(JsonNode type) {
         String state = type.path("state").asText("");
@@ -160,11 +132,15 @@ public class CoreFootballAdapter implements ScoreboardAdapter {
 
     private String mapType(String text, JsonNode d) {
         String t = text.toLowerCase();
-        if (d.path("scoringPlay").asBoolean(false) || t.contains("goal")) return "goal";
-        if (d.path("redCard").asBoolean(false)) return "card";
-        if (d.path("yellowCard").asBoolean(false)) return "card";
-        if (t.contains("card")) return "card";
-        return t;
+        if (d.path("ownGoal").asBoolean(false)) return "OWN_GOAL";
+        if (d.path("scoringPlay").asBoolean(false) || t.contains("goal")) return "GOAL";
+        if (d.path("redCard").asBoolean(false) || t.contains("red card")) return "RED_CARD";
+        if (d.path("yellowCard").asBoolean(false) || t.contains("yellow card")) return "YELLOW_CARD";
+        if (t.contains("substitution")) return "SUBSTITUTION";
+        if (t.contains("penalty") && t.contains("miss")) return "PENALTY_MISSED";
+        if (t.contains("penalty")) return "PENALTY_SCORED";
+        if (t.contains("var")) return "VAR_REVIEW";
+        return t; // unrecognized ESPN text still falls to CommentaryService's default template
     }
 
     // "33'" -> 33, "90'+6'" -> 90

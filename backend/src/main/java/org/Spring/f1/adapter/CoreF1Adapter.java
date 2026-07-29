@@ -8,35 +8,18 @@ import org.Spring.adapter.ScoreboardAdapter;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.model.Team;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
-// ============================================================================
-// PLEASE review — Singleton (Spring-managed) ObjectMapper
-// ----------------------------------------------------------------------------
-// This adapter creates its own ObjectMapper. ObjectMapper is thread-safe after
-// configuration and already called out in EspnApiHelper as a shared-bean concern;
-// per-adapter mappers duplicate expensive configuration and can drift by sport.
+import com.fasterxml.jackson.databind.JsonNode;
+
+// Addressed: removed per-class ObjectMapper — now implements ScoreboardAdapter and works
+// directly with JsonNode passed in, keeping JSON behavior consistent across adapters.
 //
-// EXAMPLE:
-//   @Component
-//   class CoreF1Adapter {
-//       CoreF1Adapter(ObjectMapper mapper) { this.mapper = mapper; }
-//   }
-//
-// WHY: one Spring-managed mapper keeps JSON behavior consistent across adapters.
-// UPDATE
-// Refactored to implement the shared ScoreboardAdapter interface, decoupling
-// fetchers from the ESPN-specific implementation and standardizing the adapter contract.
-// ============================================================================
 // F1 isn't team-vs-team, so we fold a whole GP weekend into one Match for the
 // live pipeline: pick a representative session (in-progress, else next up, else
 // last done), then put P1 as homeTeam and P2 as awayTeam with their names in the
 // score-display fields. Keeps F1 on the same Match shape as every other sport, so
-// the Event Hub -> SignalR path needs no special-casing. Full per-session detail
-// is served over REST by F1Service instead.
+// the Event Hub -> SignalR path needs no special-casing.
 @Component
 public class CoreF1Adapter implements ScoreboardAdapter {
 
@@ -51,8 +34,8 @@ public class CoreF1Adapter implements ScoreboardAdapter {
         return matches;
     }
 
-    // PLEASE review — unchecked JsonNode numeric coercion: missing/non-numeric ESPN ids become 0 and
-    // can collapse distinct weekends. Same fix as CoreBaseballAdapter, applied here for consistency.
+    // Addressed: ESPN IDs validated as non-null digit strings before parsing,
+    // so missing or malformed IDs return null instead of silently becoming 0.
     private Match toMatch(JsonNode event) {
         Integer id = parseId(event.path("id"));
         if (id == null) return null;
@@ -110,11 +93,8 @@ public class CoreF1Adapter implements ScoreboardAdapter {
                 List.<MatchEvent>of());
     }
 
-    // PLEASE review — Strategy (GoF): representative session selection assumes ESPN ordering, so "earliest upcoming" may be whichever pre-session appears first. EXAMPLE: upcoming.sort(Comparator.comparing(s -> textOrNull(s.path("date")), Comparator.nullsLast(String::compareTo))); return upcoming.isEmpty() ? null : upcoming.get(0);
-    // UPDATE:
-    // Refactored representative session selection to choose the earliest upcoming
-    // and latest completed sessions based on their scheduled date rather than
-    // relying on ESPN's response ordering.
+    // Addressed: representative session selection now sorts by scheduled date instead of
+    // relying on ESPN's response ordering — earliest upcoming and latest completed.
     /** Returns: in-progress > earliest upcoming > latest completed. */
     private JsonNode representativeSession(JsonNode sessions) {
 

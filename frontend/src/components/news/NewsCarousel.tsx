@@ -9,8 +9,8 @@ import { NewsArticle } from "./NewsCard";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface NewsCarouselProps {
-  articles: NewsArticle[];
-  sport?: "football" | "basketball";
+  articles: (NewsArticle & { sport?: "football" | "basketball" | "baseball" | "f1" })[];
+  sport?: "football" | "basketball" | "baseball" | "f1"; // fallback only
 }
 
 function timeAgo(iso: string): string {
@@ -82,9 +82,6 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
   }, [current, paused, next]);
 
   if (!articles.length) return null;
-
-  const newsBase = `/${sport}/news`;
-
   return (
     <div
       style={{ position: "relative", width: "100%", height: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
@@ -97,7 +94,7 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
         return (
           <Link
             key={a.id}
-            href={`${newsBase}/${a.id}`}
+            href={`/${a.sport ?? sport}/news/${a.id}`}
             style={{
               position: "absolute", inset: 0, textDecoration: "none",
               opacity: isActive ? 1 : 0,

@@ -13,9 +13,11 @@ public class LoginAttemptService {
     private static final Duration LOCKOUT_WINDOW = Duration.ofMinutes(5);
 
     private final StringRedisTemplate redisTemplate;
+    private final SecurityStatsService statsService;
 
-    public LoginAttemptService(StringRedisTemplate redisTemplate) {
+    public LoginAttemptService(StringRedisTemplate redisTemplate, SecurityStatsService statsService) {
         this.redisTemplate = redisTemplate;
+        this.statsService = statsService;
     }
 
     private String key(String username) {
@@ -28,6 +30,11 @@ public class LoginAttemptService {
         Long attempts = redisTemplate.opsForValue().increment(k);
         if (attempts != null && attempts == 1L) {
             redisTemplate.expire(k, LOCKOUT_WINDOW);
+        }
+        // Count this as a genuine new lockout event only at the exact moment
+        // the account crosses the threshold - not on every attempt after.
+        if (attempts != null && attempts == MAX_ATTEMPTS) {
+            statsService.incrementLockedAccounts();
         }
     }
 

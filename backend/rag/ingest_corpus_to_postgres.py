@@ -50,12 +50,19 @@ load_dotenv()
 
 
 # ── Config ──
+# No hardcoded fallback defaults on ANY field — every value must come from
+# a real environment variable, same fail-loudly pattern used in search.py.
+_required_pg_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+_missing_pg_vars = [v for v in _required_pg_vars if not os.getenv(v)]
+if _missing_pg_vars:
+    raise RuntimeError(f"Missing required Postgres environment variables: {', '.join(_missing_pg_vars)}")
+
 DB_CONFIG = {
-    "host": os.getenv("POSTGRES_HOST", "localhost"),
-    "port": int(os.getenv("POSTGRES_PORT", "5432")),
-    "dbname": os.getenv("POSTGRES_DB", "sportsscore"),
-    "user": os.getenv("POSTGRES_USER", "postgres"),
-    "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+    "host": os.getenv("POSTGRES_HOST"),
+    "port": int(os.getenv("POSTGRES_PORT")),
+    "dbname": os.getenv("POSTGRES_DB"),
+    "user": os.getenv("POSTGRES_USER"),
+    "password": os.getenv("POSTGRES_PASSWORD"),
 }
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
@@ -1189,6 +1196,21 @@ RULEBOOK_CORPUS_DATA = [
             "equipment",
             "jewellery",
             "goalkeeper jersey"
+        ],
+        "source": "FIFA Laws of the Game 2024"
+    },
+    {
+        "id": "football-rules-041",
+        "sport": "football",
+        "category": "rules",
+        "title": "Ball Specifications",
+        "content": "A football (soccer ball) must be spherical, made of leather or another suitable material, with a circumference of 68-70cm (27-28 inches) and a weight of 410-450 grams (14-16 ounces) at the start of a match. The ball must be inflated to a pressure of 0.6 to 1.1 atmospheres (600-1100 g/cm²) at sea level. The referee inspects the match ball before kick-off to ensure it meets these specifications, and can require it to be changed at any time if it becomes unfit for use during play.",
+        "tags": [
+            "ball",
+            "specifications",
+            "size",
+            "circumference",
+            "weight"
         ],
         "source": "FIFA Laws of the Game 2024"
     },

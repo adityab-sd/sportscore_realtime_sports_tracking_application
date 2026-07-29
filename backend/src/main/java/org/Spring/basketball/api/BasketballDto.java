@@ -12,23 +12,14 @@ public final class BasketballDto {
             Dto.TeamRef homeTeam, Dto.TeamRef awayTeam, Integer homeScore, Integer awayScore,
             Integer period, String clock) {}
 
-    // ============================================================================
-    // PLEASE review — Null Object / immutability for collection record components
-    // ----------------------------------------------------------------------------
-    // Records do not defensively copy List components. A caller can pass a mutable
-    // list into Fixtures/GameDetail and later mutate the DTO after construction; null
-    // lists also force every consumer to special-case absence.
-    //
-    // EXAMPLE:
-    //   public Fixtures {
-    //       results = List.copyOf(results == null ? List.of() : results);
-    //       upcoming = List.copyOf(upcoming == null ? List.of() : upcoming);
-    //   }
-    //
-    // WHY: Null Object lists plus defensive copies make DTOs stable API values.
-    // ============================================================================
-
-    public record Fixtures(List<GameDto> results, List<GameDto> upcoming) {}
+    // Addressed: compact constructor defensively copies all list fields so null becomes
+    // an empty list, and a caller's mutable list cannot be mutated after construction.
+    public record Fixtures(List<GameDto> results, List<GameDto> upcoming) {
+        public Fixtures {
+            results  = List.copyOf(results  == null ? List.of() : results);
+            upcoming = List.copyOf(upcoming == null ? List.of() : upcoming);
+        }
+    }
 
     public record StandingRow(
             int rank, String teamId, String team, String shortName, String logo,
@@ -37,6 +28,9 @@ public final class BasketballDto {
 
     public record LineScore(String teamId, List<Integer> periods, int total) {}
 
+    // Addressed: compact constructor defensively copies all list fields (lineScores,
+    // events, officials, odds). Removed unused backward-compatible constructor since
+    // the only call site already passes all 17 fields.
     public record GameDetail(
             String                   id,
             String                   status,
@@ -56,14 +50,11 @@ public final class BasketballDto {
             List<Dto.Official>       officials,
             List<Dto.OddsPick>       odds) {
 
-        public GameDetail(String id, String status, String statusState, String tipoff,
-                          String competition, String venue, Integer attendance,
-                          Dto.TeamRef homeTeam, Dto.TeamRef awayTeam, Integer homeScore, Integer awayScore,
-                          Integer period, String clock,
-                          List<LineScore> lineScores, List<Dto.MatchEventDto> events) {
-            this(id, status, statusState, tipoff, competition, venue, attendance,
-                 homeTeam, awayTeam, homeScore, awayScore, period, clock,
-                 lineScores, events, List.of(), List.of());
+        public GameDetail {
+            lineScores = List.copyOf(lineScores == null ? List.of() : lineScores);
+            events     = List.copyOf(events     == null ? List.of() : events);
+            officials  = List.copyOf(officials  == null ? List.of() : officials);
+            odds       = List.copyOf(odds       == null ? List.of() : odds);
         }
     }
 }

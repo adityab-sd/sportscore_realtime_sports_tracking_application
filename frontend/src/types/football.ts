@@ -60,6 +60,10 @@ export const LEAGUES: LeagueInfo[] = [
   { slug: "fra.1",          name: "Ligue 1",          short: "Ligue 1",    logo: espnLogo(9),  accent: "#091c3e" },
   { slug: "usa.1",          name: "MLS",              short: "MLS",        logo: espnLogo(19), accent: "#4f1681" },
   { slug: "bra.1",          name: "Brasileirão",      short: "Brazil",     logo: espnLogo(85), accent: "#009c3b" },
+  { slug: "arg.1",          name: "Argentine Primera", short: "Argentina",  logo: espnLogo(86), accent: "#75aadb" },
+  { slug: "uefa.europa",    name: "Europa League",    short: "UEL",        logo: espnLogo(3),  accent: "#f47a20" },
+  { slug: "uefa.europa.conf", name: "Europa Conf.",   short: "UECL",       logo: espnLogo(5),  accent: "#f47a20" },
+  { slug: "fifa.friendly",  name: "International Friendlies", short: "Friendlies", logo: espnLogo(4), accent: "#e30b1c" },
 ];
 
 export const leagueName = (slug: string): string =>
@@ -108,7 +112,7 @@ export function classifyStatus(status: string | null | undefined): MatchState {
   const hasMinute = /\d+'/.test(s);
   const inPlay = s.includes("1H") || s.includes("2H") || s.includes("HT") || s.includes("LIVE");
   const inET = s.includes("ET") && hasMinute; // ET only live if has minute marker
-  return (hasMinute || inPlay || inET) ? "live" : "finished";
+  return (hasMinute || inPlay || inET) ? "live" : "scheduled";
 }
 
 export const matchState = classifyStatus;
@@ -122,9 +126,7 @@ export function statusLabel(m: Match): string {
     const d = new Date(m.kickoff);
     // ADDRESSED: guarded Date parsing — invalid kickoff now returns empty string instead of NaN:NaN
     if (Number.isNaN(d.getTime())) return m.status ?? "";
-    const h = d.getUTCHours().toString().padStart(2, "0");
-    const min = d.getUTCMinutes().toString().padStart(2, "0");
-    return `${h}:${min}`;
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   }
   return m.status ?? "";
 }

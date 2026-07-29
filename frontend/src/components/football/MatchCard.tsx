@@ -32,7 +32,7 @@ function StatusChip({ match }: { match: Match }) {
     let label = match.status ?? "";
     if (match.kickoff) {
       const d = new Date(match.kickoff);
-      const time = `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
+      const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
       label = `${formatMatchDay(match.kickoff)}, ${time}`;
     }
     return <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }} suppressHydrationWarning>{label}</span>;

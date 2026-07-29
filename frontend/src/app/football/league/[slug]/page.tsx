@@ -168,7 +168,9 @@ export default async function LeaguePage({ params }: Props) {
       .catch(() => getRawLeaders(slug, String(currentYear - 1)).catch(() => null)),
   ]);
 
-  const seedMatches = fixturesToMatches(fixtures);
+const seedMatches = fixturesToMatches(fixtures);
+console.log("[fixtures]", fixtures.results.length, "results,",
+  fixtures.upcoming.length, "upcoming; last:", fixtures.upcoming.at(-1)?.kickoff); // TEMP
   const teams = parseTeams(teamsRaw);
   const leaderCategories = await parseRawLeaders(rawLeadersData, slug, rows);
 

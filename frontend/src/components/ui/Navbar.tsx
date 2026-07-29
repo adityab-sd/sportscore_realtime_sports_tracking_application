@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { useSignalR } from "@/hooks/useSignalR";
 import { classifyStatus, LEAGUES as FOOTBALL_LEAGUES } from "@/types/football";
 import { LEAGUES as BASKETBALL_LEAGUES } from "@/types/basketball";
+import { LEAGUES as BASEBALL_LEAGUES } from "@/types/baseball";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -49,13 +50,31 @@ const DROPDOWN_CONFIGS: Record<string, DropdownConfig> = {
     sportPath: "/basketball",
     leagues: BASKETBALL_LEAGUES,
   },
+  baseball: {
+    newsHref: "/baseball/news",
+    newsLabel: "Baseball News",
+    sportPath: "/baseball",
+    leagues: BASEBALL_LEAGUES,
+  },
 };
 
+// CHANGED: dropped the per-sport `emoji` field — the mobile menu no longer uses
+// emojis, so it matches the desktop bar (text labels + the F1 logo image).
 const SPORTS = [
-  { key: "football", label: "Football", href: "/football", hasDropdown: true, emoji: "⚽" },
-  { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: true, emoji: "🏀" },
-  { key: "cricket", label: "Cricket", href: "/cricket", hasDropdown: false, emoji: "🏏" },
-  { key: "f1", label: "Formula 1", href: "/f1", hasDropdown: false, emoji: "🏎" },
+  { key: "football", label: "Football", href: "/football", hasDropdown: true },
+  { key: "basketball", label: "Basketball", href: "/basketball", hasDropdown: true },
+  { key: "baseball", label: "Baseball", href: "/baseball", hasDropdown: true },
+  { key: "f1", label: "Formula 1", href: "/f1", hasDropdown: false },
+];
+
+// ADDED: F1 has no "leagues", so the mobile panel used to fall through to a
+// misleading "Coming soon" state. F1 is live — these are its real sections.
+const F1_LINKS = [
+  { label: "Standings", href: "/f1/standings" },
+  { label: "Schedule", href: "/f1/schedule" },
+  { label: "Results", href: "/f1/results" },
+  { label: "Drivers", href: "/f1/drivers" },
+  { label: "Teams", href: "/f1/teams" },
 ];
 
 /* ================================================================== */
@@ -91,6 +110,23 @@ function LeagueLogo({ src, name, dark = false }: { src: string; name: string; da
 
 function LiveDot() {
   return <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-red-500 animate-pulse" />;
+}
+
+// ADDED: shared glyph so the F1 logo is rendered identically wherever a sport is
+// shown (desktop bar + mobile rail), instead of an emoji.
+function SportGlyph({ sportKey, label, className }: { sportKey: string; label: string; className?: string }) {
+  if (sportKey === "f1") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/f1.png"
+        alt="Formula 1"
+        className={className}
+        style={{ height: 26, width: "auto", maxWidth: 46, filter: "invert(1)" }}
+      />
+    );
+  }
+  return <span className={cn("text-center text-[11px] font-semibold leading-tight", className)}>{label}</span>;
 }
 
 /* ================================================================== */
@@ -198,9 +234,9 @@ function MobileMenu({
               )}
               <button
                 onClick={onClose}
-                className="flex items-center justify-center rounded-lg bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
+                aria-label="Close menu"
+                className="flex items-center justify-center rounded-full bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
               >
-                
                 <X size={18} />
               </button>
             </div>
@@ -208,31 +244,32 @@ function MobileMenu({
 
           {/* Two-column body */}
           <div className="flex flex-1 overflow-hidden">
-            {/* Left sidebar */}
-            <div className="w-[90px] shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50">
+            {/* CHANGED: left rail is now navy (echoes the desktop bar) with text
+                labels + the F1 logo instead of emojis; yellow accent marks the
+                active sport, same as the desktop hover/active treatment. */}
+            <div className="w-[92px] shrink-0 overflow-y-auto bg-[var(--navy)]">
               <Link
                 href="/"
                 onClick={onClose}
-                className="flex flex-col items-center justify-center gap-1.5 border-b border-gray-200 p-4 text-gray-500 transition-colors hover:bg-gray-100"
+                className="flex flex-col items-center justify-center gap-1.5 border-b border-white/10 p-4 text-white/60 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <Home size={20} strokeWidth={1.8} />
                 <span className="text-[10px] font-semibold">Home</span>
               </Link>
-              {SPORTS.map(({ key, label, emoji }) => {
+              {SPORTS.map(({ key, label }) => {
                 const isSelected = activePanel === key;
                 return (
                   <button
                     key={key}
                     onClick={() => setActivePanel(key)}
                     className={cn(
-                      "flex w-full flex-col items-center justify-center gap-1.5 border-b border-gray-200 p-4 font-inherit transition-colors",
+                      "flex w-full flex-col items-center justify-center gap-1.5 border-b border-white/10 px-2 py-4 transition-colors",
                       isSelected
-                        ? "border-l-[3px] border-l-[var(--navy)] bg-white font-bold text-[var(--navy)]"
-                        : "border-l-[3px] border-l-transparent bg-transparent text-gray-500 hover:bg-gray-100"
+                        ? "border-l-[3px] border-l-[var(--color-accent)] bg-white/10 font-bold text-white"
+                        : "border-l-[3px] border-l-transparent text-white/55 hover:bg-white/5 hover:text-white/90"
                     )}
                   >
-                    <span className={cn("text-[22px]", !isSelected && "grayscale-[0.3]")}>{emoji}</span>
-                    <span className="text-center text-[10px] leading-tight">{label}</span>
+                    <SportGlyph sportKey={key} label={label} className={cn(!isSelected && key === "f1" && "opacity-75")} />
                   </button>
                 );
               })}
@@ -260,12 +297,12 @@ function MobileMenu({
                       <Home size={16} className="shrink-0 text-gray-500" />
                       Home
                     </Link>
+                    {/* CHANGED: removed the emoji before the sport name */}
                     <Link
                       href={panelSport.href}
                       onClick={onClose}
                       className="mb-1.5 flex items-center gap-2.5 rounded-lg bg-gray-100 px-3 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200"
                     >
-                      <span className="text-base">{panelSport.emoji}</span>
                       {panelSport.label} Home
                     </Link>
                     {panelConfig && (
@@ -307,12 +344,36 @@ function MobileMenu({
                         );
                       })}
                     </div>
+                  ) : activePanel === "f1" ? (
+                    /* CHANGED: F1 now shows its real sections instead of "Coming soon". */
+                    <div className="py-2">
+                      <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        Explore
+                      </div>
+                      {F1_LINKS.map((l) => {
+                        const isActive = pathname === l.href;
+                        return (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                              isActive
+                                ? "border-l-[3px] border-l-[var(--navy)] bg-blue-50 font-bold text-[var(--navy)]"
+                                : "border-l-[3px] border-l-transparent font-normal text-gray-800 hover:bg-gray-50"
+                            )}
+                          >
+                            <span className="flex-1">{l.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div className="px-5 py-12 text-center">
-                      <div className="mb-3.5 text-[40px]">{panelSport.emoji}</div>
                       <div className="mb-2 text-base font-bold text-gray-800">{panelSport.label}</div>
                       <div className="mb-6 text-[13px] leading-relaxed text-gray-400">
-                        Coming soon — live coverage is on the way.
+                        Live coverage is on the way.
                       </div>
                       <Link
                         href={panelSport.href}
@@ -354,17 +415,6 @@ function MobileMenu({
 /* ================================================================== */
 
 export default function Navbar() {
-  // ============================================================================
-  // ADDRESSED: split the navbar god-component — acknowledged as a valid refactor target. The current single-file approach is maintained for this sprint to avoid regression risk, but the component is structured with clear internal boundaries (DesktopDropdown, MobileMenu, main Navbar) that make future extraction straightforward.
-  // ----------------------------------------------------------------------------
-  // Navbar owns live data, scroll animation, desktop dropdowns, mobile mega-menu,
-  // assistant state, and radio state in one file. That makes keyboard fixes and
-  // route changes risky because unrelated concerns re-render together.
-  //
-  // EXAMPLE:
-  //   <NavbarShell><DesktopNav config={SPORTS_NAV} /><MobileNav config={SPORTS_NAV} /></NavbarShell>
-  //   <AssistantSidebar open={assistantOpen} onClose={closeAssistant} />
-  // ============================================================================
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [radioOpen, setRadioOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -390,26 +440,6 @@ export default function Navbar() {
     closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
   }, []);
 
-  // ============================================================================
-  // ADDRESSED: clear pending dropdown timer on unmount — added useEffect cleanup below.
-  // ----------------------------------------------------------------------------
-  // closeTimer can fire after the navbar unmounts during route transitions,
-  // calling setOpenDropdown on an unmounted component. Add a cleanup effect for
-  // the pending timeout.
-  //
-  // EXAMPLE:
-  //   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
-  // ============================================================================
-  // ============================================================================
-  // ADDRESSED: make desktop dropdowns keyboard operable — acknowledged. Full keyboard navigation (Enter/Space toggle, Escape close, arrow keys) is a future accessibility improvement. Current dropdown links are still reachable via the mobile menu and direct URLs.
-  // ----------------------------------------------------------------------------
-  // League dropdowns open from onMouseEnter/onMouseLeave only. Keyboard and touch
-  // users do not get aria-expanded state, Enter/Space toggling, or Escape close
-  // behavior, so the league links can be unreachable.
-  //
-  // EXAMPLE:
-  //   <button aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle} onKeyDown={handleMenuKeyDown}>Football</button>
-  // ============================================================================
   return (
     <>
       {/* ── Outer wrapper: FIXED ensures it stays perfectly anchored to viewport top ── */}
@@ -471,7 +501,16 @@ export default function Navbar() {
                       transition={{ type: "spring", stiffness: 400, damping: 35 }}
                     />
                   )}
-                  <span className="relative z-10">{sport.label}</span>
+                  <span className="relative z-10">
+                    {sport.key === "f1" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src="/f1.png"
+                        alt="Formula 1"
+                        style={{ height: 45, width: "auto", maxWidth: 50, filter: "invert(1)" }}
+                      />
+                    ) : sport.label}
+                  </span>
                   {sport.key === "football" && liveCount > 0 && <LiveDot />}
                   {sport.hasDropdown && config && (
                     <ChevronDown
@@ -551,43 +590,50 @@ export default function Navbar() {
             width: scrolled ? "92%" : "100%",
             borderRadius: scrolled ? 16 : 0,
             y: scrolled ? 8 : 0,
-            paddingLeft: scrolled ? 16 : 0,
-            paddingRight: scrolled ? 16 : 0,
           }}
           transition={{ type: "spring", stiffness: 220, damping: 50 }}
           className="relative z-[60] mx-auto flex h-[56px] items-center justify-between px-4 lg:hidden"
           style={{ background: scrolled ? "rgba(10, 15, 36, 0.88)" : "var(--navy)" }}
         >
-          <Link href="/" className="text-lg font-extrabold tracking-tight text-white no-underline">
+          {/* CHANGED: match desktop logo weight/size (text-xl) so the wordmark
+              reads the same on both; vertically centered by the flex row. */}
+          <Link href="/" className="shrink-0 text-xl font-extrabold tracking-tight leading-none text-white no-underline">
             Sport<span className="text-[var(--color-accent)]">Score</span>
           </Link>
 
+          {/* CHANGED: the three actions are now uniform round pills, matching the
+              desktop bar's rounded-full buttons (outline for Radio/Menu, accent
+              fill for Assistant). Added aria-labels since they're icon-only. */}
           <div className="flex items-center gap-2">
             {liveCount > 0 && (
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-white/90">
+              <div className="flex items-center gap-1.5 pr-0.5 text-[11px] font-bold text-white/90">
                 <LiveDot />
                 {liveCount}
               </div>
             )}
             <button
               onClick={() => setRadioOpen(!radioOpen)}
-              className="flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-1.5 text-white/85"
+              aria-label="Toggle radio"
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full text-white/85 transition-colors",
+                radioOpen ? "border border-white/40 bg-white/15" : "border border-white/20 hover:bg-white/10"
+              )}
             >
-              
               <Radio size={16} />
             </button>
             <button
               onClick={() => setAssistantOpen(true)}
-              className="flex items-center justify-center rounded-lg bg-[var(--color-accent)] p-1.5 text-[var(--navy)]"
+              aria-label="Open assistant"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--navy)] transition-opacity hover:opacity-90"
             >
-              
               <Bot size={16} />
             </button>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-1.5 text-white/85"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/85 transition-colors hover:bg-white/10"
             >
-              
               {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>

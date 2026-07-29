@@ -1,7 +1,11 @@
 package org.Spring.football.fetcher;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.http.HttpClient;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.Spring.api.EspnHttpClient;
 import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.football.adapter.CoreFootballAdapter;
@@ -9,14 +13,11 @@ import org.Spring.model.Match;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
-import java.net.http.HttpClient;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-//    UPDATE:
-//    The duplicate skeleton has been removed and the code has been updated to use the base class properly
+// Addressed: removed duplicate HTTP/JSON/fetch skeleton. Now extends AbstractEspnFetcher
+// and only overrides sport-specific methods (baseUrl, leagues, adapt, isLive, sportName).
 @Component
 public class CoreFootballFetcher extends AbstractEspnFetcher {
 
