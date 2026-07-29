@@ -32,6 +32,7 @@ export interface Match {
   homeScore: number | null;
   awayScore: number | null;
   events: MatchEvent[];
+  leagueSlug?: string;
 }
 
 // ── League registry ──
@@ -77,7 +78,7 @@ export const leagueBySlug = (slug: string): LeagueInfo | undefined =>
 
 /** Find LeagueInfo from a competition NAME (e.g. "Premier League"). Tolerant of variants. */
 export function leagueByName(name: string): LeagueInfo | undefined {
-  if (!name) return undefined;
+if (!name) return undefined;
   const exact = LEAGUES.find(l => l.name.toLowerCase() === name.toLowerCase());
   if (exact) return exact;
   const lower = name.toLowerCase();
@@ -85,11 +86,13 @@ export function leagueByName(name: string): LeagueInfo | undefined {
   if (lower.includes("world cup"))   return LEAGUES.find(l => l.slug === "fifa.world");
   if (lower.includes("premier"))     return LEAGUES.find(l => l.slug === "eng.1");
   if (lower.includes("bundesliga"))  return LEAGUES.find(l => l.slug === "ger.1");
+  // Country-specific checks FIRST — before generic competition names they contain.
+  if (lower.includes("brasileir") || lower.includes("brazil"))    return LEAGUES.find(l => l.slug === "bra.1");
+  if (lower.includes("argentine") || lower.includes("argentina")) return LEAGUES.find(l => l.slug === "arg.1");
   if (lower.includes("serie a"))     return LEAGUES.find(l => l.slug === "ita.1");
   if (lower.includes("ligue 1"))     return LEAGUES.find(l => l.slug === "fra.1");
-  if (lower.includes("la liga"))     return LEAGUES.find(l => l.slug === "esp.1");
+  if (lower.includes("la liga") || lower.includes("laliga")) return LEAGUES.find(l => l.slug === "esp.1");
   if (lower.includes("mls"))         return LEAGUES.find(l => l.slug === "usa.1");
-  if (lower.includes("brasileir") || lower.includes("brazil")) return LEAGUES.find(l => l.slug === "bra.1");
   return undefined;
 }
 

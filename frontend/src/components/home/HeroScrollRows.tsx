@@ -68,19 +68,17 @@ function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
 /* ------------------------------------------------------------------ */
 
 function CardItem({ card }: { card: Card }) {
-  const bg = card.type === "match" ? card.match.bgImage : card.image;
-  const href = card.type === "match" ? card.match.href : card.href;
+  const m = card.match;
 
   return (
-    <Link href={href} style={{ display: "block", flexShrink: 0 }}>
+    <Link href={m.href} style={{ display: "block", flexShrink: 0 }}>
       <div
+        className="hero-card"
         style={{
-          width: 220,
-          height: 140,
           borderRadius: 16,
           overflow: "hidden",
           position: "relative",
-          background: `#12122a url(${bg}) center / cover no-repeat`,
+          background: `#12122a url(${m.bgImage}) center / cover no-repeat`,
           transition: "transform 200ms ease",
         }}
         onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.03)"; }}
@@ -93,39 +91,28 @@ function CardItem({ card }: { card: Card }) {
             background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.78) 100%)",
           }}
         />
-
-        {card.type === "match" ? (
-          <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "12px 14px" }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", letterSpacing: "0.3px" }} suppressHydrationWarning>
-              {fmtKickoff(card.match.kickoff)}
-            </span>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <TeamCrest logo={card.match.homeLogo} name={card.match.home} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {card.match.home}
-                </span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <TeamCrest logo={card.match.awayLogo} name={card.match.away} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {card.match.away}
-                </span>
-              </div>
+        <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "12px 14px" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", letterSpacing: "0.3px" }} suppressHydrationWarning>
+            {fmtKickoff(m.kickoff)}
+          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <TeamCrest logo={m.homeLogo} name={m.home} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {m.home}
+              </span>
             </div>
-
-            <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.3px" }}>
-              {card.match.leagueLabel}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <TeamCrest logo={m.awayLogo} name={m.away} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {m.away}
+              </span>
+            </div>
           </div>
-        ) : (
-          <div style={{ position: "relative", height: "100%", display: "flex", alignItems: "flex-end", padding: 14 }}>
-            <span style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>
-              {card.label}
-            </span>
-          </div>
-        )}
+          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.3px" }}>
+            {m.leagueLabel}
+          </span>
+        </div>
       </div>
     </Link>
   );

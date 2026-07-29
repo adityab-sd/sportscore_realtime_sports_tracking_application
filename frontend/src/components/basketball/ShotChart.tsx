@@ -85,8 +85,11 @@ function extractPlayerFromText(text: string): string {
 // WHY: Split parser, coordinate mapper, filters, and SVG view into testable units.
 // ============================================================================
 function parseShots(data: RawJSON): Shot[] {
-  const gpj = data?.gamepackageJSON ?? data;
-  const rawPlays: RawJSON[] = gpj?.plays ?? gpj?.items ?? [];
+  // ESPN CDN blob is loosely shaped — read fields off `any`, guard at runtime.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gpj: any = (data as any)?.gamepackageJSON ?? data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawPlays: any[] = gpj?.plays ?? gpj?.items ?? [];
   const shots: Shot[] = [];
 
   for (const p of rawPlays) {

@@ -56,13 +56,13 @@ function StatusChip({ match }: { match: Match }) {
   );
 }
 
-export default function MatchCard({ match }: { match: Match }) {
+export default function MatchCard({ match, league }: { match: Match; league?: string | null }) {
   const live = classifyStatus(match.status) === "live";
   const homeWin = match.homeScore != null && match.awayScore != null && match.homeScore > match.awayScore;
   const awayWin = match.homeScore != null && match.awayScore != null && match.awayScore > match.homeScore;
 
   return (
-    <Link href={`/football/${match.id}?league=${encodeURIComponent(slugFromCompetition(match.competition))}`} style={{ textDecoration: "none" }}>
+    <Link href={`/football/${match.id}?league=${encodeURIComponent(league ?? slugFromCompetition(match.competition))}`} style={{ textDecoration: "none" }}>
       <div className="card-hover" style={{
         background: "var(--white)", border: "1px solid var(--border)",
         borderRadius: 12, padding: "14px 16px",
@@ -150,7 +150,6 @@ function slugFromCompetition(name: string): string {
     "A-League": "aus.1",
   };
   if (exact[name]) return exact[name];
-  // Substring fallback for ESPN display-name variants
   const lower = name.toLowerCase();
   if (lower.includes("champions"))   return "uefa.champions";
   if (lower.includes("europa conf")) return "uefa.europa.conf";
@@ -158,8 +157,12 @@ function slugFromCompetition(name: string): string {
   if (lower.includes("world cup"))   return "fifa.world";
   if (lower.includes("premier"))     return "eng.1";
   if (lower.includes("bundesliga"))  return "ger.1";
+  // country-specific BEFORE generic "serie a"
+  if (lower.includes("brasileir") || lower.includes("brazil")) return "bra.1";
+  if (lower.includes("argentin") || lower.includes("apertura") || lower.includes("clausura") || lower.includes("profesional")) return "arg.1";
   if (lower.includes("serie a"))     return "ita.1";
   if (lower.includes("ligue 1"))     return "fra.1";
-  if (lower.includes("la liga"))     return "esp.1";
-  return "eng.1"; // safe default
+  if (lower.includes("la liga") || lower.includes("laliga")) return "esp.1";
+  if (lower.includes("mls"))         return "usa.1";
+  return ""; // unknown — don't force eng.1 // safe default
 }

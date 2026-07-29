@@ -46,6 +46,14 @@ const SPORT_CONFIGS: Record<string, SportConfig> = {
       if (l.includes("champions")) return "uefa.champions";
       if (l.includes("premier"))   return "eng.1";
       if (l.includes("bundesliga")) return "ger.1";
+      if (l.includes("argentin") || l.includes("profesional") || l.includes("apertura") || l.includes("clausura")) return "arg.1";
+      if (l.includes("brasileir") || l.includes("brazil"))  return "bra.1";
+      if (l.includes("argentin"))    return "arg.1";
+  if (l.includes("apertura"))    return "arg.1";
+  if (l.includes("clausura"))    return "arg.1";
+  if (l.includes("profesional")) return "arg.1";
+  if (l.includes("brasileir"))   return "bra.1";
+  if (l.includes("liga mx") || l.includes("mexican")) return "mex.1";
       return "eng.1";
     },
   },

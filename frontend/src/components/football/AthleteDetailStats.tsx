@@ -14,7 +14,7 @@ export function AthleteStatTable({ data }: { data: RawJSON }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {categories.map((cat: RawJSON, ci: number) => {
+      {categories.map((cat: any, ci: number) => {
         const stats = cat.stats ?? cat.statistics ?? [];
         if (!Array.isArray(stats) || stats.length === 0) return null;
         const catName = cat.displayName ?? cat.name ?? "Stats";
@@ -25,7 +25,7 @@ export function AthleteStatTable({ data }: { data: RawJSON }) {
               {catName}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 0 }}>
-              {stats.map((s: RawJSON, si: number) => (
+              {stats.map((s: any, si: number) => (
                 <div key={s.name ?? si} style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {s.displayName ?? s.name ?? s.abbreviation ?? "–"}
@@ -54,7 +54,7 @@ export function AthleteGamelog({ data }: { data: RawJSON }) {
   const events = data?.events ?? {};
 
   const gameLogs = Array.isArray(seasonTypes)
-    ? seasonTypes.flatMap((st: RawJSON) => st?.categories ?? [])
+    ? seasonTypes.flatMap((st: any) => st?.categories ?? [])
     : categories;
 
   if (!Array.isArray(gameLogs) || gameLogs.length === 0) return null;
@@ -86,7 +86,7 @@ export function AthleteGamelog({ data }: { data: RawJSON }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row: RawJSON, ri: number) => {
+            {rows.map((row: any, ri: number) => {
               const eventId = row?.eventId ?? "";
               const eventInfo = eventMap[eventId];
               const stats: string[] = row?.stats ?? [];
@@ -134,7 +134,7 @@ export function AthleteSplits({ data }: { data: RawJSON }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {categories.map((cat: RawJSON, ci: number) => {
+      {categories.map((cat: any, ci: number) => {
         const catName = cat.displayName ?? cat.name ?? "Splits";
         const splits = cat.splits ?? [];
         if (!Array.isArray(splits) || splits.length === 0) return null;
@@ -161,7 +161,7 @@ export function AthleteSplits({ data }: { data: RawJSON }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {splits.map((split: RawJSON, si: number) => {
+                  {splits.map((split: any, si: number) => {
                     const stats: string[] = split.stats ?? [];
                     return (
                       <tr key={split.name ?? si} style={{ borderBottom: "1px solid var(--border)" }}>

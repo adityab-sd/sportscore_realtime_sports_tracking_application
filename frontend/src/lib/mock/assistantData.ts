@@ -4,7 +4,16 @@ import { ChatMessage } from "@/types/assistant";
 // are now always an array (matching the updated discriminated union type), and the mock
 // data uses a format consistent with what Azure AI Search RAG will return.
 export const mockConversation: ChatMessage[] = [
-  { id: "1", role: "assistant", content: "Hi! I'm the SportScore Knowledge Assistant. Ask me about rules, players, competitions, or anything sports-related.", citations: [] },
-  { id: "2", role: "user", content: "What is the offside rule in football?" },
-  { id: "3", role: "assistant", content: "A player is in an offside position if they are nearer to the opponent's goal line than both the ball and the second-last opponent when the ball is played to them by a teammate. Being offside is not an offence in itself — the player must be actively involved in play.", citations: ["FIFA Laws of the Game, Law 11 — Offside"] },
+  { id: "1", role: "assistant", content: "Hi, I’m Benchwarmer. I have zero athletic ability, negative cardio, and an endless supply of unearned confidence. Ask me about rules, stats, or why your favorite coach should be fired.", citations: [] },
+  { 
+    id: "2", 
+    role: "user", 
+    content: "When is a handball called in soccer?" 
+  },
+  { 
+    id: "3", 
+    role: "assistant", 
+    content: "If a player deliberately touches the ball or makes their body unnaturally bigger using their arm below the armpit. Unless, of course, the referee is having a weird day — in which case nobody on earth, including VAR, knows what the rule is anymore.", 
+    citations: ["IFAB Laws of the Game, Law 12 — Fouls and Misconduct"] 
+  },
 ];

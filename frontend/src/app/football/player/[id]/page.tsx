@@ -9,6 +9,8 @@ import PlayerNewsFeed from "@/components/football/PlayerNewsFeed";
 import TeamLogo from "@/components/football/TeamLogo";
 import PlayerSidebars from "@/components/football/PlayerSidebars";
 
+
+
 export const dynamic = "force-dynamic";
 
 interface Props {

@@ -219,7 +219,9 @@ export const getFixtures = (league: string) =>
     { results: [], upcoming: [] },
     60,
   );
-
+export const getFixturesByDate = (league: string, date: string) =>
+  apiGet<{ results: BBFixture[]; upcoming: BBFixture[] }>(
+    `/${league}/fixtures?date=${date}`, { results: [], upcoming: [] }, 30);
 export const getStandings = (league: string) =>
   apiGet<BBStandingRow[]>(`/${league}/standings`, [], 300);
 

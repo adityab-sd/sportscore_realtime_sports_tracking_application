@@ -117,7 +117,9 @@ export const getGroups = (league: string) =>
 
 export const getRankings = (league: string) =>
   apiGet<RawJSON>(`/${league}/rankings`, null, 3600);
-
+export const getFixturesByDate = (league: string, date: string) =>
+  apiGet<{ results: ESPNFixture[]; upcoming: ESPNFixture[] }>(
+    `/${league}/fixtures?date=${date}`, { results: [], upcoming: [] }, 30);
 // ═══════════════════════════════════════════════════════════════
 //  News
 // ═══════════════════════════════════════════════════════════════
