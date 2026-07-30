@@ -83,13 +83,34 @@ _embedding_model = None
 _pg_connection = None
 
 BASKETBALL_KEYWORDS = {
-    "basketball", "nba", "dribble", "three point", "three-point", "free throw", "rebound", "slam dunk", "pick and roll", "layup",
-    "jump shot", "shot clock", "foul out", "wnba", "fiba", "hoop", "backboard", "rim", "paint", "point guard", "shooting guard"
+    "basketball", "nba", "dribble", "three point", "three-point", "free throw", "rebound", "slam dunk", "pick and roll", "layup", 
+    "jump shot", "shot clock", "foul out", "wnba", "fiba", "hoop", "backboard", "rim", "paint", "point guard", "shooting guard",
+    "hawks", "celtics", "nets", "hornets", "bulls", "cavaliers", "cavs", "mavericks", "mavs", "nuggets", "pistons", "warriors", 
+    "rockets", "pacers", "clippers", "lakers", "grizzlies", "heat", "bucks", "timberwolves", "pelicans", "knicks", "thunder", 
+    "magic", "76ers", "sixers", "suns", "trail blazers", "blazers", "kings", "spurs", "raptors", "jazz", "wizards"
 }
 
 FOOTBALL_KEYWORDS = {
-    "football", "soccer", "offside", "premier league", "uefa", "fifa", "formation", "penalty", "yellow card", "red card", "free kick",
-    "corner kick", "throw in", "goalkeeper", "striker", "midfielder", "bundesliga", "la liga", "serie a", "champions league", "world cup"
+    "football", "soccer", "offside", "premier league", "uefa", "fifa", "formation", "penalty", "yellow card", "red card", 
+    "free kick", "corner kick", "throw-in", "goal kick", "var", "handball", "striker", "midfielder", "defender", 
+    "goalkeeper", "winger", "hat-trick", "clean sheet", "relegation", "champions league", "world cup", "arsenal", 
+    "aston villa", "bournemouth", "brentford", "brighton", "burnley", "chelsea", "crystal palace", "everton",
+    "fulham", "leeds", "liverpool", "manchester city", "manchester united", "newcastle", "nottingham forest", "sunderland",
+    "tottenham", "west ham", "wolverhampton", "real madrid", "barcelona", "bayern munich", "juventus", "psg", "paris saint-germain"
+}
+
+BASEBALL_KEYWORDS = {
+    "baseball", "mlb", "home run", "grand slam", "strikeout", "shortstop", "bullpen", "inning", "innings", "world series", 
+    "designated hitter", "pitcher", "pitching", "catcher", "outfielder", "infielder", "bunt", "stolen base", "balk", "dugout",
+    "batter", "at bat", "wbc", "npb", "milb", "cy young", "world baseball classic", "diamondbacks", "braves", "orioles", "red sox", 
+    "cubs", "white sox", "reds", "guardians", "rockies", "tigers", "astros", "royals", "angels", "dodgers", "marlins", "brewers", "twins",
+    "mets", "yankees", "athletics", "phillies", "pirates", "padres", "giants", "mariners", "cardinals", "rays", "rangers", "blue jays", "nationals"
+}
+F1_KEYWORDS = {
+    "f1", "formula 1", "formula one", "grand prix", "pole position", "qualifying", "pit stop", "pit lane", "drs", "safety car", 
+    "constructors", "paddock", "podium", "chequered flag", "checkered flag", "undercut", "overcut", "power unit", 
+    "parc ferme", "parc fermé", "sprint race", "fastest lap", "red flag", "sector", "cadillac f1", "mclaren", "ferrari f1", 
+    "mercedes f1", "red bull racing", "aston martin f1"
 }
 
 # Filler words stripped out when building the Round 2 broad query
@@ -104,8 +125,8 @@ STOPWORDS = {
 # (e.g. "golden" in "Golden Boot" matching "Golden State Valkyries") from
 # being treated as a real match.
 LIVE_NOISE_WORDS = {
-    "score", "scores", "match", "matches", "game", "games", "next", "happening",
-    "playing", "today", "won", "win", "wins", "result", "results", "who", "when"
+    "score", "scores","scored", "match", "matches", "game", "games", "next", "happening",
+    "playing", "play", "played", "today", "won", "win", "wins", "result", "results", "who", "when"
 }
 
 
@@ -162,6 +183,20 @@ def _detect_sport(question):
                 return "football"
         elif kw in tokens:
             return "football"
+
+    for kw in BASEBALL_KEYWORDS:
+        if " " in kw:
+            if kw in q_lower:
+                return "baseball"
+        elif kw in tokens:
+            return "baseball"
+
+    for kw in F1_KEYWORDS:
+        if " " in kw:
+            if kw in q_lower:
+                return "f1"
+        elif kw in tokens:
+            return "f1"
 
     return None
 
@@ -296,7 +331,7 @@ def search_live_corpus(question, top=6):
     word overlap (e.g. "golden" in "Golden Boot" vs "Golden State
     Valkyries") is not treated as a real match.
     """
-    all_results = _search_index(LIVE_INDEX, "*", top=1000)
+    all_results = _search_index(LIVE_INDEX, "*", top=5000)
     if not all_results:
         return {"found": False, "round_used": None, "results": []}
 

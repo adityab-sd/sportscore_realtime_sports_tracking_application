@@ -40,15 +40,15 @@ CURRENT_YEAR = datetime.now().year  # used by fast_classify_question's year heur
 
 # Words that reliably signal a definition/rules/bio question (always "knowledge"),
 # vs. words that reliably signal a current/right-now question (always "live").
-KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do",
-                      "explain", "define", "who is", "who was", "how many",
+KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do", "explain", "define", "who is", "who was", "how many",
                       "how is", "how are")
-KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds",
-                     "most decorated", "biggest", "greatest of all",
-                     "the most", "won the most", "has won the most")
-LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently",
-               "live score", "at the moment", "this season")
 
+KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds", "most decorated", "biggest", "greatest of all",
+                     "the most", "won the most", "has won the most")
+
+LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season",
+               "latest", "last race", "last game", "last match", "most recent", "standings", "current standing",
+               "next", "play next", "playing next", "what is","what's","whats")
 
 def fast_classify_question(question):
     """
@@ -76,10 +76,17 @@ def fast_classify_question(question):
         return "live"
 
     if any(q_lower.startswith(starter) for starter in KNOWLEDGE_STARTERS):
-        # "who is X" is a bio question (knowledge) — but "who won/has won X"
-        # is NOT covered by this starter list, so it correctly falls through
-        # to the year-based check or the LLM below instead of being
-        # misclassified here.
+        # "who is X" is normally a bio question (knowledge) — EXCEPT "who
+        # is leading/the leader in X", which is a live standings question,
+        # not a biography. That specific pattern must fall through to the
+        # LLM classifier below (which already handles it correctly via its
+        # "Who is leading the Premier League right now?" -> live example),
+        # rather than being short-circuited here.
+        is_who_is_leading = q_lower.startswith(("who is", "who's", "who are")) and any(
+            w in q_lower for w in ("leading", "leader", "top of", "first place")
+        )
+        if is_who_is_leading:
+            return "live"
         return "knowledge"
 
     if any(signal in q_lower for signal in KNOWLEDGE_SIGNALS):
@@ -128,7 +135,8 @@ Category:"""
         response = client.chat.completions.create(
             model=DEPLOYMENT,
             messages=[{"role": "user", "content": classification_prompt}],
-            max_completion_tokens=150
+            max_completion_tokens=150,
+            reasoning_effort="minimal"
         )
         answer = response.choices[0].message.content.strip().lower()
         return "live" if "live" in answer else "knowledge"
@@ -145,6 +153,7 @@ def _generate_answer(context, question):
             model=DEPLOYMENT,
             messages=[{"role": "user", "content": prompt}],
             max_completion_tokens=1500,  
+            reasoning_effort="minimal"
             # every real answer seen in testing has been well under this
         )
         return response.choices[0].message.content.strip()
@@ -262,4 +271,4 @@ def health():
 
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")), debug=debug_mode)
+    app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")), debug=debug_mode, use_reloader=False)

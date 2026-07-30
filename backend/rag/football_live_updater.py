@@ -11,7 +11,7 @@ Pulls three kinds of data per league, directly from ESPN's public API:
 import os
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
@@ -67,22 +67,24 @@ def _get(url):
         response = requests.get(url, headers={"User-Agent": "SportScore/1.0"}, timeout=10)
         if response.status_code == 200:
             return response.json()
+        else:
+            pass
     except Exception as e:
         print(f"  Error fetching {url}: {e}")
     return None
 
 
-# ── SCOREBOARD ────────────────────────────────────────────
+# ── SCOREBOARD ───────────────────────────────────────────
 def fetch_scoreboard(league_slug):
-    from datetime import timedelta
     today = datetime.utcnow()
-    date_from = (today - timedelta(days=21)).strftime("%Y%m%d")
-    date_to = (today + timedelta(days=21)).strftime("%Y%m%d")
-    url = f"{SITE_BASE}/{league_slug}/scoreboard?dates={date_from}-{date_to}&limit=200"
+    date_from = (today - timedelta(days=7)).strftime("%Y%m%d")
+    date_to = (today + timedelta(days=45)).strftime("%Y%m%d")
+    url = f"{SITE_BASE}/{league_slug}/scoreboard?dates={date_from}-{date_to}&limit=1000"
     return _get(url)
 
 
 def parse_matches(data, league_name):
+
     docs = []
     if not data:
         return docs
@@ -114,7 +116,7 @@ def parse_matches(data, league_name):
                 content = f"{home_name} vs {away_name} in the {league_name} is marked as completed on {kickoff}, but the final score is not available in this data."
             else:
                 content = f"{home_name} vs {away_name} is scheduled (upcoming) in the {league_name}. Tip-off: {kickoff}."
-                
+
             docs.append({
                 "id": doc_id,
                 "sport": "football",
@@ -127,6 +129,60 @@ def parse_matches(data, league_name):
         except Exception as e:
             print(f"  Error parsing match event: {e}")
     return docs
+
+def build_next_match_summary(scoreboard_data, league_name, league_slug):
+    """Mirrors build_latest_results_summary()-style docs but inverted:
+    finds the soonest upcoming (state == 'pre') match instead of the
+    most recently completed one. Groups all matches sharing that
+    soonest date together, same reasoning as the 'latest' fix."""
+    if not scoreboard_data:
+        return None
+
+    upcoming = []
+    for event in scoreboard_data.get("events", []):
+        try:
+            competition = event.get("competitions", [{}])[0]
+            competitors = competition.get("competitors", [])
+            status_type = competition.get("status", {}).get("type", {})
+            state = status_type.get("state", "pre")
+            if state != "pre":
+                continue
+
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+            game_date = competition.get("date") or ""
+            if not game_date:
+                continue
+
+            upcoming.append({
+                "date": game_date,
+                "home": home.get("team", {}).get("displayName", "Unknown"),
+                "away": away.get("team", {}).get("displayName", "Unknown"),
+            })
+        except Exception as e:
+            print(f"  Error scanning event for next match: {e}")
+
+    if not upcoming:
+        return None
+
+    soonest_date = min(g["date"] for g in upcoming)
+    next_matches = [g for g in upcoming if g["date"] == soonest_date]
+
+    lines = [f"{g['away']} vs {g['home']}" for g in next_matches]
+    content = (
+        f"The next upcoming {league_name} match(es) are scheduled for {soonest_date}:\n"
+        + "\n".join(lines)
+    )
+
+    return {
+        "id": f"live-football-next-match-{_safe_id(league_slug)}",
+        "sport": "football",
+        "category": "live-match",
+        "title": f"{league_name} — Next Match",
+        "content": content,
+        "source": "espn.com",
+        "last_updated": datetime.utcnow().isoformat()
+    }
 
 # ── STANDINGS ──────────────────────────────────────────────
 def fetch_standings(league_slug):
@@ -193,7 +249,16 @@ def parse_standings(data, league_name, league_slug):
 
 # ── LEADERS (TOP SCORERS) ──────────────────────────────────
 def fetch_leaders(league_slug):
-    return _get(f"{SITE_BASE}/{league_slug}/leaders")
+    year = datetime.utcnow().year
+    return _get(f"https://sports.core.api.espn.com/v2/sports/soccer/leagues/{league_slug}/seasons/{year}/types/2/leaders")
+
+def _resolve_name(ref_url):
+    if not ref_url:
+        return "Unknown"
+    data = _get(ref_url)
+    if not data:
+        return "Unknown"
+    return data.get("displayName") or data.get("shortName") or data.get("name") or "Unknown"
 
 
 def parse_leaders(data, league_name, league_slug):
@@ -206,7 +271,7 @@ def parse_leaders(data, league_name, league_slug):
     goal_cat = None
     for cat in categories:
         name = (cat.get("displayName") or cat.get("name") or "").lower()
-        if "goal" in name or "scor" in name:
+        if "goal" in name:
             goal_cat = cat
             break
     if goal_cat is None:
@@ -217,16 +282,18 @@ def parse_leaders(data, league_name, league_slug):
         return []
 
     lines = []
-    for i, leader in enumerate(leaders[:10]):
-        athlete_name = leader.get("athlete", {}).get("displayName", "Unknown")
-        team_name = leader.get("team", {}).get("displayName", "")
-        value = leader.get("displayValue", leader.get("value", ""))
+    for i, leader in enumerate(leaders[:5]):
+        athlete_ref = leader.get("athlete", {}).get("$ref")
+        team_ref = leader.get("team", {}).get("$ref")
+        athlete_name = _resolve_name(athlete_ref)
+        team_name = _resolve_name(team_ref)
+        value = leader.get("displayValue", "")
         lines.append(f"{i+1}. {athlete_name} ({team_name}) — {value}")
 
     if not lines:
         return []
 
-    category_label = goal_cat.get("displayName", goal_cat.get("name", "Leaders"))
+    category_label = goal_cat.get("displayName", "Leaders")
     content = f"Current {league_name} {category_label} leaders:\n" + "\n".join(lines)
 
     return [{
@@ -238,7 +305,6 @@ def parse_leaders(data, league_name, league_slug):
         "source": "espn.com",
         "last_updated": datetime.utcnow().isoformat()
     }]
-
 
 # ── UPLOAD ─────────────────────────────────────────────────
 def upload_to_search(docs):
@@ -262,6 +328,10 @@ def run():
             scoreboard_data = fetch_scoreboard(slug)
             match_docs = parse_matches(scoreboard_data, name)
             all_docs.extend(match_docs)
+
+            next_match_doc = build_next_match_summary(scoreboard_data, name, slug)
+            if next_match_doc:
+                all_docs.append(next_match_doc)
 
             standings_data = fetch_standings(slug)
             standings_docs = parse_standings(standings_data, name, slug)
