@@ -28,6 +28,7 @@ public class LockoutAwareAuthenticationEntryPoint implements AuthenticationEntry
 
         if (authException instanceof LockedException) {
             response.setStatus(423); // 423 Locked
+            response.setHeader("Retry-After", "300");
             response.setContentType("application/json");
             response.getWriter().write(
                 "{\"error\":\"account_locked\",\"message\":\"" +
