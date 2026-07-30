@@ -10,8 +10,7 @@ interface Stats {
 
 export default function SecurityStats() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081";
-
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
   useEffect(() => {
     let cancelled = false;
 
