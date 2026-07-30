@@ -9,6 +9,7 @@ import java.util.Map;
 import org.Spring.baseball.adapter.CoreBaseballAdapter;
 import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
+import org.Spring.model.MatchEvent;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
@@ -81,6 +82,30 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
     @Override
     public String sportName() {
         return "baseball";
+    }
+
+    @Override
+    protected List<MatchEvent> detectCustomEvents(Match current, Match previous) {
+        if (previous == null) return List.of(); // nothing to diff against yet
+
+        List<MatchEvent> events = new ArrayList<>();
+        int minute = current.period() != null ? current.period() : 0;
+
+        if (current.homeScore() != null && previous.homeScore() != null
+                && !current.homeScore().equals(previous.homeScore())) {
+            events.add(new MatchEvent(minute, "RUN_SCORED", null, null, null,
+                    current.homeTeam() != null ? current.homeTeam().id() : 0));
+        }
+        if (current.awayScore() != null && previous.awayScore() != null
+                && !current.awayScore().equals(previous.awayScore())) {
+            events.add(new MatchEvent(minute, "RUN_SCORED", null, null, null,
+                    current.awayTeam() != null ? current.awayTeam().id() : 0));
+        }
+        if (current.period() != null && previous.period() != null
+                && !current.period().equals(previous.period())) {
+            events.add(new MatchEvent(minute, "INNING_CHANGE", current.statusDetail(), null, null, 0));
+        }
+        return events;
     }
 
     // -------------------------------------------------------------------------

@@ -24,6 +24,7 @@ public abstract class AbstractEspnFetcher {
     // each sport gets its own fetcher bean, so match ids never collide across sports.
     private final Map<Integer, Set<String>> seenEvents = new ConcurrentHashMap<>();
     private final Map<Integer, String> lastStatus = new ConcurrentHashMap<>();
+    private final Map<Integer, Match> lastSnapshot = new ConcurrentHashMap<>();
 
     protected AbstractEspnFetcher(
             EventHubProducer producer,
@@ -43,6 +44,14 @@ public abstract class AbstractEspnFetcher {
 
     protected String scoreboardUrl(String league) {
         return baseUrl() + "/" + league + "/scoreboard";
+    }
+
+    // New extension point. Football/basketball ignore this (their per-play events
+    // come from m.events() via ESPN's `details` array). Baseball/F1 override it
+    // to synthesize events by diffing the current poll against the previous one,
+    // since their ESPN scoreboard payload carries no play-by-play array at all.
+    protected List<MatchEvent> detectCustomEvents(Match current, Match previous) {
+        return List.of();
     }
 
     public final List<Match> fetchMatches(String league) throws Exception {
@@ -85,6 +94,9 @@ public abstract class AbstractEspnFetcher {
                     newEvents.add(e);
                 }
             }
+            List<MatchEvent> custom = detectCustomEvents(m, lastSnapshot.get(m.id()));
+            newEvents.addAll(custom);
+            lastSnapshot.put(m.id(), m);
 
             if (!newEvents.isEmpty()) {
                 toPublish.add(m.withEvents(newEvents));
@@ -102,6 +114,7 @@ public abstract class AbstractEspnFetcher {
                 .collect(java.util.stream.Collectors.toSet());
         seenEvents.keySet().retainAll(stillLiveIds);
         lastStatus.keySet().retainAll(stillLiveIds);
+        lastSnapshot.keySet().retainAll(stillLiveIds);
     }
 
     private MatchEvent detectTransition(Match m) {

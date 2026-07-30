@@ -21,6 +21,8 @@ export default function RadioBar({ open, onClose }: Props) {
     if (!pathname) return null;
     if (pathname.startsWith("/football")) return "football";
     if (pathname.startsWith("/basketball")) return "basketball";
+    if (pathname.startsWith("/baseball")) return "baseball";
+    if (pathname.startsWith("/f1")) return "f1";
     return null;
   }, [pathname]);
 
