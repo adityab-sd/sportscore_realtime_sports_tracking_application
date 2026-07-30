@@ -57,9 +57,9 @@ def _get(url):
 # ── SCOREBOARD ────────────────────────────────────────────
 def fetch_scoreboard(league_slug):
     today = datetime.utcnow()
-    date_from = (today - timedelta(days=21)).strftime("%Y%m%d")
-    date_to = (today + timedelta(days=21)).strftime("%Y%m%d")
-    url = f"{SITE_BASE}/{league_slug}/scoreboard?dates={date_from}-{date_to}&limit=200"
+    date_from = (today - timedelta(days=7)).strftime("%Y%m%d")
+    date_to = (today + timedelta(days=45)).strftime("%Y%m%d")
+    url = f"{SITE_BASE}/{league_slug}/scoreboard?dates={date_from}-{date_to}&limit=1000"
     return _get(url)
 
 
@@ -112,6 +112,63 @@ def parse_matches(data, league_name):
             print(f"  Error parsing match event: {e}")
     return docs
 
+def build_latest_results_summary(scoreboard_data, league_name, league_slug):
+    """Same fix as baseball's build_latest_results_summary() and F1's
+    build_latest_race_summary() — groups completed games from the most
+    recent date into one doc with 'latest'/'most recent' explicitly
+    written in, so vague queries have something to match against."""
+    if not scoreboard_data:
+        return None
+
+    completed = []
+    for event in scoreboard_data.get("events", []):
+        try:
+            competition = event.get("competitions", [{}])[0]
+            competitors = competition.get("competitors", [])
+            status_type = competition.get("status", {}).get("type", {})
+            state = status_type.get("state", "pre")
+            if state != "post":
+                continue
+
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+            home_score = home.get("score")
+            away_score = away.get("score")
+            if home_score in (None, "") or away_score in (None, ""):
+                continue
+
+            game_date = (competition.get("date") or "")[:10]
+            completed.append({
+                "date": game_date,
+                "home": home.get("team", {}).get("displayName", "Unknown"),
+                "away": away.get("team", {}).get("displayName", "Unknown"),
+                "home_score": home_score,
+                "away_score": away_score,
+            })
+        except Exception as e:
+            print(f"  Error scanning game for latest results: {e}")
+
+    if not completed:
+        return None
+
+    most_recent_date = max(g["date"] for g in completed)
+    latest_games = [g for g in completed if g["date"] == most_recent_date]
+
+    lines = [f"{g['away']} {g['away_score']}, {g['home']} {g['home_score']}" for g in latest_games]
+    content = (
+        f"The latest and most recent completed {league_name} results are from {most_recent_date}:\n"
+        + "\n".join(lines)
+    )
+
+    return {
+        "id": f"live-basketball-latest-results-{_safe_id(league_slug)}",
+        "sport": "basketball",
+        "category": "live-match",
+        "title": f"{league_name} — Latest Results",
+        "content": content,
+        "source": "espn.com",
+        "last_updated": datetime.utcnow().isoformat()
+    }
 
 # ── STANDINGS ──────────────────────────────────────────────
 def fetch_standings(league_slug):
@@ -177,54 +234,56 @@ def parse_standings(data, league_name, league_slug):
 
 # ── LEADERS (TOP SCORERS) — note: /statistics endpoint, not /leaders ───────
 def fetch_leaders(league_slug):
-    return _get(f"{SITE_BASE}/{league_slug}/statistics")
+    year = datetime.utcnow().year
+    url = (
+        f"https://site.web.api.espn.com/apis/common/v3/sports/basketball/{league_slug}"
+        f"/statistics/byathlete?isqualified=true&sort=offensive.avgPoints:desc"
+        f"&season={year}&limit=10"
+    )
+    return _get(url)
 
 
 def parse_leaders(data, league_name, league_slug):
     if not data:
         return []
-    categories = data.get("categories", [])
-    if not categories:
-        categories = data.get("leaders", {}).get("categories", [])
-    if not categories:
-        return []
-
-    points_cat = None
-    for cat in categories:
-        name = (cat.get("displayName") or cat.get("name") or "").lower()
-        if "point" in name or "scor" in name or "pts" in name:
-            points_cat = cat
-            break
-    if points_cat is None:
-        points_cat = categories[0]
-
-    leaders = points_cat.get("leaders", [])
-    if not leaders:
+    athletes = data.get("athletes", [])
+    if not athletes:
         return []
 
     lines = []
-    for i, leader in enumerate(leaders[:10]):
-        athlete_name = leader.get("athlete", {}).get("displayName", "Unknown")
-        team_name = leader.get("team", {}).get("displayName", "")
-        value = leader.get("displayValue", leader.get("value", ""))
-        lines.append(f"{i+1}. {athlete_name} ({team_name}) — {value}")
+    for i, entry in enumerate(athletes[:10]):
+        athlete = entry.get("athlete", {})
+        name = athlete.get("displayName", "Unknown")
+        team = athlete.get("teamName", "")
+        categories = entry.get("categories", [])
+        # Find whichever category holds points-per-game — name may vary
+        # (e.g. "offensive", "general") so scan for the right one rather
+        # than assume "batting"-style fixed naming like baseball has.
+        offensive = next((c for c in categories if "offensive" in (c.get("name") or "").lower()), None)
+        if not offensive:
+            offensive = categories[0] if categories else None
+        if not offensive:
+            continue
+        totals = offensive.get("totals", [])
+        # NOTE: unverified index — print(totals) on first real run to find
+        # which position holds points-per-game, then adjust this index.
+        ppg = totals[0] if totals else "?"
+        lines.append(f"{i+1}. {name} ({team}) — {ppg} PPG")
 
     if not lines:
         return []
 
-    category_label = points_cat.get("displayName", points_cat.get("name", "Leaders"))
-    content = f"Current {league_name} {category_label} leaders:\n" + "\n".join(lines)
+    content = f"Current {league_name} scoring leaders:\n" + "\n".join(lines)
 
     return [{
         "id": f"live-basketball-leaders-{_safe_id(league_slug)}",
         "sport": "basketball",
         "category": "live-leaders",
-        "title": f"{league_name} — Top Scorers",
+        "title": f"{league_name} — Scoring Leaders",
         "content": content,
         "source": "espn.com",
         "last_updated": datetime.utcnow().isoformat()
     }]
-
 
 # ── UPLOAD ─────────────────────────────────────────────────
 def upload_to_search(docs):
@@ -251,6 +310,10 @@ def run():
             scoreboard_data = fetch_scoreboard(slug)
             match_docs = parse_matches(scoreboard_data, name)
             all_docs.extend(match_docs)
+
+            latest_results_doc = build_latest_results_summary(scoreboard_data, name, slug)
+            if latest_results_doc:
+                all_docs.append(latest_results_doc)
 
             standings_data = fetch_standings(slug)
             standings_docs = parse_standings(standings_data, name, slug)
