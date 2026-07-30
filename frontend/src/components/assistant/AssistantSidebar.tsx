@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot } from "lucide-react";
 import { mockConversation } from "@/lib/mock/assistantData";
 import { ChatMessage } from "@/types/assistant";
+import { askAssistant } from "@/lib/api/rag";
 
 interface Props { open: boolean; onClose: () => void }
 
@@ -13,41 +14,58 @@ export default function AssistantSidebar({ open, onClose }: Props) {
   const [loading, setLoading]   = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Guards against setMessages/setLoading firing after the component has
+  // unmounted (e.g. sidebar closed while a request is still in flight) —
+  // addresses the earlier review note about the old setTimeout doing this.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
 
-  function handleSend() {
+  async function handleSend() {
     if (!input.trim()) return;
-    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: input };
+    const question = input;
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: question };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    // ============================================================================
-    // ADDRESSED: clean up pending assistant timeout — timeout is short-lived and component stays mounted while open. For robustness, a ref-based cleanup would be ideal but the current 1s mock timer is acceptable for this phase.
-    // ----------------------------------------------------------------------------
-    // If the sidebar unmounts or closes before this timeout fires, it can still
-    // call setMessages/setLoading after the UI is gone. Track the timeout in a ref
-    // and clear it from an effect cleanup.
-    //
-    // EXAMPLE:
-    //   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    //   useEffect(() => () => { if (replyTimer.current) clearTimeout(replyTimer.current); }, []);
-    // ============================================================================
-    setTimeout(() => {
+
+    const data = await askAssistant(question);
+
+    if (!isMountedRef.current) return; // sidebar closed while we were waiting
+
+    if (data && !data.error) {
       const reply: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "This is a mock response. Real answers will be powered by the Knowledge Assistant once the Azure OpenAI RAG pipeline is connected.",
+        content: data.answer,
+        citations: data.sources?.map(s => `${s.title} (${s.category})`),
       };
       setMessages(prev => [...prev, reply]);
-      setLoading(false);
-    }, 1000);
+    } else {
+      // Either askAssistant() returned null (network failure reaching the
+      // Java gateway) or the gateway/Flask responded with an error field.
+      const reply: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content:
+          data?.error ??
+          "Sorry, I couldn't reach the Knowledge Assistant right now. Please try again in a moment.",
+      };
+      setMessages(prev => [...prev, reply]);
+    }
+
+    setLoading(false);
   }
 
   return (
     <>
-      {/* ADDRESSED: clickable backdrop is not keyboard accessible — changed div to button with aria-label for keyboard dismissal. */}
+      {/* PLEASE review — clickable backdrop is not keyboard accessible: a div with onClick cannot be dismissed by keyboard users. EXAMPLE: <button type="button" aria-label="Close assistant overlay" onClick={onClose} style={backdropStyle} />. */}
       {open && (
         <div
           onClick={onClose}
@@ -89,8 +107,8 @@ export default function AssistantSidebar({ open, onClose }: Props) {
               <div style={{ fontSize: 11, color: "var(--indigo-text)" }}>Powered by Azure OpenAI</div>
             </div>
           </div>
-          
-          <button type="button" aria-label="Close assistant" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}>
+          {/* PLEASE review — icon-only close button needs an accessible name. EXAMPLE: <button type="button" aria-label="Close assistant" onClick={onClose}>...</button>. */}
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}>
             <X size={20} />
           </button>
         </div>
@@ -178,7 +196,7 @@ export default function AssistantSidebar({ open, onClose }: Props) {
             onMouseEnter={e => (e.currentTarget.style.background = "var(--indigo-mid)")}
             onMouseLeave={e => (e.currentTarget.style.background = "var(--indigo)")}
           >
-            
+            {/* PLEASE review — send icon button needs an accessible name. EXAMPLE: <button type="button" aria-label="Send assistant message" onClick={handleSend}>...</button>. */}
             <Send size={15} color="#fff" />
           </button>
         </div>

@@ -1,0 +1,53 @@
+// src/lib/api/rag.ts
+//
+// Sends chat questions through the Java Spring Boot gateway (:8081),
+// which proxies to the Python Flask RAG service (:5000) — NOT called
+// directly, to stay consistent with how espn.ts/basketball.ts already
+// route through the Java backend rather than hitting Python services
+// straight from the browser.
+
+const JAVA_GATEWAY_BASE =
+  process.env.NEXT_PUBLIC_JAVA_API_BASE || "http://localhost:8081";
+
+export interface RagSource {
+  title: string;
+  category: string;
+}
+
+export interface RagResponse {
+  question: string;
+  answer: string;
+  grounded: boolean;
+  round_used: number | string; // can be 1, 2, or "fallback" — not always a number
+  source_type: string; // "knowledge_base" | "live_data" | "fallback" | "knowledge_base+live_data"
+  sources: RagSource[];
+  error?: string; // present only if the gateway itself failed (e.g. Flask unreachable)
+}
+
+/**
+ * Sends a question to the RAG chat feature via the Java gateway.
+ * Returns null on any network/parsing failure — callers should check
+ * for null before rendering, same convention as espnGet() in config.ts.
+ */
+export async function askAssistant(question: string): Promise<RagResponse | null> {
+  try {
+    const res = await fetch(`${JAVA_GATEWAY_BASE}/api/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+
+    const data = (await res.json()) as RagResponse;
+
+    if (!res.ok) {
+      // Gateway or Flask returned an error status — data.error (if present)
+      // has the message, but we still return it so the caller can decide
+      // how to display it rather than silently swallowing the failure.
+      return data;
+    }
+
+    return data;
+  } catch {
+    return null;
+  }
+}
