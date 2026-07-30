@@ -86,12 +86,17 @@ export default function RadioBar({ open, onClose }: Props) {
       audioRef.current.pause();
       setPlaying(false);
     } else {
-      // Calling .play() synchronously inside this click handler is what makes
-      // it count as a user gesture - do not move this into a useEffect.
+      const expectedSrc = `data:${current.contentType};base64,${current.audioBase64}`;
+      // Guard against the src-loading effect not having run yet (e.g. clicking
+      // play right as a new event arrives) — set it here too, synchronously,
+      // so .play() is never called against a stale/empty element.
+      if (audioRef.current.src !== expectedSrc) {
+        audioRef.current.src = expectedSrc;
+      }
       audioRef.current
-        .play()
-        .then(() => setPlaying(true))
-        .catch(() => setPlaying(false));
+          .play()
+          .then(() => setPlaying(true))
+          .catch(() => setPlaying(false));
     }
   }
 

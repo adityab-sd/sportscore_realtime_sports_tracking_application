@@ -10,6 +10,8 @@
     <packaging>jar</packaging>
 
     <properties>
+        <!-- Java 17 everywhere: compiler target matches the runtime below, and matches the
+             backend (also Java 17). Fully supported on Azure Functions Linux. -->
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -47,17 +49,29 @@
                 <version>${azure.functions.maven.plugin.version}</version>
                 <configuration>
                     <appName>${functionAppName}</appName>
-                    <resourceGroup>sportscore-rg</resourceGroup>
+                    <!-- CHANGED: sportscore-rg -> SportsScore, to match your existing resource group
+                         (where Event Hub / SignalR / etc. live). Avoids creating a stray new group. -->
+                    <resourceGroup>SportsScore</resourceGroup>
                     <region>uksouth</region>
+                    <appServicePlanName>asp-sportscore-rag</appServicePlanName>
+                    <pricingTier>B2</pricingTier>
+                    <auth>
+                        <type>azure_cli</type>
+                    </auth>.
                     <runtime>
-                        <os>windows</os>
-                        <javaVersion>21</javaVersion>
+                        <!-- Linux host (recommended, cheaper, faster cold starts for Java).
+                             CHANGED: javaVersion 21 -> 17 to match the compiler target above. -->
+                        <os>linux</os>
+                        <javaVersion>17</javaVersion>
                     </runtime>
                     <appSettings>
                         <property>
                             <name>FUNCTIONS_EXTENSION_VERSION</name>
                             <value>~4</value>
                         </property>
+                        <!-- Secrets (EVENTHUB_CONNECTION_STRING, SIGNALR_REST_ENDPOINT,
+                             SIGNALR_ACCESS_KEY, AZURE_SPEECH_*) are NOT put here — this file
+                             is committed. They get set as app settings at deploy time (step 8). -->
                     </appSettings>
                 </configuration>
                 <executions>
