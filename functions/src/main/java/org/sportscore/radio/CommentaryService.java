@@ -26,8 +26,52 @@ import org.sportscore.model.Team;
  * rather than being dropped.
  */
 public class CommentaryService {
-
     public String toCommentaryText(Match match, MatchEvent event) {
+        String sport = match.sport() != null ? match.sport() : "football";
+        return switch (sport) {
+            case "baseball" -> baseballCommentary(match, event);
+            case "f1" -> f1Commentary(match, event);
+            default -> footballCommentary(match, event); // existing switch, renamed, unchanged
+        };
+    }
+
+    private String baseballCommentary(Match match, MatchEvent event) {
+        String type = event.type() == null ? "UNKNOWN" : event.type();
+        switch (type) {
+            case "KICKOFF":
+                return "Play ball! First pitch between "
+                        + teamName(match.homeTeam()) + " and " + teamName(match.awayTeam()) + ".";
+            case "FULLTIME":
+                return "That's the final out." + fullTimeScoreLine(match);
+            case "RUN_SCORED": {
+                String team = resolveTeamName(match, event.teamId());
+                return "Run scores for " + team + "!" + scoreLine(match);
+            }
+            case "INNING_CHANGE":
+                return event.detail() != null ? event.detail() + "." : "New inning.";
+            default:
+                return event.detail() != null ? event.detail() + "." : "Update from the game.";
+        }
+    }
+
+    private String f1Commentary(Match match, MatchEvent event) {
+        String type = event.type() == null ? "UNKNOWN" : event.type();
+        switch (type) {
+            case "KICKOFF":
+                return "Lights out, and we're racing! " + orElse(match.competition(), "The session") + " is underway.";
+            case "FULLTIME":
+                return "Chequered flag." + (match.homeTeam() != null ? " " + match.homeTeam().name() + " takes it." : "");
+            case "LEAD_CHANGE":
+                return orElse(event.player(), "A new driver") + " takes the lead"
+                        + (event.assist() != null ? ", passing " + event.assist() : "") + "!";
+            default:
+                return event.detail() != null ? event.detail() + "." : "Update from the session.";
+        }
+    }
+
+
+
+    private String footballCommentary(Match match, MatchEvent event) {
         String type = event.type() == null ? "UNKNOWN" : event.type();
 
         switch (type) {
@@ -102,7 +146,8 @@ public class CommentaryService {
                 .replace(">", "&gt;");
 
         boolean emphasize = "GOAL".equals(eventType) || "RED_CARD".equals(eventType)
-                || "PENALTY_SCORED".equals(eventType);
+                || "PENALTY_SCORED".equals(eventType) || "RUN_SCORED".equals(eventType)
+                || "LEAD_CHANGE".equals(eventType);
         String body = emphasize ? "<emphasis level=\"strong\">" + escaped + "</emphasis>" : escaped;
 
         return "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\">"

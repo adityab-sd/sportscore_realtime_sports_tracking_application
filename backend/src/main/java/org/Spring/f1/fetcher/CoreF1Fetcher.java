@@ -9,6 +9,7 @@ import org.Spring.api.EspnHttpClient;
 import org.Spring.f1.adapter.CoreF1Adapter;
 import org.Spring.fetcher.AbstractEspnFetcher;
 import org.Spring.model.Match;
+import org.Spring.model.MatchEvent;
 import org.Spring.producer.EventHubProducer;
 import org.springframework.stereotype.Component;
 
@@ -74,6 +75,20 @@ public class CoreF1Fetcher extends AbstractEspnFetcher {
     @Override
     public String sportName() {
         return "f1";
+    }
+
+    @Override
+    protected List<MatchEvent> detectCustomEvents(Match current, Match previous) {
+        if (previous == null) return List.of();
+
+        String prevLeader = previous.homeTeam() != null ? previous.homeTeam().name() : null;
+        String curLeader  = current.homeTeam()  != null ? current.homeTeam().name()  : null;
+
+        if (curLeader != null && prevLeader != null && !curLeader.equals(prevLeader)) {
+            return List.of(new MatchEvent(0, "LEAD_CHANGE", current.statusDetail(),
+                    curLeader, prevLeader, current.homeTeam().id()));
+        }
+        return List.of();
     }
 
 
