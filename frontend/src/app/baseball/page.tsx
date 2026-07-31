@@ -43,7 +43,7 @@ async function getTopNews() {
       if (!seen.has(a.id)) { seen.add(a.id); articles.push({ id: a.id, headline: a.headline, published: a.published, image: a.image }); }
     }
   }
-  return articles.slice(0, 8);
+  return articles.filter(a => a.image).slice(0, 8);
 }
 
 export default async function BaseballPage() {

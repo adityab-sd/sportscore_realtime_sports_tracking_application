@@ -34,8 +34,18 @@ async function getCarouselNews(): Promise<CarouselArticle[]> {
   if (basketballNews.status === "fulfilled") append(basketballNews.value, "basketball");
   if (baseballNews.status   === "fulfilled") append(baseballNews.value, "baseball");
   return all
+    .filter(a => hasUsableImage(a.image))   // home carousel: only real image-backed stories
     .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())
     .slice(0, 8);
+}
+
+// A backend/ESPN "image" can be null, "", a whitespace string, or occasionally a
+// non-http value — all of which render as a broken/blank slide. Only treat it as
+// usable when it's a non-empty absolute http(s) URL.
+function hasUsableImage(image: string | null | undefined): boolean {
+  if (!image) return false;
+  const s = image.trim();
+  return s.length > 0 && /^https?:\/\//i.test(s);
 }
 
 const UPCOMING_PER_SPORT = 8;

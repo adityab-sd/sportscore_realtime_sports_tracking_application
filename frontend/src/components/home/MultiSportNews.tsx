@@ -2,6 +2,18 @@ import Link from "next/link";
 import NewsCard from "@/components/news/NewsCard";
 import { getNews as getFootballNews, ESPNNews } from "@/lib/api/espn";
 import { getNews as getBasketballNews, BBNews } from "@/lib/api/basketball";
+import { getNews as getBaseballNews } from "@/lib/api/baseball";
+import { getNews as getF1News, type NewsItem as F1News } from "@/lib/api/f1";
+
+type AnyNews = ESPNNews | BBNews | F1News;
+
+// A backend/ESPN "image" can be null, "", whitespace, or a non-http value —
+// all of which render as a broken/blank card. Only keep real absolute URLs.
+function hasUsableImage(image: string | null | undefined): boolean {
+  if (!image) return false;
+  const s = image.trim();
+  return s.length > 0 && /^https?:\/\//i.test(s);
+}
 
 interface NormalisedArticle {
   id: string;
@@ -11,7 +23,7 @@ interface NormalisedArticle {
   image: string | null;
   category: string;
   link?: string | null;
-  sport: "football" | "basketball";
+  sport: "football" | "basketball" | "baseball" | "f1";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,9 +31,9 @@ interface NormalisedArticle {
 // slots: guaranteed minimum cards from this sport in the grid.
 // ─────────────────────────────────────────────────────────────────────────────
 const SPORT_FEEDS: {
-  sport: "football" | "basketball";
+  sport: "football" | "basketball" | "baseball" | "f1";
   slots: number;
-  fetch: () => Promise<(ESPNNews | BBNews)[]>;
+  fetch: () => Promise<AnyNews[]>;
   label: string;
   color: string;
   bg: string;
@@ -29,7 +41,7 @@ const SPORT_FEEDS: {
 }[] = [
   {
     sport: "football",
-    slots: 3,
+    slots: 2,
     fetch: () => getFootballNews("eng.1", 6),
     label: "Football",
     color: "var(--navy)",
@@ -38,15 +50,31 @@ const SPORT_FEEDS: {
   },
   {
     sport: "basketball",
-    slots: 3,
+    slots: 2,
     fetch: () => getBasketballNews("nba", 6),
     label: "Basketball",
     color: "#EA580C",
     bg: "#FEF3C7",
     href: "/basketball/news",
   },
-  // ── Add future sports below ──────────────────────────────────────────────
-  // { sport: "baseball", slots: 2, fetch: () => getBaseballNews("mlb", 6), ... },
+  {
+    sport: "baseball",
+    slots: 1,
+    fetch: () => getBaseballNews("mlb", 6),
+    label: "Baseball",
+    color: "#16A34A",
+    bg: "#DCFCE7",
+    href: "/baseball/news",
+  },
+  {
+    sport: "f1",
+    slots: 1,
+    fetch: () => getF1News(6),
+    label: "Formula 1",
+    color: "#DC2626",
+    bg: "#FEE2E2",
+    href: "/f1/news",
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +95,7 @@ async function fetchBalancedNews(): Promise<NormalisedArticle[]> {
     const articles: NormalisedArticle[] = [];
 
     for (const a of result.value) {
+      if (!hasUsableImage(a.image)) continue;   // home grid: only real image-backed stories
       if (seen.has(a.id)) continue;
       seen.add(a.id);
       articles.push({

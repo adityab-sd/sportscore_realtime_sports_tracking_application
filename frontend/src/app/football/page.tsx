@@ -69,7 +69,7 @@ async function getTopNews() {
         }
       }
     }
-    return articles.slice(0, 8);
+    return articles.filter(a => a.image).slice(0, 8);
   } catch { return []; }
 }
 
