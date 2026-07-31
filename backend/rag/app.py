@@ -3,7 +3,7 @@ app.py — Flask API for the SportScore Knowledge Assistant
 """
 
 from flask import Flask, request, jsonify
-from search import search_corpus, search_live_corpus, search_fallback_anything
+from search import search_corpus, search_live_corpus, search_fallback_anything, detect_date_range, search_live_by_date
 from prompts import build_prompt
 from openai import AzureOpenAI
 from dotenv import load_dotenv
@@ -46,8 +46,8 @@ KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do", "ex
 KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds", "most decorated", "biggest", "greatest of all",
                      "the most", "won the most", "has won the most")
 
-LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season",
-               "latest", "last race", "last game", "last match", "most recent", "standings", "current standing",
+LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season", "now", "latest", 
+               "last race", "last game", "last match", "most recent", "standings", "current standing",
                "next", "play next", "playing next", "what is","what's","whats")
 
 def fast_classify_question(question):
@@ -201,8 +201,13 @@ def get_context_and_meta(question, category):
     years_mentioned = [int(y) for y in re.findall(r"\b(?:19|20)\d{2}\b", question.lower())]
     mentions_recent_year = any(y >= CURRENT_YEAR - 1 for y in years_mentioned)
 
+
     if category == "live":
-        primary = search_live_corpus(question)
+        date_range = detect_date_range(question)
+        if date_range:
+            primary = search_live_by_date(question, date_range[0], date_range[1])
+        else:
+            primary = search_live_corpus(question)
         if primary["found"]:
             return primary["results"], primary["round_used"], "live_data"
         secondary = search_corpus(question)
@@ -223,7 +228,6 @@ def get_context_and_meta(question, category):
 
     fallback = search_fallback_anything()
     return fallback["results"], fallback["round_used"], "fallback"
-
 
 # ── MAIN ENDPOINT ────────────────────────────────────────
 @app.route("/ask", methods=["POST"])

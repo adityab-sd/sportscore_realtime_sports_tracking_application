@@ -36,6 +36,7 @@ import re
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 import psycopg2
 from pgvector.psycopg2 import register_vector
@@ -354,10 +355,21 @@ def search_live_corpus(question, top=6):
     scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
     min_relevance = min(len(significant_words), 2) if significant_words else 0
-    scored = [s for s in scored if min_relevance > 0 and s[0] >= min_relevance]
+    thresholded = [s for s in scored if min_relevance > 0 and s[0] >= min_relevance]
 
-    if not scored:
-        return {"found": False, "round_used": None, "results": []}
+    if not thresholded:
+        # Nothing cleared the relevance bar — this happens when the only
+        # significant word left is the sport's own name (e.g. "football"),
+        # which never appears literally in team-vs-team match docs. If
+        # sport detection already succeeded, that's a strong enough signal
+        # on its own — fall back to the highest-scoring docs for that
+        # sport rather than returning nothing.
+        if detected_sport and scored:
+            thresholded = scored[:top]
+        else:
+            return {"found": False, "round_used": None, "results": []}
+
+    scored = thresholded
 
     top_results = [r for _, _, r in scored[:top]]
 
@@ -372,6 +384,64 @@ def search_live_corpus(question, top=6):
         "results": [_format_result(r) for r in top_results]
     }
 
+_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
+
+def _extract_doc_date(doc):
+    """Pulls the first ISO date (YYYY-MM-DD) found in a live doc's title
+    or content. Every live-match doc across all 4 updaters already embeds
+    a real date in its text — this reads that directly, avoiding the need
+    for a separate structured date field or Azure schema change."""
+    text = (doc.get("title", "") + " " + doc.get("content", ""))
+    m = _DATE_RE.search(text)
+    return m.group(1) if m else None
+
+
+def detect_date_range(question):
+    """Returns (date_from, date_to) as 'YYYY-MM-DD' strings if the question
+    is asking about a specific date-relative window (today/tomorrow/
+    yesterday/this week), else None. Keyword-overlap search can't reliably
+    answer these — 'today' isn't a vocabulary match, it's a date
+    comparison, so this bypasses scoring entirely for this category."""
+    q_lower = question.lower()
+    today = datetime.utcnow().date()
+
+    if re.search(r"\bnow\b", q_lower) or any(p in q_lower for p in ("today", "tonight", "right now", "currently", "at the moment")):
+        d = today.isoformat()
+        return (d, d)
+    if re.search(r"\btomorrow\b", q_lower):
+        d = (today + timedelta(days=1)).isoformat()
+        return (d, d)
+    if re.search(r"\byesterday\b", q_lower):
+        d = (today - timedelta(days=1)).isoformat()
+        return (d, d)
+    if "this week" in q_lower:
+        start = today - timedelta(days=today.weekday())
+        end = start + timedelta(days=6)
+        return (start.isoformat(), end.isoformat())
+    return None
+
+
+def search_live_by_date(question, date_from, date_to):
+    """Date-filtered live search — bypasses keyword-overlap scoring
+    entirely, since date-relative questions need a real date comparison,
+    not word matching."""
+    detected_sport = _detect_sport(question)
+    all_results = _search_index(LIVE_INDEX, "*", top=5000)
+    if detected_sport:
+        all_results = [r for r in all_results if r.get("sport") == detected_sport]
+
+    matches = []
+    for r in all_results:
+        doc_date = _extract_doc_date(r)
+        if doc_date and date_from <= doc_date <= date_to:
+            matches.append(r)
+
+    if not matches:
+        return {"found": False, "round_used": None, "results": []}
+
+    matches.sort(key=lambda r: _extract_doc_date(r) or "")
+    return {"found": True, "round_used": "date-filter", "results": [_format_result(r) for r in matches[:10]]}
 
 def _format_result(r):
     return {

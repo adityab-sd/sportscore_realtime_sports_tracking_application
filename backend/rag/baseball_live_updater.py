@@ -92,7 +92,7 @@ def parse_games(data, league_name):
 
             if state == "in":
                 inning_info = status_type.get("detail", "")
-                content = f"{away_name} vs {home_name} is currently LIVE in {league_name} ({inning_info}). Current score: {away_name} {away_score} - {home_score} {home_name}."
+                content = f"{away_name} vs {home_name} is currently LIVE in {league_name} on {game_date} ({inning_info}). Current score: {away_name} {away_score} - {home_score} {home_name}."
             elif state == "post" and has_real_score:
                 content = f"{away_name} vs {home_name} in {league_name} has FINISHED (played on {game_date}). Final score: {away_name} {away_score} - {home_score} {home_name}."
             elif state == "post" and not has_real_score:
