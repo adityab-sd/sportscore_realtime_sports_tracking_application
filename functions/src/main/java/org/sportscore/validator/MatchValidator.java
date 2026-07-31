@@ -53,7 +53,7 @@ public class MatchValidator {
     public Match transform(Match match) {
         List<MatchEvent> cleanedEvents = match.events() == null ? List.of() :
                 match.events().stream()
-                        .filter(e -> e.player() != null && !e.player().isBlank())
+                        .filter(e -> e.type() != null && !e.type().isBlank())
                         .toList();
 
         String status = match.status() == null ? "" : match.status().trim();

@@ -86,6 +86,10 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
 
     @Override
     protected List<MatchEvent> detectCustomEvents(Match current, Match previous) {
+        System.out.println("[baseball-debug] match=" + current.id()
+                + " prev=" + (previous == null ? "NULL" : previous.homeScore() + "-" + previous.awayScore() + " period=" + previous.period())
+                + " curr=" + current.homeScore() + "-" + current.awayScore() + " period=" + current.period());
+
         if (previous == null) return List.of(); // nothing to diff against yet
 
         List<MatchEvent> events = new ArrayList<>();
@@ -104,6 +108,9 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
         if (current.period() != null && previous.period() != null
                 && !current.period().equals(previous.period())) {
             events.add(new MatchEvent(minute, "INNING_CHANGE", current.statusDetail(), null, null, 0));
+        }
+        if (!events.isEmpty()) {
+            System.out.println("[baseball-debug] DETECTED " + events.size() + " event(s): " + events);
         }
         return events;
     }
