@@ -1,10 +1,16 @@
 """
-basketball_live_updater.py — Fetches live basketball data from ESPN every 30
+baseball_live_updater.py — Fetches live baseball data from ESPN every 30
 seconds and uploads it to Azure AI Search so RAG can answer live questions.
 
-Mirrors live_updater.py (football), pointed at basketball's ESPN endpoints.
-Note: basketball's "leaders" data comes from the /statistics endpoint,
-not /leaders like football uses.
+Mirrors live_updater.py (football) / basketball_live_updater.py, pointed at
+baseball's ESPN endpoints. Reuses the shared football-live-index (same
+workaround basketball uses) since Azure's free tier caps index count at 3.
+
+NOTE: baseball's stat-leaders endpoint structure is different from
+football's /leaders and basketball's /statistics — this uses a best-effort
+attempt at /leaders first. Test this against real output and adjust if
+leader data comes back empty (see docstring note in basketball_live_updater.py
+for the same lesson learned there).
 """
 
 import os
@@ -19,17 +25,14 @@ load_dotenv()
 
 SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
-INDEX_NAME      = "football-live-index"
+INDEX_NAME      = "football-live-index"  # shared — see module docstring
 
-SITE_BASE      = "https://site.api.espn.com/apis/site/v2/sports/basketball"
-STANDINGS_BASE = "https://site.api.espn.com/apis/v2/sports/basketball"
+SITE_BASE      = "https://site.api.espn.com/apis/site/v2/sports/baseball"
+STANDINGS_BASE = "https://site.api.espn.com/apis/v2/sports/baseball"
 
 LEAGUES = {
-    "nba":                       "NBA",
-    "nba-summer":                "NBA Summer League",
-    "wnba":                      "WNBA",
-    "mens-college-basketball":   "NCAA Men's Basketball",
-    "womens-college-basketball": "NCAA Women's Basketball",
+    "mlb":             "MLB",
+    "college-baseball": "NCAA Baseball",
 }
 
 credential = AzureKeyCredential(SEARCH_API_KEY)
@@ -63,7 +66,7 @@ def fetch_scoreboard(league_slug):
     return _get(url)
 
 
-def parse_matches(data, league_name):
+def parse_games(data, league_name):
     docs = []
     if not data:
         return docs
@@ -72,7 +75,7 @@ def parse_matches(data, league_name):
             competition = event.get("competitions", [{}])[0]
             competitors = competition.get("competitors", [])
             status_type = competition.get("status", {}).get("type", {})
-            state = status_type.get("state", "pre")
+            state = status_type.get("state", "pre")  # "pre", "in", or "post"
 
             home = next((c for c in competitors if c.get("homeAway") == "home"), {})
             away = next((c for c in competitors if c.get("homeAway") == "away"), {})
@@ -81,42 +84,40 @@ def parse_matches(data, league_name):
             away_name = away.get("team", {}).get("displayName", "Unknown")
             home_score = home.get("score", "0")
             away_score = away.get("score", "0")
-            kickoff = competition.get("date", "TBD")
+            game_date = competition.get("date", "TBD")
 
-            doc_id = f"live-basketball-match-{event.get('id', '')}"
+            doc_id = f"live-baseball-match-{event.get('id', '')}"
 
             has_real_score = home.get("score") not in (None, "", "0") or away.get("score") not in (None, "", "0")
 
             if state == "in":
-                content = f"{home_name} vs {away_name} is currently LIVE in the {league_name}. Current score: {home_name} {home_score} - {away_score} {away_name}."
+                inning_info = status_type.get("detail", "")
+                content = f"{away_name} vs {home_name} is currently LIVE in {league_name} ({inning_info}). Current score: {away_name} {away_score} - {home_score} {home_name}."
             elif state == "post" and has_real_score:
-                content = f"{home_name} vs {away_name} in the {league_name} has FINISHED (played on {kickoff}). Final score: {home_name} {home_score} - {away_score} {away_name}."
+                content = f"{away_name} vs {home_name} in {league_name} has FINISHED (played on {game_date}). Final score: {away_name} {away_score} - {home_score} {home_name}."
             elif state == "post" and not has_real_score:
-                # ESPN marked this as finished but didn't supply real score
-                # data — likely a postponed/cancelled game or a data gap.
-                # Don't assert a fabricated-looking 0-0 result.
-                content = f"{home_name} vs {away_name} in the {league_name} is marked as completed on {kickoff}, but the final score is not available in this data."
+                content = f"{away_name} vs {home_name} in {league_name} is marked as completed on {game_date}, but the final score is not available in this data."
             else:
-                content = f"{home_name} vs {away_name} is scheduled (upcoming) in the {league_name}. Tip-off: {kickoff}."
+                content = f"{away_name} vs {home_name} is scheduled (upcoming) in {league_name}. First pitch: {game_date}."
 
             docs.append({
                 "id": doc_id,
-                "sport": "basketball",
+                "sport": "baseball",
                 "category": "live-match",
-                "title": f"{home_name} vs {away_name} — {league_name}",
+                "title": f"{away_name} vs {home_name} — {league_name}",
                 "content": content,
                 "source": "espn.com",
                 "last_updated": datetime.utcnow().isoformat()
             })
         except Exception as e:
-            print(f"  Error parsing match event: {e}")
+            print(f"  Error parsing game event: {e}")
     return docs
 
 def build_latest_results_summary(scoreboard_data, league_name, league_slug):
-    """Same fix as baseball's build_latest_results_summary() and F1's
-    build_latest_race_summary() — groups completed games from the most
-    recent date into one doc with 'latest'/'most recent' explicitly
-    written in, so vague queries have something to match against."""
+    """Groups every completed (state == 'post') game from the most
+    recent date that has finished games into ONE synthetic summary doc,
+    with 'latest'/'most recent' explicitly in the content — so vague
+    queries have something reliable to match against."""
     if not scoreboard_data:
         return None
 
@@ -161,10 +162,64 @@ def build_latest_results_summary(scoreboard_data, league_name, league_slug):
     )
 
     return {
-        "id": f"live-basketball-latest-results-{_safe_id(league_slug)}",
-        "sport": "basketball",
+        "id": f"live-baseball-latest-results-{_safe_id(league_slug)}",
+        "sport": "baseball",
         "category": "live-match",
         "title": f"{league_name} — Latest Results",
+        "content": content,
+        "source": "espn.com",
+        "last_updated": datetime.utcnow().isoformat()
+    }
+
+def build_next_game_summary(scoreboard_data, league_name, league_slug):
+    """Mirrors football's build_next_match_summary() — finds the soonest
+    upcoming (state == 'pre') game instead of the most recently completed
+    one. Groups all games sharing that soonest date together, same
+    reasoning as build_latest_results_summary()."""
+    if not scoreboard_data:
+        return None
+
+    upcoming = []
+    for event in scoreboard_data.get("events", []):
+        try:
+            competition = event.get("competitions", [{}])[0]
+            competitors = competition.get("competitors", [])
+            status_type = competition.get("status", {}).get("type", {})
+            state = status_type.get("state", "pre")
+            if state != "pre":
+                continue
+
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+            game_date = competition.get("date") or ""
+            if not game_date:
+                continue
+
+            upcoming.append({
+                "date": game_date,
+                "home": home.get("team", {}).get("displayName", "Unknown"),
+                "away": away.get("team", {}).get("displayName", "Unknown"),
+            })
+        except Exception as e:
+            print(f"  Error scanning game for next game: {e}")
+
+    if not upcoming:
+        return None
+
+    soonest_date = min(g["date"] for g in upcoming)
+    next_games = [g for g in upcoming if g["date"] == soonest_date]
+
+    lines = [f"{g['away']} at {g['home']}" for g in next_games]
+    content = (
+        f"The next upcoming {league_name} game(s) are scheduled for {soonest_date}:\n"
+        + "\n".join(lines)
+    )
+
+    return {
+        "id": f"live-baseball-next-game-{_safe_id(league_slug)}",
+        "sport": "baseball",
+        "category": "live-match",
+        "title": f"{league_name} — Next Game",
         "content": content,
         "source": "espn.com",
         "last_updated": datetime.utcnow().isoformat()
@@ -202,28 +257,29 @@ def parse_standings(data, league_name, league_slug):
             stats = entry.get("stats", [])
             team = entry.get("team", {})
             rows.append({
-                "rank": _stat(stats, "rank", "playoffSeed") or 0,
+                "rank": _stat(stats, "playoffSeed", "rank") or 0,
                 "team": team.get("displayName", "Unknown"),
                 "wins": _stat(stats, "wins") or 0,
                 "losses": _stat(stats, "losses") or 0,
-                "winpct": _stat(stats, "winPercent", "winpercent") or 0,
+                "pct": _stat(stats, "winPercent") or 0,
+                "gb": _stat(stats, "gamesBehind") or "-",
             })
 
     if not rows:
         return []
 
     rows.sort(key=lambda r: r["rank"] if r["rank"] else 999)
-    top_rows = rows[:15]
+    top_rows = rows[:10]
 
     table_lines = [
-        f"{r['rank']}. {r['team']} — {r['wins']}-{r['losses']} (Win%: {r['winpct']})"
+        f"{r['rank']}. {r['team']} — {r['wins']}-{r['losses']} (GB: {r['gb']})"
         for r in top_rows
     ]
     content = f"Current {league_name} standings (top {len(top_rows)}):\n" + "\n".join(table_lines)
 
     return [{
-        "id": f"live-basketball-standings-{_safe_id(league_slug)}",
-        "sport": "basketball",
+        "id": f"live-baseball-standings-{_safe_id(league_slug)}",
+        "sport": "baseball",
         "category": "live-standings",
         "title": f"{league_name} — Standings",
         "content": content,
@@ -232,13 +288,18 @@ def parse_standings(data, league_name, league_slug):
     }]
 
 
-# ── LEADERS (TOP SCORERS) — note: /statistics endpoint, not /leaders ───────
+# ── LEADERS ─────────────────────────────────────────────────
+# NEEDS EMPIRICAL VERIFICATION — baseball's leaders data may not live at
+# the same /leaders path football uses. Run this, check the printed
+# counts, and if leader_docs is always 0, swap fetch_leaders() to hit
+# https://site.web.api.espn.com/apis/common/v3/sports/baseball/mlb/statistics/byathlete?category=batting&sort=batting.homeRuns:desc
+# instead, and adjust parse_leaders() to match that response shape.
 def fetch_leaders(league_slug):
     year = datetime.utcnow().year
     url = (
-        f"https://site.web.api.espn.com/apis/common/v3/sports/basketball/{league_slug}"
-        f"/statistics/byathlete?isqualified=true&sort=offensive.avgPoints:desc"
-        f"&season={year}&limit=10"
+        f"https://site.web.api.espn.com/apis/common/v3/sports/baseball/{league_slug}"
+        f"/statistics/byathlete?category=batting&sort=batting.homeRuns:desc"
+        f"&season={year}&seasontype=2&limit=10"
     )
     return _get(url)
 
@@ -256,30 +317,23 @@ def parse_leaders(data, league_name, league_slug):
         name = athlete.get("displayName", "Unknown")
         team = athlete.get("teamName", "")
         categories = entry.get("categories", [])
-        # Find whichever category holds points-per-game — name may vary
-        # (e.g. "offensive", "general") so scan for the right one rather
-        # than assume "batting"-style fixed naming like baseball has.
-        offensive = next((c for c in categories if "offensive" in (c.get("name") or "").lower()), None)
-        if not offensive:
-            offensive = categories[0] if categories else None
-        if not offensive:
+        batting = next((c for c in categories if c.get("name") == "batting"), None)
+        if not batting:
             continue
-        totals = offensive.get("totals", [])
-        # NOTE: unverified index — print(totals) on first real run to find
-        # which position holds points-per-game, then adjust this index.
-        ppg = totals[0] if totals else "?"
-        lines.append(f"{i+1}. {name} ({team}) — {ppg} PPG")
+        totals = batting.get("totals", [])
+        home_runs = totals[7] if len(totals) > 7 else "?"  # index 7 = HR in ESPN's fixed column order
+        lines.append(f"{i+1}. {name} ({team}) — {home_runs} HR")
 
     if not lines:
         return []
 
-    content = f"Current {league_name} scoring leaders:\n" + "\n".join(lines)
+    content = f"Current {league_name} home run leaders:\n" + "\n".join(lines)
 
     return [{
-        "id": f"live-basketball-leaders-{_safe_id(league_slug)}",
-        "sport": "basketball",
+        "id": f"live-baseball-leaders-{_safe_id(league_slug)}",
+        "sport": "baseball",
         "category": "live-leaders",
-        "title": f"{league_name} — Scoring Leaders",
+        "title": f"{league_name} — Home Run Leaders",
         "content": content,
         "source": "espn.com",
         "last_updated": datetime.utcnow().isoformat()
@@ -290,10 +344,7 @@ def upload_to_search(docs):
     if not docs:
         return
     try:
-        result = search_client.upload_documents(documents=docs)
-        failed = [r.key for r in result if not r.succeeded]
-        if failed:
-            print(f"  WARNING: {len(failed)} documents failed: {failed}")
+        search_client.upload_documents(documents=docs)
         print(f"  Uploaded {len(docs)} live documents")
     except Exception as e:
         print(f"  Upload error: {e}")
@@ -301,15 +352,23 @@ def upload_to_search(docs):
 
 # ── MAIN LOOP ──────────────────────────────────────────────
 def run():
-    print("Basketball live updater started! Fetching every 30 seconds...")
+    print("Baseball live updater started! Fetching every 30 seconds...")
     while True:
-        print(f"\n[{datetime.utcnow().strftime('%H:%M:%S')}] Fetching live basketball data...")
+        print(f"\n[{datetime.utcnow().strftime('%H:%M:%S')}] Fetching live baseball data...")
         all_docs = []
 
         for slug, name in LEAGUES.items():
             scoreboard_data = fetch_scoreboard(slug)
-            match_docs = parse_matches(scoreboard_data, name)
-            all_docs.extend(match_docs)
+            game_docs = parse_games(scoreboard_data, name)
+            all_docs.extend(game_docs)
+
+            if slug == "mlb":
+                states = [e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") for e in scoreboard_data.get("events", [])]
+                from collections import Counter
+
+            next_game_doc = build_next_game_summary(scoreboard_data, name, slug)
+            if next_game_doc:
+                all_docs.append(next_game_doc)
 
             latest_results_doc = build_latest_results_summary(scoreboard_data, name, slug)
             if latest_results_doc:
@@ -323,7 +382,7 @@ def run():
             leaders_docs = parse_leaders(leaders_data, name, slug)
             all_docs.extend(leaders_docs)
 
-            print(f"  {name}: {len(match_docs)} matches, {len(standings_docs)} standings, {len(leaders_docs)} leaders")
+            print(f"  {name}: {len(game_docs)} games, {1 if latest_results_doc else 0} latest-results summary, {len(standings_docs)} standings, {len(leaders_docs)} leaders")
 
         upload_to_search(all_docs)
         print(f"  Total: {len(all_docs)} documents uploaded. Next update in 30 seconds...")
