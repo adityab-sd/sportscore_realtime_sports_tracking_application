@@ -1,11 +1,14 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { NewsArticle } from "./NewsCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NewsCarousel — auto-advancing hero carousel used on the home page.
-// Accepts a `sport` prop so it can link to the correct news route.
+// Slides are image-only: an article with no usable image (or whose image fails
+// to load at runtime) is dropped entirely, so we never show a bare gradient
+// "broken" slide in the hero. The upstream fetch already filters most of these
+// out; this is the runtime safety net for URLs that look valid but 404.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface NewsCarouselProps {
@@ -13,18 +16,13 @@ interface NewsCarouselProps {
   sport?: "football" | "basketball" | "baseball" | "f1"; // fallback only
 }
 
+function hasUsableImage(image: string | null | undefined): boolean {
+  if (!image) return false;
+  const s = image.trim();
+  return s.length > 0 && /^https?:\/\//i.test(s);
+}
+
 function timeAgo(iso: string): string {
-  // ============================================================================
-  // ADDRESSED: avoid Date.now() in render-derived text
-  // ----------------------------------------------------------------------------
-  // timeAgo is called during render, so the label can differ between hydration
-  // and later renders, then stay stale until carousel state changes. Pass a
-  // server-computed label or update a clock state on a cleaned-up interval.
-  //
-  // EXAMPLE:
-  //   const [now, setNow] = useState(() => Date.now());
-  //   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
-  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";
@@ -34,24 +32,26 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function SlideImage({ src, alt }: { src: string | null; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) {
-    return <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, var(--navy) 0%, #0044aa 100%)" }} />;
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} onError={() => setFailed(true)}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
-  );
-}
-
 export default function NewsCarousel({ articles, sport = "football" }: NewsCarouselProps) {
+  // Track image URLs that failed to load so we can exclude those slides.
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
+
+  // Only keep articles that have a usable image AND haven't failed at runtime.
+  const slides = useMemo(
+    () => articles.filter(a => hasUsableImage(a.image) && !brokenIds.has(a.id)),
+    [articles, brokenIds]
+  );
+
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const total = articles.length;
+  const total = slides.length;
+
+  // Keep `current` in range if the slide count shrinks (e.g. an image just failed).
+  useEffect(() => {
+    if (current > total - 1) setCurrent(total > 0 ? total - 1 : 0);
+  }, [total, current]);
 
   const go = useCallback((index: number) => {
     setPrev(current);
@@ -61,34 +61,30 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
   const next = useCallback(() => go(current === total - 1 ? 0 : current + 1), [current, total, go]);
   const prev_ = useCallback(() => go(current === 0 ? total - 1 : current - 1), [current, total, go]);
 
-  // ============================================================================
-  // ADDRESSED: guard carousel timer when empty
-  // ----------------------------------------------------------------------------
-  // Hooks run even when the component returns null below, so an empty articles
-  // array still schedules next() and can move current to an invalid slide index.
-  // Keep the timer disabled unless there are slides to advance.
-  //
-  // EXAMPLE:
-  //   useEffect(() => {
-  //     if (paused || total === 0) return;
-  //     const id = setTimeout(next, 4000);
-  //     return () => clearTimeout(id);
-  //   }, [paused, total, next]);
-  // ============================================================================
   useEffect(() => {
-    if (paused) return;
+    if (paused || total <= 1) return;    // no auto-advance for 0/1 slides
     timerRef.current = setTimeout(next, 4000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [current, paused, next]);
+  }, [current, paused, total, next]);
 
-  if (!articles.length) return null;
+  const markBroken = useCallback((id: string) => {
+    setBrokenIds(prevSet => {
+      if (prevSet.has(id)) return prevSet;
+      const nextSet = new Set(prevSet);
+      nextSet.add(id);
+      return nextSet;
+    });
+  }, []);
+
+  if (total === 0) return null;
+
   return (
     <div
       style={{ position: "relative", width: "100%", height: "100%", borderRadius: 16, overflow: "hidden", aspectRatio: "16/7", background: "var(--obsidian)", cursor: "pointer" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {articles.map((a, i) => {
+      {slides.map((a, i) => {
         const isActive = i === current;
         const isPrev = i === prev;
         return (
@@ -105,7 +101,12 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
               display: "block",
             }}
           >
-            <SlideImage src={a.image} alt={a.headline} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={a.image!} alt={a.headline}
+              onError={() => markBroken(a.id)}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
+            />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.05) 100%)" }} />
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "28px 32px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -129,35 +130,38 @@ export default function NewsCarousel({ articles, sport = "football" }: NewsCarou
         );
       })}
 
-      {/* Prev arrow */}
-      <button onClick={e => { e.preventDefault(); e.stopPropagation(); prev_(); }} aria-label="Previous story"
-        style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
-        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
-        onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-      >‹</button>
+      {/* Arrows + dots only make sense with more than one slide */}
+      {total > 1 && (
+        <>
+          {/* Prev arrow */}
+          <button onClick={e => { e.preventDefault(); e.stopPropagation(); prev_(); }} aria-label="Previous story"
+            style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
+          >‹</button>
 
-      {/* Next arrow */}
-      <button onClick={e => { e.preventDefault(); e.stopPropagation(); next(); }} aria-label="Next story"
-        style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
-        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
-        onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-      >›</button>
+          {/* Next arrow */}
+          <button onClick={e => { e.preventDefault(); e.stopPropagation(); next(); }} aria-label="Next story"
+            style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", zIndex: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, transition: "background 150ms" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
+          >›</button>
 
-      {/* Progress bar */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.1)", zIndex: 10 }}>
-        {/* ADDRESSED: timer/progress mismatch: slides advance after 4000ms but the bar animates for 5s, so it resets before reaching 100%. EXAMPLE: <div style={{ animation: paused ? "none" : "carouselProgress 4s linear forwards" }} />. */}
-        <div key={current} style={{ height: "100%", background: "var(--blue)", animation: paused ? "none" : "carouselProgress 4s linear forwards", width: paused ? "0%" : undefined }} />
-      </div>
+          {/* Progress bar */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.1)", zIndex: 10 }}>
+            <div key={current} style={{ height: "100%", background: "var(--blue)", animation: paused ? "none" : "carouselProgress 4s linear forwards", width: paused ? "0%" : undefined }} />
+          </div>
 
-      {/* Dots */}
-      <div style={{ position: "absolute", bottom: 16, right: 52, display: "flex", gap: 6, zIndex: 10 }}>
-        {/* ADDRESSED: avoid index keys for controls: if stories are inserted or reordered, focus/state can move to the wrong dot. EXAMPLE: <button key={articles[i].id} ... />. */}
-        {articles.map((a, i) => (
-          <button key={a.id} onClick={e => { e.preventDefault(); e.stopPropagation(); go(i); }} aria-label={`Go to story ${i + 1}`}
-            style={{ width: i === current ? 20 : 6, height: 6, borderRadius: 3, background: i === current ? "#fff" : "rgba(255,255,255,0.35)", border: "none", cursor: "pointer", padding: 0, transition: "width 300ms ease, background 300ms ease" }}
-          />
-        ))}
-      </div>
+          {/* Dots */}
+          <div style={{ position: "absolute", bottom: 16, right: 52, display: "flex", gap: 6, zIndex: 10 }}>
+            {slides.map((a, i) => (
+              <button key={a.id} onClick={e => { e.preventDefault(); e.stopPropagation(); go(i); }} aria-label={`Go to story ${i + 1}`}
+                style={{ width: i === current ? 20 : 6, height: 6, borderRadius: 3, background: i === current ? "#fff" : "rgba(255,255,255,0.35)", border: "none", cursor: "pointer", padding: 0, transition: "width 300ms ease, background 300ms ease" }}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       <style>{`@keyframes carouselProgress { from { width: 0%; } to { width: 100%; } }`}</style>
     </div>

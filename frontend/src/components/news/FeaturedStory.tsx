@@ -5,8 +5,10 @@ import { NewsArticle } from "./NewsCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FeaturedStory — hero article + optional side articles.
-// Used on both /football/news and /basketball/news pages.
-// The `sport` prop controls which internal route the links point to.
+// The hero keeps a gradient background when there's no image, because the
+// headline/description sit ON TOP of the image via an overlay — so it always
+// looks intentional. The side cards instead DROP the image slot when there's
+// no image and let the headline fill the row (same card height either way).
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FeaturedStoryProps {
@@ -29,30 +31,7 @@ function HeroImage({ src, category }: { src: string | null; category: string }) 
   );
 }
 
-function SideImage({ src }: { src: string | null }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) {
-    return <div style={{ width: 84, height: 64, borderRadius: 7, flexShrink: 0, background: fallbackGradient }} />;
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" onError={() => setFailed(true)}
-      style={{ width: 84, height: 64, borderRadius: 7, flexShrink: 0, objectFit: "cover" }} />
-  );
-}
-
 function timeAgo(iso: string): string {
-  // ============================================================================
-  // ADDRESSED: avoid Date.now() in featured story render
-  // ----------------------------------------------------------------------------
-  // Rendering "Just now/2h ago" from Date.now() can differ at hydration time and
-  // will not update on its own as the page sits open. Compute the label on the
-  // server or drive it from a cleaned-up client clock state.
-  //
-  // EXAMPLE:
-  //   const [now, setNow] = useState(() => Date.now());
-  //   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
-  // ============================================================================
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   if (isNaN(diff)) return "";
@@ -60,6 +39,41 @@ function timeAgo(iso: string): string {
   if (h < 1) return "Just now";
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+// Side story row — shows an 84×64 thumbnail when an image is available and loads.
+// Otherwise the thumbnail is omitted and the text spans the full row width.
+function SideStory({ article, newsBase }: { article: NewsArticle; newsBase: string }) {
+  const [failed, setFailed] = useState(false);
+  const hasImage = !!article.image && !failed;
+
+  return (
+    <Link href={`${newsBase}/${article.id}`} style={{ textDecoration: "none" }}>
+      <article className="card-hover" style={{
+        display: "flex", gap: 12, background: "var(--white)", border: "1px solid var(--border)",
+        borderRadius: 10, padding: 10, flex: 1, alignItems: "center",
+      }}>
+        {hasImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={article.image!} alt="" onError={() => setFailed(true)}
+            style={{ width: 84, height: 64, borderRadius: 7, flexShrink: 0, objectFit: "cover" }} />
+        )}
+        <div style={{ minWidth: 0 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+            {article.category}
+          </span>
+          <h3 style={{
+            fontSize: 13.5, fontWeight: 700, color: "var(--obsidian)", lineHeight: 1.35,
+            margin: "3px 0 0", display: "-webkit-box",
+            WebkitLineClamp: hasImage ? 3 : 4,   // one extra line when text spans full width
+            WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>
+            {article.headline}
+          </h3>
+        </div>
+      </article>
+    </Link>
+  );
 }
 
 export default function FeaturedStory({ article, side, sport = "football" }: FeaturedStoryProps) {
@@ -99,15 +113,7 @@ export default function FeaturedStory({ article, side, sport = "football" }: Fea
       {side && side.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {side.slice(0, 3).map(a => (
-            <Link key={a.id} href={`${newsBase}/${a.id}`} style={{ textDecoration: "none" }}>
-              <article className="card-hover" style={{ display: "flex", gap: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: 10, flex: 1, alignItems: "center" }}>
-                <SideImage src={a.image} />
-                <div style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "0.4px" }}>{a.category}</span>
-                  <h3 style={{ fontSize: 13.5, fontWeight: 700, color: "var(--obsidian)", lineHeight: 1.35, margin: "3px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.headline}</h3>
-                </div>
-              </article>
-            </Link>
+            <SideStory key={a.id} article={a} newsBase={newsBase} />
           ))}
         </div>
       )}

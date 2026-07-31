@@ -173,13 +173,8 @@ export default function F1DriversPage() {
         }
         @media (max-width: 768px) {
           .f1-drivers-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .f1-drivers-grid {
             grid-template-columns: 1fr !important;
-            max-width: 360px;
+            max-width: 420px;
             margin: 0 auto;
           }
         }

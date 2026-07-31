@@ -26,6 +26,16 @@
 }
 .f1-tabs::-webkit-scrollbar { display: none; }
 
+/* The tab row's inner container must be as wide as its tabs (not capped at
+   1200px / centered) so the parent .f1-tabs can scroll horizontally on mobile
+   instead of compressing the tabs into each other. */
+.f1-tabs > .f1-container {
+  max-width: none;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+}
+
 .f1-tab {
   position: relative;
   padding: 14px 24px;
@@ -36,24 +46,57 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  flex-shrink: 0;          /* keep natural width so the row scrolls, not squishes */
   transition: color 0.2s;
   border: none;
   background: none;
   cursor: pointer;
 }
-.f1-tab:hover { color: #15151e; }
-.f1-tab.active {
-  color: #15151e;
-}
-.f1-tab.active::after {
+/* Sliding underline — scales from the centre on hover, locks open when active.
+   Driven by :hover + .active ONLY (not :focus) so focus retained after a
+   click-navigation can't leave a phantom underline on the wrong tab. */
+.f1-tab::after {
   content: "";
   position: absolute;
+  left: 12px;
+  right: 12px;
   bottom: 0;
-  left: 0;
-  right: 0;
   height: 3px;
   background: #e10600;
   border-radius: 3px 3px 0 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.22s ease;
+}
+.f1-tab:hover { color: #15151e; }
+.f1-tab:hover::after { transform: scaleX(1); }
+.f1-tab.active { color: #15151e; }
+.f1-tab.active::after { transform: scaleX(1); }
+.f1-tab:focus-visible {
+  outline: 2px solid rgba(225, 6, 0, 0.4);
+  outline-offset: -2px;
+}
+
+/* Logo tab — the first tab shows the F1 logo instead of text. */
+.f1-tab-logo {
+  display: inline-flex;
+  align-items: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.f1-tab-logo-img {
+  height: 16px;
+  width: auto;
+  display: block;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+.f1-tab-logo:hover .f1-tab-logo-img,
+.f1-tab-logo.active .f1-tab-logo-img {
+  opacity: 1;
+}
+@media (max-width: 768px) {
+  .f1-tab-logo-img { height: 13px; }
 }
 
 /* ── Section headers ───────────────────────────────────────────────────── */
@@ -568,6 +611,7 @@
   color: #15151e;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

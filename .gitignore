@@ -52,3 +52,6 @@ out/
 
 # Python
 **/__pycache__/
+
+frontend/coverage/
+frontend/test-results/
