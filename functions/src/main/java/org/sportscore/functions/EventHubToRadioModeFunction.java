@@ -87,6 +87,11 @@ public class EventHubToRadioModeFunction {
                 List<Match> matches = mapper.readValue(eventData, new TypeReference<>() {});
 
                 for (Match match : matches) {
+                    context.getLogger().info("[radio-debug] match " + match.id() + " sport=" + match.sport()
+                            + " isValid=" + validator.isValid(match)
+                            + " homeTeam=" + (match.homeTeam() != null ? match.homeTeam().name() : "NULL")
+                            + " awayTeam=" + (match.awayTeam() != null ? match.awayTeam().name() : "NULL")
+                            + " rawEventsCount=" + (match.events() != null ? match.events().size() : -1));
                     if (!validator.isValid(match)) {
                         continue;
                     }
@@ -97,6 +102,8 @@ public class EventHubToRadioModeFunction {
                     // otherwise every update would re-announce old events. Worth
                     // confirming with whoever owns the producer/ingestion side.
                     List<MatchEvent> matchEvents = validated.events();
+                    context.getLogger().info("[radio-debug] match " + validated.id() + " has " +
+                            (matchEvents == null ? "NULL" : matchEvents.size()) + " events after validation");
                     if (matchEvents == null) {
                         continue;
                     }
