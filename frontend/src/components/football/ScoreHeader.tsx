@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
+import LiveMatchClock from "./LiveMatchClock";
 
 function formatKickoffDate(kickoff: string, withYear: boolean) {
   const d = new Date(kickoff);
@@ -39,12 +40,20 @@ function StatusLabel({ match }: { match: Match }) {
     );
   }
 
+  // Live: show the ticking match clock (falls back to the status string if the
+  // clock can't render, e.g. no elapsed value yet).
   const dateStr = match.kickoff ? formatKickoffDate(match.kickoff, false) : null;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{match.status}</span>
+        {match.elapsed != null ? (
+          <LiveMatchClock elapsed={match.elapsed} status={match.status} size="md" />
+        ) : (
+          <>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{match.status}</span>
+          </>
+        )}
       </div>
       {dateStr && <span style={{ fontSize: 11, color: "var(--text-muted)" }} suppressHydrationWarning>{dateStr}</span>}
     </div>

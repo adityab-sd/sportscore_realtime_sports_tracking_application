@@ -18,7 +18,8 @@ function pct(v: number): string {
 }
 
 export default function StandingsTable({ rows, league, limit, highlightTeamIds = [] }: Props) {
-  const shown = limit ? rows.slice(0, limit) : rows;
+  const sorted = [...rows].sort((a, b) => a.rank - b.rank);
+const shown = limit ? sorted.slice(0, limit) : sorted;
   return (
     <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", overflowX: "auto" }}>
       <div style={{ display: "grid", gridTemplateColumns: COLS, padding: "10px 16px", borderBottom: "1px solid var(--border)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px", gap: 4, minWidth: 460 }}>
