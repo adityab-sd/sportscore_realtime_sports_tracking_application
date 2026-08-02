@@ -2,15 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getMatchDetail, getRoster, getStandings, getTeam,
-  type ESPNMatchDetail,
 } from "@/lib/api/espn";
-import type { Match as FootballMatch } from "@/types/football";
 import { leagueHasFullTable } from "@/types/football";
-import ScoreHeader from "@/components/football/ScoreHeader";
 import MatchStatsComparison from "@/components/football/MatchStatsComparison";
-import MatchEventsCard from "@/components/football/MatchEventsCard";
-import MatchDetailLive from "@/components/football/MatchDetailLive";
-import MatchLineupSection from "@/components/football/MatchLineupSection";
+import MatchLiveSection from "@/components/football/MatchLiveSection";
+import LineupLiveSection from "@/components/football/LineupLiveSection";
 import MatchSquadsPreview from "@/components/football/MatchSquadsPreview";
 import MiniStandings from "@/components/football/MiniStandings";
 import MatchSidebar from "@/components/football/MatchSidebar";
@@ -23,47 +19,6 @@ interface Props {
   searchParams: Promise<{ league?: string }>;
 }
 
-function toUnifiedMatch(m: ESPNMatchDetail): FootballMatch {
-  // Deduplicate events: ESPN / the backend sometimes produces two entries for the
-  // same play — one with a player name and one generic ("Goal" / "Goal"). Keep the
-  // richer entry (with a player) and drop the generic duplicate.
-  const raw = m.events.map(e => ({
-    minute: e.minute, type: e.type, detail: e.detail,
-    player: e.player, assist: e.assist, teamId: Number(e.teamId),
-  }));
-
-  const deduped = raw.filter((ev, _idx, arr) => {
-    // If this entry has no player name or its player IS the type label (e.g. "Goal"),
-    // check whether a richer entry exists at the same minute for the same team+type.
-    const isGeneric = !ev.player || ev.player.toLowerCase() === ev.type.toLowerCase()
-      || ev.player.toLowerCase() === ev.detail?.toLowerCase();
-    if (!isGeneric) return true; // keep detailed entries always
-    const hasRicher = arr.some(
-      other => other !== ev
-        && other.minute === ev.minute
-        && String(other.teamId) === String(ev.teamId)
-        && other.type === ev.type
-        && other.player
-        && other.player.toLowerCase() !== other.type.toLowerCase()
-    );
-    return !hasRicher; // drop generic if a richer duplicate exists
-  });
-
-  return {
-    id: Number(m.id),
-    sport: "football",
-    status: m.status,
-    elapsed: null,
-    kickoff: m.kickoff,
-    competition: m.competition,
-    homeTeam: { id: Number(m.homeTeam.id), name: m.homeTeam.name, shortName: m.homeTeam.shortName, logo: m.homeTeam.logo },
-    awayTeam: { id: Number(m.awayTeam.id), name: m.awayTeam.name, shortName: m.awayTeam.shortName, logo: m.awayTeam.logo },
-    homeScore: m.homeScore,
-    awayScore: m.awayScore,
-    events: deduped,
-  };
-}
-
 export default async function MatchPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { league = "eng.1" } = await searchParams;
@@ -73,7 +28,6 @@ export default async function MatchPage({ params, searchParams }: Props) {
 
   const isPre = match.statusState === "pre";
   const isPost = match.statusState === "post";
-  const isLive = match.statusState === "in";
 
   const [homeRoster, awayRoster] = isPre
     ? await Promise.all([getRoster(league, match.homeTeam.id), getRoster(league, match.awayTeam.id)])
@@ -89,10 +43,8 @@ export default async function MatchPage({ params, searchParams }: Props) {
     getTeam(league, match.awayTeam.id),
   ]);
 
-  const unified = toUnifiedMatch(match);
-
   return (
-    <div className="container" style={{ maxWidth: 1240, paddingTop: 24, paddingBottom: 40 }}>
+    <div style={{ width: "100%", maxWidth: 1600, margin: "0 auto", paddingTop: 24, paddingBottom: 40, paddingLeft: "clamp(12px,2vw,24px)", paddingRight: "clamp(12px,2vw,24px)" }}>
       <Link href="/football" style={{ display: "inline-block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", textDecoration: "none", marginBottom: 20, padding: "6px 10px", borderRadius: 7, background: "var(--cloud)" }}>
         ← Football
       </Link>
@@ -110,12 +62,11 @@ export default async function MatchPage({ params, searchParams }: Props) {
               league={league}
             />
           ) : (
-            <MatchLineupSection
-              lineups={match.lineups ?? []}
-              events={match.events}
+            <LineupLiveSection
+              initialDetail={match}
+              league={league}
               homeTeam={match.homeTeam}
               awayTeam={match.awayTeam}
-              league={league}
             />
           )}
 
@@ -123,26 +74,19 @@ export default async function MatchPage({ params, searchParams }: Props) {
           <GameInfoCard match={match} />
         </div>
 
-        {/* Middle column */}
-        <div style={{ flex: "3 1 500px", minWidth: 0 }}>
-          <div style={{ marginBottom: 16 }}>
-            <ScoreHeader
-              match={unified}
-              league={league}
-              venue={match.venue}
-              competitionHref={`/football/league/${league}`}
-              compact
-            />
-          </div>
+        {/* Middle column.
+            MatchLiveSection owns a single 30s REST poll (0 SignalR messages)
+            that keeps the score header, live clock and detail block fresh.
+            It renders the ScoreHeader itself and shows the ball tracker /
+            shot map + events for live and finished matches. */}
+        <div style={{ flex: "4 1 620px", minWidth: 0 }}>
+          <MatchLiveSection
+            initialDetail={match}
+            league={league}
+            venue={match.venue}
+            competitionHref={`/football/league/${league}`}
+          />
 
-          {isLive && <MatchDetailLive id={Number(id)} />}
-
-          {isPost && (
-            <>
-              <SectionHeading text="Match Events" />
-              <MatchEventsCard match={unified} lineups={match.lineups} league={league} />
-            </>
-          )}
 
           {showStandings && standings.length > 0 && (
             <>

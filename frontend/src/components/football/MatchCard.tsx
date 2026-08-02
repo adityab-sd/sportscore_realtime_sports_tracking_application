@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
+import LiveMatchClock from "./LiveMatchClock";
 import { formatMatchDateTime, formatMatchDay } from "@/lib/formatDate";
 
 // ============================================================================
@@ -47,7 +48,10 @@ function StatusChip({ match }: { match: Match }) {
       </div>
     );
   }
-  // live
+  // live — ticking clock (falls back to status string if no elapsed value yet)
+  if (match.elapsed != null) {
+    return <LiveMatchClock elapsed={match.elapsed} status={match.status} size="sm" />;
+  }
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />

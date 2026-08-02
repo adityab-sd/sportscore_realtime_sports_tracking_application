@@ -121,6 +121,41 @@ export function classifyStatus(status: string | null | undefined): MatchState {
 export const matchState = classifyStatus;
 export const isLive = (status: string | null | undefined) => classifyStatus(status) === "live";
 
+/**
+ * parseElapsedFromStatus — derive the live match minute from the ESPN status
+ * string, because the match-detail payload carries NO separate `elapsed`/clock
+ * field (only the live-scores stream does). Without this the detail clock has
+ * nothing to anchor to and either shows static text or ticks up from 0:00.
+ *
+ * Returns the elapsed minute for live matches, or null when it can't be derived
+ * (e.g. "1H"/"2H"/"LIVE" with no minute) — in which case the ticking clock
+ * simply holds its last good anchor rather than jumping.
+ *
+ * Examples: "63'" → 63 · "45'+2'" → 47 · "90'+4'" → 94 · "HT" → 45 ·
+ *           "2H 58'" → 58 · "1H"/"FT"/"LIVE" → null
+ */
+export function parseElapsedFromStatus(status: string | null | undefined): number | null {
+  if (!status) return null;
+  if (classifyStatus(status) !== "live") return null;
+  const s = status.toUpperCase().trim();
+  if (s.includes("HT")) return 45; // halftime freezes at 45:00
+  // Primary: a minute marker with a prime, e.g. "63'", "45'+2'", "90'+4'", "2H 58'"
+  let m = s.match(/(\d+)\s*'\s*(?:\+\s*(\d+))?/);
+  if (m) {
+    const base = Number(m[1]);
+    const added = m[2] ? Number(m[2]) : 0;
+    if (!Number.isNaN(base)) return base + added;
+  }
+  // Secondary: pure numeric forms like "90+3" or "45" (NOT period markers 1H/2H)
+  m = s.match(/^(\d+)(?:\s*\+\s*(\d+))?$/);
+  if (m) {
+    const base = Number(m[1]);
+    const added = m[2] ? Number(m[2]) : 0;
+    if (!Number.isNaN(base)) return base + added;
+  }
+  return null;
+}
+
 export function statusLabel(m: Match): string {
   const state = classifyStatus(m.status);
   if (state === "live") return m.status ?? "LIVE";
