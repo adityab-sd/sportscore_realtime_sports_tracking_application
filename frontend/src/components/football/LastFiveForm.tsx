@@ -1,5 +1,5 @@
 "use client";
-import type { FormResult } from "./matchSummary";
+import type { FormResult } from "@/types/matchSummary";
 
 /**
  * LastFiveForm — recent form for both teams (last 5 matches), like ESPN's
