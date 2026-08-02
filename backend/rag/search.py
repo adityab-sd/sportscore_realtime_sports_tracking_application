@@ -406,7 +406,7 @@ def detect_date_range(question):
     q_lower = question.lower()
     today = datetime.utcnow().date()
 
-    if re.search(r"\bnow\b", q_lower) or any(p in q_lower for p in ("today", "tonight", "right now", "currently", "at the moment")):
+    if re.search(r"\bnow\b", q_lower) or re.search(r"\blive\b", q_lower) or any(p in q_lower for p in ("today", "tonight", "right now", "currently", "at the moment")):
         d = today.isoformat()
         return (d, d)
     if re.search(r"\btomorrow\b", q_lower):
