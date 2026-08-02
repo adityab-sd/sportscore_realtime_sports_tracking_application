@@ -1,15 +1,14 @@
 package org.Spring;
 
-import io.github.cdimascio.dotenv.Dotenv;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import io.github.cdimascio.dotenv.Dotenv;
 
-// NOTE from teammate: a second @SpringBootApplication exists
-// (org.Security.Securityrunner) - two entry points make startup ambiguous.
-// TODO: confirm with team which one to keep and delete the other.
 @SpringBootApplication
 @org.springframework.retry.annotation.EnableRetry
 public class Main {
@@ -24,30 +23,45 @@ public class Main {
     public static void main(String[] args) {
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 
+        // Local dev: load .env values into system properties.
         dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
-        // Note: no longer printing values to console - even in dev, avoid
-        // logging secrets where they could end up in shared terminal output.
-    
-        // Bridge our .env naming convention to the exact property name Jasypt expects
-        String jasyptPassword = dotenv.get("JASYPT_ENCRYPTOR_PASSWORD");
-        if (jasyptPassword != null) {
+
+        // ADDED: bridge platform-supplied environment variables (e.g. Azure App Service
+        // application settings) into system properties, so this app boots the same whether
+        // config comes from a local .env file or from the hosting platform. Only the keys we
+        // actually need are bridged, and existing .env / -D values take precedence.
+        Stream.concat(REQUIRED_KEYS.stream(), Stream.of("JASYPT_ENCRYPTOR_PASSWORD"))
+              .forEach(key -> {
+                  if (System.getProperty(key) == null) {
+                      String env = System.getenv(key);
+                      if (env != null && !env.isBlank()) {
+                          System.setProperty(key, env);
+                      }
+                  }
+              });
+
+        // Bridge our naming convention to the exact property name Jasypt expects.
+        // Reads from system properties, which now cover both .env and platform env vars.
+        String jasyptPassword = System.getProperty("JASYPT_ENCRYPTOR_PASSWORD");
+        if (jasyptPassword != null && !jasyptPassword.isBlank()) {
             System.setProperty("jasypt.encryptor.password", jasyptPassword);
-}
+        }
+
         List<String> missing = REQUIRED_KEYS.stream()
             .filter(key -> System.getProperty(key) == null || System.getProperty(key).isBlank())
             .collect(Collectors.toList());
 
         if (!missing.isEmpty()) {
             System.err.println("=================================================");
-            System.err.println("STARTUP FAILED: missing required .env values:");
+            System.err.println("STARTUP FAILED: missing required config values:");
             missing.forEach(k -> System.err.println("  - " + k));
-            System.err.println("Check that backend/.env exists (exact name, no .txt)");
-            System.err.println("and contains all required keys with real values.");
+            System.err.println("Provide them via backend/.env (local) or as");
+            System.err.println("environment variables / app settings (deployed).");
             System.err.println("=================================================");
             System.exit(1);
         }
 
-        System.out.println("[Startup] All required environment variables present. Starting application...");
+        System.out.println("[Startup] All required configuration present. Starting application...");
         SpringApplication.run(Main.class, args);
     }
 }
