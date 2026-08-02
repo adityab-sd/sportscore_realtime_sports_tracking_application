@@ -1,44 +1,55 @@
 package org.Spring.Controller;
 
+import java.time.Duration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
+
 /**
- * Proxies POST /api/ask requests from the Next.js frontend through to the
- * Python Flask RAG microservice running on localhost:5000.
- *
- * The Flask response body (answer / grounded / source_type / sources /
- * round_used) is forwarded UNCHANGED as raw JSON, rather than being
- * deserialized into a Java DTO — round_used can be either an int (1) or
- * a string ("fallback") depending on the case, which doesn't map cleanly
- * onto a single strongly-typed field. Passing the raw body through avoids
- * that mismatch entirely and means this proxy never drifts out of sync
- * with Flask's response shape.
- *
- * IMPORTANT: /api/ask must be added to SecurityConfig's permitAll list,
- * or every request here gets a 401 (see SecurityConfig.java — the
- * default rule is .anyRequest().authenticated()).
- *
- * CORS is NOT configured here on purpose — this app already has a
- * global CORS policy via SecurityConfig's corsConfigurationSource()
- * bean (defaults to http://localhost:3000), which covers this
- * controller automatically. Adding a separate @CrossOrigin here would
- * risk conflicting with that single source of truth.
+ * Proxies POST /api/ask from the frontend to the Python Flask RAG service.
+ * RAG base URL comes from RAG_SERVICE_URL (default localhost for local dev).
+ * The Flask JSON body is forwarded unchanged.
  */
 @RestController
 public class RagProxyController {
 
-    private static final String FLASK_RAG_URL = "http://127.0.0.1:5000/ask";
+    private static final Logger log = LoggerFactory.getLogger(RagProxyController.class);
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    // RAG service base URL (no /ask; appended below). Set RAG_SERVICE_URL in prod.
+    @Value("${RAG_SERVICE_URL:http://127.0.0.1:5000}")
+    private String ragServiceUrl;
+
+    // CHANGED: RestTemplate now has explicit timeouts. RAG answers can take 15-25s
+    // (Azure OpenAI generation is slow), so we allow up to 60s to read; 10s to connect.
+    private final RestTemplate restTemplate;
+
+    public RagProxyController() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) Duration.ofSeconds(10).toMillis());
+        factory.setReadTimeout((int) Duration.ofSeconds(60).toMillis());
+        this.restTemplate = new RestTemplate(factory);
+    }
+
+    // ADDED: log the resolved RAG URL once at startup, so the logs prove which address
+    // the proxy is actually using (catches stale deploys / unset env vars instantly).
+    @PostConstruct
+    void logConfig() {
+        log.info("[RagProxy] RAG_SERVICE_URL resolved to: {}", ragServiceUrl);
+    }
 
     @PostMapping(
         value = "/api/ask",
@@ -50,27 +61,29 @@ public class RagProxyController {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
+        String flaskUrl = ragServiceUrl.replaceAll("/+$", "") + "/ask";
+
         try {
             ResponseEntity<String> flaskResponse =
-                    restTemplate.postForEntity(FLASK_RAG_URL, entity, String.class);
+                    restTemplate.postForEntity(flaskUrl, entity, String.class);
             return ResponseEntity
                     .status(flaskResponse.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(flaskResponse.getBody());
         } catch (HttpStatusCodeException e) {
-            // Flask returned a non-2xx response (e.g. 400 for a missing
-            // "question" field) — forward its exact status and body
-            // rather than masking it as a generic 500.
+            // Flask returned a non-2xx — forward its exact status and body.
             return ResponseEntity
                     .status(e.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(e.getResponseBodyAsString());
         } catch (Exception e) {
-            // Flask is unreachable entirely (not running, wrong port, etc.)
+            // CHANGED: log the real reason + tag the body with "proxy-v2" so we can tell
+            // at a glance whether THIS version is the one running.
+            log.error("[RagProxy] Could not reach RAG at {} : {}", flaskUrl, e.toString());
             return ResponseEntity
                     .status(HttpStatus.BAD_GATEWAY)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("{\"error\": \"Could not reach the RAG service. Is Flask running on port 5000?\"}");
+                    .body("{\"error\": \"Could not reach the RAG service.\", \"detail\": \"proxy-v2\"}");
         }
     }
 }

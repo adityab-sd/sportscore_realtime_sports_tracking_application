@@ -9,6 +9,32 @@ import java.util.List;
 public final class Dto {
     private Dto() {}
 
+    public record MatchSummary(
+    List<MatchLeader> leaders,
+    List<TeamStatRow> teamStats,
+    List<XgRow> xg,
+    List<FormResult> homeForm,
+    List<FormResult> awayForm,
+    List<MomentumPoint> momentum,
+    String referee,
+    String stadium,
+    String location
+) {}
+
+public record MatchLeader(String category, String displayName, String playerId,
+    String player, String jersey, String position, String team,
+    String teamShort, String value, String detail, String imageUrl) {}
+
+public record TeamStatRow(String label, String home, String away,
+    Double homePct, Double awayPct, String group) {}
+
+public record XgRow(String label, String home, String away) {}
+
+public record FormResult(String date, String opponentShort, String homeAway,
+    String result, String outcome, String competition) {}
+
+public record MomentumPoint(int minute, double value) {}
+
     public record TeamRef(String id, String name, String shortName, String logo) {}
 
     // Addressed: removed telescoping constructors that were passing null/List.of() positionally
@@ -125,6 +151,32 @@ public final class Dto {
 
     public record StatLine(String label, String value) {}
 
+    /** A single play with field coordinates, forwarded from ESPN's plays endpoint.
+     *  Coordinates are normalized 0..1; (0,0) means "no coordinate". */
+    public record PlayDto(
+    String id,
+    double clockSeconds,
+    String minute,
+    int period,
+    String type,
+    boolean scoring,
+    String text,
+    String teamId,
+    String player,
+    double fx, double fy,
+    double f2x, double f2y,
+    double gx, double gy,
+    boolean yellowCard,
+    boolean redCard,
+    boolean substitution,
+    boolean priority,
+    String playerId,   // ← add
+    String jersey,     // ← add
+    String position    // ← add
+) {}
+
+
+
     // Addressed: removed telescoping constructors, added builder pattern instead.
     // Optional list fields (lineups, officials, odds) default to empty lists in the builder
     // so callers only need to set what they have.
@@ -132,7 +184,8 @@ public final class Dto {
                               String competition, String venue, Integer attendance,
                               TeamRef homeTeam, TeamRef awayTeam, Integer homeScore, Integer awayScore,
                               List<MatchEventDto> events, List<TeamLineup> lineups,
-                              List<Official> officials, List<OddsPick> odds) {
+                              List<Official> officials, List<OddsPick> odds,
+                              List<PlayDto> plays, MatchSummary summary) {
 
         public static Builder builder() { return new Builder(); }
 
@@ -144,6 +197,8 @@ public final class Dto {
             private List<TeamLineup> lineups = List.of();
             private List<Official> officials = List.of();
             private List<OddsPick> odds = List.of();
+            private List<PlayDto> plays = List.of();
+            private MatchSummary summary;           // ← ADD THIS
 
             public Builder id(String v)           { this.id = v;           return this; }
             public Builder status(String v)       { this.status = v;       return this; }
@@ -160,14 +215,16 @@ public final class Dto {
             public Builder lineups(List<TeamLineup> v)    { this.lineups = v != null ? v : List.of();    return this; }
             public Builder officials(List<Official> v)    { this.officials = v != null ? v : List.of();  return this; }
             public Builder odds(List<OddsPick> v)         { this.odds = v != null ? v : List.of();       return this; }
-
+            public Builder plays(List<PlayDto> v)         { this.plays = v != null ? v : List.of();       return this; }
+            public Builder summary(MatchSummary v)        { this.summary = v; return this; }
             public MatchDetail build() {
                 return new MatchDetail(id, status, statusState, kickoff, competition, venue,
                                       attendance, homeTeam, awayTeam, homeScore, awayScore,
-                                      events, lineups, officials, odds);
+                                      events, lineups, officials, odds, plays, summary);
             }
         }
     }
+    
 
     // ── World Cup bracket ────────────────────────────────────────────────
     // Contract lives on the frontend at src/types/worldcup.ts — field names
