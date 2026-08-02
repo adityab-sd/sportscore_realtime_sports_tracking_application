@@ -362,9 +362,11 @@ def run():
             game_docs = parse_games(scoreboard_data, name)
             all_docs.extend(game_docs)
 
-            if slug == "mlb":
-                states = [e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") for e in scoreboard_data.get("events", [])]
-                from collections import Counter
+            if scoreboard_data:
+                    states = [e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") for e in scoreboard_data.get("events", [])]
+            else:
+                    states = []
+                    print(f"  WARNING: scoreboard fetch failed for {slug}, skipping this cycle")
 
             next_game_doc = build_next_game_summary(scoreboard_data, name, slug)
             if next_game_doc:

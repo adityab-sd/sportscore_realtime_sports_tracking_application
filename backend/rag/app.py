@@ -46,9 +46,9 @@ KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do", "ex
 KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds", "most decorated", "biggest", "greatest of all",
                      "the most", "won the most", "has won the most")
 
-LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season", "now", "latest", 
-               "last race", "last game", "last match", "most recent", "standings", "current standing",
-               "next", "play next", "playing next", "what is","what's","whats")
+LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season", "latest", 
+                "last race", "last game", "last match", "most recent", "standings", "current standing", "next", "now", "play next",
+                 "playing next", "playing", "live", "what is","what's","whats")
 
 def fast_classify_question(question):
     """
