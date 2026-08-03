@@ -18,11 +18,7 @@ export default function LastFiveForm({
 }) {
   const hasAny = (homeForm?.length ?? 0) > 0 || (awayForm?.length ?? 0) > 0;
   if (!hasAny) {
-    return (
-      <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: "24px 0" }}>
-        Recent form will appear once available.
-      </div>
-    );
+    return null;
   }
 
   return (

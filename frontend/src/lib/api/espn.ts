@@ -78,7 +78,7 @@ export interface ESPNMatchDetail {
   competition: string; venue: string | null; attendance: number | null;
   homeTeam: ESPNTeamRef; awayTeam: ESPNTeamRef;
   homeScore: number | null; awayScore: number | null;
-  events: { minute: number; type: string; detail: string; player: string | null; assist: string | null; teamId: string; }[];
+  events: { minute: number; displayMinute?: string; type: string; detail: string; player: string | null; assist: string | null; teamId: string; }[];
   lineups: ESPNTeamLineup[];
   officials?: ESPNOfficial[];
   odds?: ESPNOddsPick[];

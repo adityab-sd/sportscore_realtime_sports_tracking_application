@@ -150,38 +150,52 @@ function SubRow({ sub, league }: { sub: SubEvent; league: string }) {
 
   const nameEl = (name: string, id?: string) =>
     id ? (
-      <Link href={`/football/player/${id}?league=${league}`} style={{ color: "inherit", textDecoration: "none" }}>{name}</Link>
-    ) : name;
+      <Link href={`/football/player/${id}?league=${league}`} style={{ color: "inherit", textDecoration: "none" }}>{cleanName(name)}</Link>
+    ) : cleanName(name);
 
   return (
     <div
       style={{
-        display: "flex", alignItems: "center", gap: 10, padding: "12px 18px",
+        display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 18px",
         borderTop: "1px solid var(--border)",
         opacity: shown ? 1 : 0,
         transform: shown ? "translateY(0)" : "translateY(-6px)",
         transition: "opacity 0.35s ease, transform 0.35s ease",
       }}
     >
+      {/* Arrows column (fixed width, top-aligned) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0, paddingTop: 2 }}>
+        <Arrow dir="up" />
+        {sub.offName && <Arrow dir="down" />}
+      </div>
+
+      {/* Names column (grows, wraps cleanly) */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {sub.onName && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
-            <Arrow dir="up" />
-            {sub.onNum && <span style={{ color: "var(--text-muted)" }}>#{sub.onNum}</span>}
-            <span style={{ fontWeight: 700, color: "var(--obsidian)" }}>{nameEl(sub.onName, sub.onId)}</span>
-          </div>
-        )}
+        {/* ON */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, lineHeight: 1.35 }}>
+          {sub.onNum && <span style={{ color: "var(--text-muted)", fontSize: 12, flexShrink: 0 }}>#{sub.onNum}</span>}
+          <span style={{ fontWeight: 700, color: "var(--obsidian)", fontSize: 14 }}>{nameEl(sub.onName, sub.onId)}</span>
+        </div>
+        {/* OFF */}
         {sub.offName && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginTop: 3 }}>
-            <Arrow dir="down" />
-            {sub.offNum && <span style={{ color: "var(--text-muted)" }}>#{sub.offNum}</span>}
-            <span style={{ color: "var(--text-secondary)" }}>{nameEl(sub.offName, sub.offId)}</span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, lineHeight: 1.35, marginTop: 6 }}>
+            {sub.offNum && <span style={{ color: "var(--text-muted)", fontSize: 12, flexShrink: 0 }}>#{sub.offNum}</span>}
+            <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{nameEl(sub.offName, sub.offId)}</span>
           </div>
         )}
       </div>
-      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>{sub.minute}</span>
+
+      {/* Minute (pinned top-right) */}
+      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0, paddingTop: 2 }}>{sub.minute}</span>
     </div>
   );
+}
+
+/** Strip a leading team-name prefix like "Defensa y Justicia. " from the player name. */
+function cleanName(name: string): string {
+  // ESPN sub text is like "Defensa y Justicia. Nazareno Roselli" — drop the team prefix.
+  const parts = name.split(". ");
+  return parts.length > 1 ? parts[parts.length - 1].trim() : name;
 }
 
 function Arrow({ dir }: { dir: "up" | "down" }) {

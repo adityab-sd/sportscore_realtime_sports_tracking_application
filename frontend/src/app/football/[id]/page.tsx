@@ -11,6 +11,7 @@ import MatchSquadsPreview from "@/components/football/MatchSquadsPreview";
 import MiniStandings from "@/components/football/MiniStandings";
 import MatchSidebar from "@/components/football/MatchSidebar";
 import GameInfoCard from "@/components/football/GameInfoCard";
+import OddsCard from "@/components/football/OddsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,10 @@ export default async function MatchPage({ params, searchParams }: Props) {
         ← Football
       </Link>
 
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div className="match-cols">
 
         {/* Left column: Lineups / Squads */}
-        <div style={{ flex: "1 1 260px", minWidth: 260, maxWidth: 320 }}>
+        <div className="match-col-left">
           {isPre ? (
             <MatchSquadsPreview
               homeTeam={match.homeTeam}
@@ -79,7 +80,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
             that keeps the score header, live clock and detail block fresh.
             It renders the ScoreHeader itself and shows the ball tracker /
             shot map + events for live and finished matches. */}
-        <div style={{ flex: "4 1 620px", minWidth: 0 }}>
+        <div className="match-col-mid">
           <MatchLiveSection
             initialDetail={match}
             league={league}
@@ -101,11 +102,44 @@ export default async function MatchPage({ params, searchParams }: Props) {
           )}
         </div>
 
-        {/* Right column: Quick links */}
-        <div style={{ flex: "1 1 260px", minWidth: 240, maxWidth: 300 }}>
+        {/* Right column: Quick links + Game Odds */}
+        <div className="match-col-right">
           <MatchSidebar league={league} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+          <OddsCard
+            odds={match.odds}
+            homeShort={match.homeTeam.shortName}
+            awayShort={match.awayTeam.shortName}
+            homeTeamId={match.homeTeam.id}
+          />
         </div>
       </div>
+
+      <style>{`
+        .match-cols {
+          display: flex;
+          gap: 20px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .match-col-left  { flex: 1 1 260px; min-width: 260px; max-width: 320px; }
+        .match-col-mid   { flex: 4 1 620px; min-width: 0; }
+        .match-col-right { flex: 1 1 260px; min-width: 240px; max-width: 300px; }
+
+        /* Mobile: single column, and put the match (score + events) FIRST,
+           then lineups, then the quick-links sidebar. */
+        @media (max-width: 900px) {
+          .match-cols { flex-direction: column; flex-wrap: nowrap; }
+          .match-col-left, .match-col-mid, .match-col-right {
+            flex: 1 1 auto;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+          }
+          .match-col-mid   { order: 1; }
+          .match-col-left  { order: 2; }
+          .match-col-right { order: 3; }
+        }
+      `}</style>
     </div>
   );
 }

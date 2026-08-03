@@ -64,11 +64,7 @@ export default function MomentumChart({
   }, [momentum, plays]);
 
   if (series.length === 0) {
-    return (
-      <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: "24px 0" }}>
-        Momentum will appear once play is under way.
-      </div>
-    );
+    return null;
   }
 
   const approximated = !(momentum && momentum.length > 0);

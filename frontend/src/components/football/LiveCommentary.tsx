@@ -1,6 +1,8 @@
 "use client";
 import { useMemo } from "react";
 import { isShot, type PlayPoint } from "@/types/plays";
+import BallIcon from "./BallIcon";
+import SubIcon from "./SubIcon";
 
 /**
  * LiveCommentary — a scrolling card of KEY EVENTS only (goals, cards, subs,
@@ -42,10 +44,10 @@ export default function LiveCommentary({
     t === "home" ? "var(--navy)" : t === "away" ? "#dc2626" : "var(--text-muted)";
 
   const iconFor = (p: PlayPoint) => {
-    if (p.scoring) return "⚽";
+    if (p.scoring) return <BallIcon size={18} color="var(--obsidian)" />;
     if (p.redCard) return <span style={{ width: 9, height: 13, background: "#ef4444", borderRadius: 2, display: "inline-block" }} />;
     if (p.yellowCard) return <span style={{ width: 9, height: 13, background: "#facc15", borderRadius: 2, display: "inline-block" }} />;
-    if (p.substitution) return "🔁";
+    if (p.substitution) return <SubIcon size={20} />;
     if (isShot(p)) {
       // small target dot for a shot
       return <span style={{ width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--text-muted)", display: "inline-block", boxSizing: "border-box" }} />;

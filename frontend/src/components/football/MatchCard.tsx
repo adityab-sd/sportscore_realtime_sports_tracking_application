@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { Match, classifyStatus } from "@/types/football";
 import TeamLogo from "./TeamLogo";
-import LiveMatchClock from "./LiveMatchClock";
 import { formatMatchDateTime, formatMatchDay } from "@/lib/formatDate";
 
 // ============================================================================
@@ -48,10 +47,7 @@ function StatusChip({ match }: { match: Match }) {
       </div>
     );
   }
-  // live — ticking clock (falls back to status string if no elapsed value yet)
-  if (match.elapsed != null) {
-    return <LiveMatchClock elapsed={match.elapsed} status={match.status} size="sm" />;
-  }
+  // live
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0 }} />
@@ -129,6 +125,9 @@ function slugFromCompetition(name: string): string {
     // International
     "World Cup 2026": "fifa.world",
     "International Friendly": "fifa.friendly",
+    "International Friendlies": "fifa.friendly",
+    "Club Friendly": "club.friendly",
+    "Club Friendlies": "club.friendly",
     // UEFA club
     "Champions League": "uefa.champions",
     "UEFA Champions League": "uefa.champions",
@@ -168,5 +167,9 @@ function slugFromCompetition(name: string): string {
   if (lower.includes("ligue 1"))     return "fra.1";
   if (lower.includes("la liga") || lower.includes("laliga")) return "esp.1";
   if (lower.includes("mls"))         return "usa.1";
+  // friendlies: distinguish club vs international
+  if (lower.includes("friendly") || lower.includes("friendlies")) {
+    return lower.includes("club") ? "club.friendly" : "fifa.friendly";
+  }
   return ""; // unknown — don't force eng.1 // safe default
 }

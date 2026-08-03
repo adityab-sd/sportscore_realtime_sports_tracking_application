@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import type { MatchLeader } from "@/types/matchSummary";
+import type { MatchLeader } from "./matchSummary";
 
 /**
  * MatchLeaders — Player Stats tab. Renders the match-leader cards (top shooter,
@@ -22,11 +22,7 @@ export default function MatchLeaders({
   awayColor?: string;
 }) {
   if (!leaders || leaders.length === 0) {
-    return (
-      <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: "40px 0" }}>
-        Player stats will appear once the match data is available.
-      </div>
-    );
+    return null;
   }
 
   return (

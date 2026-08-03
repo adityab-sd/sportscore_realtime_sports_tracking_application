@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import PitchBackground, { px, py } from "./PitchBackground";
 import { isShot, type PlayPoint, type PlayResult } from "@/types/plays";
@@ -30,28 +30,11 @@ function isPenalty(s: PlayPoint): boolean {
   return /penalty|pen\b/i.test(s.type) || /penalty/i.test(s.text);
 }
 
-/** Marker position. ESPN reports EVERY shot from the shooting team's own
- *  attacking perspective (so all shots sit near fx≈1). To read like a real
- *  pitch — each team owning one half, attacking opposite goals — we keep the
- *  HOME team on the RIGHT (it attacks the right goal, per the "HOME →" arrow)
- *  and mirror the AWAY team onto the LEFT goal (x,y → 1-x, 1-y). This matches
- *  ESPN's shot map and the pitch's own direction labels. */
-function fieldXY(s: PlayPoint) {
-  return s.team === "away"
-    ? { fx: 1 - s.fx, fy: 1 - s.fy }
-    : { fx: s.fx, fy: s.fy };
-}
-
-/** Trajectory end point (f2x/f2y), mirrored the same way as the shot origin. */
-function fieldEndXY(s: PlayPoint) {
-  return s.team === "away"
-    ? { fx: 1 - s.f2x, fy: 1 - s.f2y }
-    : { fx: s.f2x, fy: s.f2y };
-}
-
+/** Marker position — RAW coordinates, no mirroring. ESPN's fx/fy already place
+ *  each team's shots on the correct side of the pitch, so we plot them directly
+ *  (this matches the original working shot map). */
 function shotXY(s: PlayPoint) {
-  const p = fieldXY(s);
-  return { x: px(p.fx), y: py(p.fy) };
+  return { x: px(s.fx), y: py(s.fy) };
 }
 
 /** Approximate shot distance in yards. ESPN field coords are 0..1 of a pitch
@@ -116,12 +99,15 @@ function ResultIcon({
   const halo = <circle cx={cx} cy={cy} r={r + 1.5} fill="#fff" opacity="0.9" />;
 
   if (result === "goal") {
-    // Soccer ball in a white disc with a team-coloured ring.
+    // Soccer ball (SVG path) in a white disc with a team-coloured ring.
+    const s = (r * 2) / 385; // scale the 385x385 ball path to fit radius r
     return (
       <g>
         {halo}
         <circle cx={cx} cy={cy} r={r} fill="#fff" stroke={color} strokeWidth={sw} />
-        <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="central" fontSize={r * 1.3} style={{ pointerEvents: "none" }}>⚽</text>
+        <g transform={`translate(${cx - r}, ${cy - r}) scale(${s})`} style={{ pointerEvents: "none" }}>
+          <path fill="#111" d="M192.5,0C86.355,0,0,86.355,0,192.5C0,298.645,86.355,385,192.5,385C298.645,385,385,298.645,385,192.5 C385,86.355,298.645,0,192.5,0z M306.912,115.531l-65.753,37.963l-39.207-22.638V54.932l38.601-22.286 c24.608,7.418,47.513,20.692,66.359,38.457V115.531L306.912,115.531z M201.952,330.066v-75.924l39.207-22.637l65.753,37.963v44.428 c-18.848,17.766-41.751,31.038-66.359,38.457L201.952,330.066z M359.408,192.5c0,12.918-1.494,25.801-4.443,38.311L316.361,253.1 l-65.752-37.963v-45.271l65.752-37.962l38.604,22.287C357.914,166.699,359.408,179.582,359.408,192.5z M78.088,269.469 l65.753-37.963l39.206,22.637v75.924l-38.601,22.287c-24.608-7.419-47.512-20.691-66.358-38.457V269.469z M183.047,54.933v75.924 l-39.206,22.638l-65.753-37.963V71.105c18.847-17.764,41.75-31.038,66.358-38.457L183.047,54.933z M134.393,169.864v45.271 l-65.754,37.962l-38.604-22.287c-2.948-12.508-4.442-25.391-4.442-38.312s1.494-25.804,4.442-38.311l38.604-22.287L134.393,169.864 z" />
+        </g>
       </g>
     );
   }
@@ -151,49 +137,6 @@ function ResultIcon({
       <circle cx={cx} cy={cy} r={r} fill="#fff" stroke={color} strokeWidth={sw} />
       <circle cx={cx} cy={cy} r={r * 0.42} fill={color} />
     </g>
-  );
-}
-
-/* ── Animated trajectory line ────────────────────────────────────────────────
- * Draws from the shot origin (x1,y1) out to (x2,y2). When `animate` is true the
- * end point is interpolated from the origin to the target with requestAnimation-
- * Frame (easeOutCubic), so the line visibly grows on click. Keyed by shot id in
- * the parent, so it remounts and replays on each new selection. rAF is used
- * instead of SMIL because SMIL's begin="0s" fires from document load, not mount,
- * which made it appear instant. Dashes are preserved (we move the end point,
- * not the dash offset). */
-function TrajectoryLine({
-  x1, y1, x2, y2, color, dash, animate,
-}: {
-  x1: number; y1: number; x2: number; y2: number;
-  color: string; dash: string; animate: boolean;
-}) {
-  const [t, setT] = useState(animate ? 0 : 1);
-
-  useEffect(() => {
-    if (!animate) { setT(1); return; }
-    let raf = 0;
-    const DUR = 600; // ms
-    const startTime = performance.now();
-    const easeOutCubic = (p: number) => 1 - Math.pow(1 - p, 3);
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - startTime) / DUR);
-      setT(easeOutCubic(p));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [animate, x1, y1, x2, y2]);
-
-  const ex = x1 + (x2 - x1) * t;
-  const ey = y1 + (y2 - y1) * t;
-
-  return (
-    <line
-      x1={x1} y1={y1} x2={ex} y2={ey}
-      stroke={color} strokeWidth="1.8" strokeDasharray={dash}
-      opacity="0.6" strokeLinecap="round"
-    />
   );
 }
 
@@ -301,25 +244,20 @@ export default function ShotMap({
         })}
       </div>
 
-      {/* Pitch — ESPN-style: field sits on a light card, green fills it edge to edge */}
-      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 10, padding: 6, overflow: "hidden" }}>
+      {/* Pitch */}
+      <div style={{ background: "#0d1117", borderRadius: 10, padding: 8 }}>
         <PitchBackground homeShort={homeShort} awayShort={awayShort} onBackgroundClick={() => setSelectedId(null)}>
           {/* Trajectory for the active shot → to its raw end point (f2x/f2y),
               matching the original working shot map. */}
-          {active && (active.f2x > 0 || active.f2y > 0) && (() => {
-            const start = fieldXY(active);
-            const end = fieldEndXY(active);
-            return (
-              <TrajectoryLine
-                key={active.id + (selected?.id === active.id ? "-draw" : "-static")}
-                x1={px(start.fx)} y1={py(start.fy)}
-                x2={px(end.fx)} y2={py(end.fy)}
-                color={iconColorFor(active.result)}
-                dash={active.result === "goal" ? "none" : "4 3"}
-                animate={selected?.id === active.id}
-              />
-            );
-          })()}
+          {active && (active.f2x > 0 || active.f2y > 0) && (
+            <line
+              x1={px(active.fx)} y1={py(active.fy)}
+              x2={px(active.f2x)} y2={py(active.f2y)}
+              stroke={iconColorFor(active.result)} strokeWidth="1.6"
+              strokeDasharray={active.result === "goal" ? "none" : "4 3"}
+              opacity="0.55" strokeLinecap="round"
+            />
+          )}
 
           {filtered.map((s) => {
             const { x, y } = shotXY(s);

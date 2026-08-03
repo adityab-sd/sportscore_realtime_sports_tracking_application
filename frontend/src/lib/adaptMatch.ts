@@ -16,7 +16,7 @@ import { parseElapsedFromStatus } from "@/types/football";
  */
 export function toUnifiedMatch(m: ESPNMatchDetail): FootballMatch {
   const raw = m.events.map(e => ({
-    minute: e.minute, type: e.type, detail: e.detail,
+    minute: e.minute, displayMinute: (e as any).displayMinute, type: e.type, detail: e.detail,
     player: e.player, assist: e.assist, teamId: Number(e.teamId),
   }));
 
