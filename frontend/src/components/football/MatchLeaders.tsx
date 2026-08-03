@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import type { MatchLeader } from "./matchSummary";
+import type { MatchLeader } from "@/types/matchSummary";
 
 /**
  * MatchLeaders — Player Stats tab. Renders the match-leader cards (top shooter,
