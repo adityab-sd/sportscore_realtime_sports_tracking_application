@@ -48,13 +48,13 @@ SportScore is a Microsoft-collaborated dissertation project. We gratefully ackno
 
 We are a team of five who built SportScore together. While each member led a primary area, the project was a genuinely collaborative effort with shared ownership across the codebase.
 
-| Member | Primary Focus |
-|--------|---------------|
-| **Hemanathan Sasikala Karthikeyan** (Team Lead) | Backend architecture and per-sport modules (Java, Spring Boot), the live ESPN data pipeline, parts of the Azure Functions streaming layer, the backend test suite, and cloud deployment |
-| **Katragunta Mahanth Vamsi** | Frontend, live user interface and real-time integration (Next.js, React), and frontend testing |
-| **Adityanarayanan Buddharajan** | Azure Functions and cloud streaming (Event Hub, SignalR) |
-| **Aiswarya Anilraj** | AI assistant and Retrieval-Augmented Generation service (Python) |
-| **Shailesh Rajesh** | Security, authentication, and secret management |
+| Member | Primary Focus                                                                                                                                                                                                                                                    |
+|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Hemanathan Sasikala Karthikeyan** (Team Lead) | Backend architecture and per-sport modules (Java, Spring Boot), the live ESPN data pipeline, parts of the Azure Functions streaming layer, the backend test suite, and cloud deployment                                                                          |
+| **Katragunta Mahanth Vamsi** | Frontend, live user interface and real-time integration (Next.js, React), and frontend testing                                                                                                                                                                   |
+| **Adityanarayanan Buddharajan** | Real-time streaming pipeline (Azure Event Hub, Functions, SignalR),Azure Portal infrastructure management (App Service plan migration, resource configuration), Radio Mode (Azure Neural TTS), and real-time pipeline evaluation via Azure Application Insights  |
+| **Aiswarya Anilraj** | AI assistant and Retrieval-Augmented Generation service (Python)                                                                                                                                                                                                 |
+| **Shailesh Rajesh** | Security, authentication, and secret management                                                                                                                                                                                                                  |
 
 ### How We Worked as a Team
 
