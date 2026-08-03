@@ -1,17 +1,19 @@
 "use client";
 import { useMemo, useState } from "react";
 import { isShot, type PlayPoint } from "@/types/plays";
+import type { MatchEvent } from "@/types/football";
 
 /**
  * CommentaryTab — ESPN "Play by Play" layout.
  *
- * Each entry: event-type heading (from play.type) + team crest, minute below,
- * commentary text, and an indented player card (shirt/number/name/position)
- * when the play has a named player. A dotted vertical rail threads the entries.
- * All Plays / Key Events toggle at the top.
+ * Primary source: plays[] (full play-by-play with text).
+ * Fallback: events[] (goals/cards) — used for OLD matches where ESPN has pruned
+ * the plays endpoint but events persist. This way commentary is never completely
+ * empty for a finished match that has goals/cards.
  */
 export default function CommentaryTab({
   plays,
+  events,
   homeShort = "HOME",
   awayShort = "AWAY",
   homeColor = "#003f88",
@@ -20,6 +22,7 @@ export default function CommentaryTab({
   awayLogo,
 }: {
   plays: PlayPoint[];
+  events?: MatchEvent[];
   homeShort?: string;
   awayShort?: string;
   homeColor?: string;
@@ -29,15 +32,41 @@ export default function CommentaryTab({
 }) {
   const [mode, setMode] = useState<"all" | "key">("all");
 
+  // Fallback: when plays[] is empty (old matches — ESPN prunes the endpoint),
+  // build synthetic "plays" from events[] (goals/cards, which persist).
+  const effectivePlays = useMemo(() => {
+    const hasTextPlays = plays.some((p) => p.text.trim().length > 0);
+    if (hasTextPlays) return plays;
+    if (!events || events.length === 0) return plays;
+    // Convert events to PlayPoint-like objects for rendering.
+    return events.map((e, i): PlayPoint => ({
+      id: `ev-${e.minute}-${i}`,
+      clockSeconds: e.minute * 60,
+      minute: `${e.minute}'`,
+      period: e.minute <= 45 ? 1 : 2,
+      type: e.type ?? "event",
+      result: "other",
+      text: [e.detail, e.player, e.assist ? `Assist: ${e.assist}` : ""].filter(Boolean).join(". "),
+      team: null, // events don't carry resolved home/away
+      player: e.player ?? null,
+      fx: 0, fy: 0, f2x: 0, f2y: 0, gx: 0, gy: 0,
+      scoring: (e.type ?? "").includes("goal"),
+      yellowCard: (e.detail ?? "").toLowerCase().includes("yellow"),
+      redCard: (e.detail ?? "").toLowerCase().includes("red"),
+      substitution: (e.type ?? "").toLowerCase().includes("sub"),
+      priority: false,
+    }));
+  }, [plays, events]);
+
   const isKey = (p: PlayPoint) =>
     p.scoring || p.yellowCard || p.redCard || p.substitution || isShot(p);
 
   const feed = useMemo(() => {
-    const base = [...plays]
+    const base = [...effectivePlays]
       .filter((p) => p.text.trim().length > 0)
       .sort((a, b) => b.clockSeconds - a.clockSeconds);
     return mode === "key" ? base.filter(isKey) : base;
-  }, [plays, mode]);
+  }, [effectivePlays, mode]);
 
   // Title-case the event type: "shot-blocked" → "Shot Blocked".
   const titleFor = (p: PlayPoint) => {

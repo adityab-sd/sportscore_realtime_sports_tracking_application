@@ -7,6 +7,7 @@ import StandingsTable from "@/components/baseball/StandingsTable";
 import MatchColumnTabs from "@/components/baseball/MatchColumnTabs";
 import DiamondPlays from "@/components/baseball/DiamondPlays";
 import LocalDateTime from "@/components/baseball/LocalDateTime";
+import BaseballLiveScoreHeader from "@/components/baseball/BaseballLiveScoreHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -561,7 +562,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
     <div className="container" style={{ maxWidth: 1320, paddingTop: 24, paddingBottom: 40 }}>
       <Link href="/baseball" style={{ display: "inline-block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", textDecoration: "none", marginBottom: 20, padding: "6px 10px", borderRadius: 7, background: "var(--cloud)" }}>← Baseball</Link>
 
-      <div style={{ marginBottom: 20 }}><ScoreHeader game={game} league={league} /></div>
+      <div style={{ marginBottom: 20 }}><BaseballLiveScoreHeader initialGame={game} league={league} /></div>
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
         {/* LEFT: Game Info */}

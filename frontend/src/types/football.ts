@@ -13,6 +13,7 @@ export type MatchEventType = "goal" | "card" | "subst" | "unknown";
 
 export interface MatchEvent {
   minute: number;
+  displayMinute?: string;
   type: string;
   detail: string;
   player: string | null;
@@ -65,6 +66,7 @@ export const LEAGUES: LeagueInfo[] = [
   { slug: "uefa.europa",    name: "Europa League",    short: "UEL",        logo: espnLogo(3),  accent: "#f47a20" },
   { slug: "uefa.europa.conf", name: "Europa Conf.",   short: "UECL",       logo: espnLogo(5),  accent: "#f47a20" },
   { slug: "fifa.friendly",  name: "International Friendlies", short: "Friendlies", logo: espnLogo(4), accent: "#e30b1c" },
+  { slug: "club.friendly",   name: "Club Friendlies",  short: "Club Friendly", logo: espnLogo(4), accent: "#64748b" },
 ];
 
 export const leagueName = (slug: string): string =>
@@ -171,6 +173,6 @@ export function statusLabel(m: Match): string {
 
 /** Returns true for leagues that have a full standings table. */
 export function leagueHasFullTable(slug: string): boolean {
-  const noTable = new Set(["fifa.world", "fifa.friendly", "uefa.champions", "uefa.europa", "uefa.europa.conf"]);
+  const noTable = new Set(["fifa.world", "fifa.friendly", "uefa.champions", "uefa.europa", "uefa.europa.conf", "club.friendly"]);
   return !noTable.has(slug);
 }

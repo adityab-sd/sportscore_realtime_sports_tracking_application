@@ -6,12 +6,14 @@ import { classifyStatus } from "@/types/football";
 import { toUnifiedMatch } from "@/lib/adaptMatch";
 import { adaptPlays } from "@/lib/adaptPlays";
 import ScoreHeader from "./ScoreHeader";
+import ScoreSubBar from "./ScoreSubBar";
 import MatchDetailLive from "./MatchDetailLive";
 import MatchTabs from "./MatchTabs";
 import MatchLeaders from "./MatchLeaders";
 import CommentaryTab from "./CommentaryTab";
 import LastFiveForm from "./LastFiveForm";
 import MatchStatsComparison from "./MatchStatsComparison";
+import MomentumChart from "./MomentumChart";
 
 /**
  * MatchLiveSection — the ONE live owner of the match-detail middle column.
@@ -51,6 +53,17 @@ export default function MatchLiveSection({
 
   // ---- Everything below is INSIDE the component, so data/unified exist. ----
   const unified = toUnifiedMatch(data);
+
+  // Guard: if the adapter couldn't build a valid match (e.g. first render with
+  // incomplete data), don't crash — just render the header with what we have.
+  if (!unified || !unified.homeTeam || !unified.awayTeam) {
+    return (
+      <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: "40px 0" }}>
+        Loading match details…
+      </div>
+    );
+  }
+
   const plays = adaptPlays(data, unified);
 
   // The new summary sections (leaders, teamStats, xg, form). Present once the
@@ -66,6 +79,16 @@ export default function MatchLiveSection({
     live ||
     classifyStatus(data.status) === "finished";
 
+  // Which tabs have data? Hide tabs that would be empty.
+  const hasTeamStats =
+    (summary.teamStats?.length ?? 0) > 0 ||
+    (summary.homeForm?.length ?? 0) > 0 ||
+    (summary.awayForm?.length ?? 0) > 0;
+  const hasPlayerStats = (summary.leaders?.length ?? 0) > 0;
+  const hasCommentary =
+    plays.some((p) => p.text?.trim().length > 0) ||
+    (unified.events?.length ?? 0) > 0;
+
   return (
     <>
       <div style={{ marginBottom: 16 }}>
@@ -76,19 +99,31 @@ export default function MatchLiveSection({
           competitionHref={competitionHref}
           compact
         />
+        <ScoreSubBar match={unified} />
       </div>
 
       {detailVisible && (
         <MatchTabs
+          teamStatsEnabled={hasTeamStats}
+          playerStatsEnabled={hasPlayerStats}
+          commentaryEnabled={hasCommentary}
           gamecast={
-            <MatchDetailLive
-              match={unified}
-              detail={data}
-              league={league}
-              live={live}
-              lastUpdated={lastUpdated}
-              isFetching={isFetching}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <MatchDetailLive
+                match={unified}
+                detail={data}
+                league={league}
+                live={live}
+                lastUpdated={lastUpdated}
+                isFetching={isFetching}
+              />
+              <MomentumChart
+                momentum={summary.momentum}
+                plays={plays}
+                homeShort={homeShort}
+                awayShort={awayShort}
+              />
+            </div>
           }
           teamStats={
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -111,14 +146,15 @@ export default function MatchLiveSection({
           }
           playerStats={<MatchLeaders leaders={summary.leaders} league={league} />}
           commentary={
-          <CommentaryTab
-            plays={plays}
-            homeShort={homeShort}
-            awayShort={awayShort}
-            homeLogo={unified.homeTeam.logo}
-            awayLogo={unified.awayTeam.logo}
-          />
-        }
+            <CommentaryTab
+              plays={plays}
+              events={unified.events}
+              homeShort={homeShort}
+              awayShort={awayShort}
+              homeLogo={unified.homeTeam.logo}
+              awayLogo={unified.awayTeam.logo}
+            />
+          }
         />
       )}
     </>

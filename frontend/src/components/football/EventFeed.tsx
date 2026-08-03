@@ -69,7 +69,7 @@ export default function EventFeed({ match, lineups, league }: Props) {
             onMouseEnter={ev => (ev.currentTarget.style.background = "var(--cloud)")}
             onMouseLeave={ev => (ev.currentTarget.style.background = "transparent")}
           >
-            <span className="stat-num" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", minWidth: 30, textAlign: "center" }}>{e.minute}&apos;</span>
+            <span className="stat-num" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", minWidth: 30, textAlign: "center" }}>{e.displayMinute ?? e.minute}&apos;</span>
             <EventIcon type={e.type} detail={e.detail} />
             <div style={{ flex: 1, textAlign: isHome ? "left" : "right", minWidth: 0 }}>
               <div>{nameNode}</div>

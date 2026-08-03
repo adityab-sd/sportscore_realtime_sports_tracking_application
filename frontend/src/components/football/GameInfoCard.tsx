@@ -79,9 +79,7 @@ export default function GameInfoCard({ match }: { match: ESPNMatchDetail }) {
     : null;
 
   const officials = (match.officials ?? []).sort((a, b) => a.order - b.order);
-  const consensusOdds = (match.odds ?? []).find(o => o.provider?.toLowerCase().includes("consensus")) ?? (match.odds ?? [])[0];
-
-  const hasContent = dateStr || match.venue || match.attendance || officials.length > 0 || consensusOdds;
+  const hasContent = dateStr || match.venue || match.attendance || officials.length > 0;
   if (!hasContent) return null;
 
   return (
@@ -107,32 +105,6 @@ export default function GameInfoCard({ match }: { match: ESPNMatchDetail }) {
           <InfoRow icon={<AttendanceIcon />}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)" }}>
               Attendance: {match.attendance.toLocaleString()}
-            </div>
-          </InfoRow>
-        )}
-
-        {consensusOdds && (
-          <InfoRow icon={<OddsIcon />}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 4 }}>Odds</div>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {consensusOdds.details && (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.4px" }}>Line</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)" }}>{consensusOdds.details}</div>
-                </div>
-              )}
-              {consensusOdds.spread != null && (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.4px" }}>Spread</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)" }}>{consensusOdds.spread > 0 ? `+${consensusOdds.spread}` : consensusOdds.spread}</div>
-                </div>
-              )}
-              {consensusOdds.overUnder != null && (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.4px" }}>O/U</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)" }}>{consensusOdds.overUnder}</div>
-                </div>
-              )}
             </div>
           </InfoRow>
         )}
