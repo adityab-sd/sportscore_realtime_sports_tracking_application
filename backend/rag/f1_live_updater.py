@@ -141,7 +141,7 @@ def parse_weekend(event):
             content = f"{name} ({circuit_name}, {city}, {country}) — {rep['label']} is LIVE right now on {rep.get('date', 'an unknown date')} ({rep['detail']}). Current top positions: {top}."
         elif rep["state"] == "post":
             top = ", ".join(rep["grid"][:3]) if rep["grid"] else "no result data"
-            content = f"{name} ({circuit_name}, {city}, {country}) — {rep['label']} has FINISHED. Top finishers: {top}."
+            content = f"{name} ({circuit_name}, {city}, {country}) — {rep['label']} has FINISHED on {rep.get('date') or 'an unknown date'}. Top finishers: {top}."
         else:
             content = f"{name} ({circuit_name}, {city}, {country}) — {rep['label']} is upcoming, scheduled for {rep.get('date', 'TBD')}."
 

@@ -169,7 +169,7 @@ def _extract_keywords(question):
 
 def _detect_sport(question):
     q_lower = question.lower()
-    tokens = set(re.findall(r"[a-z\-]+", q_lower))
+    tokens = set(re.findall(r"[a-z0-9\-]+", q_lower))  # CHANGED: include digits so "f1" is a token (was [a-z\-]+, which turned "f1" into "f" and broke F1 detection)
 
     for kw in BASKETBALL_KEYWORDS:
         if " " in kw:
@@ -339,22 +339,101 @@ def search_live_corpus(question, top=6):
     q_words = set(re.findall(r"[a-z']+", question.lower())) - STOPWORDS
     significant_words = q_words - LIVE_NOISE_WORDS
 
+    # ADDED: detect a specific league/competition named in the question so we can
+    # strongly prefer that league's docs. Fixes "Premier League" returning J-League
+    # and "Argentina" returning La Liga — sport filtering alone wasn't enough.
+    _q_for_league = question.lower()
+    _named_league = None
+    for _lg in ("premier league", "la liga", "serie a", "bundesliga", "ligue 1",
+                "j-league", "j league", "argentina primera", "argentine primera",
+                "liga mx", "champions league", "europa league", "conference league",
+                "eredivisie", "primeira liga", "brazil serie a", "a-league", "mls",
+                "wnba", "nba", "mlb", "world cup"):
+        if _lg in _q_for_league:
+            _named_league = _lg
+            break
+
     def relevance(r):
         text = (r.get("title", "") + " " + r.get("content", "")).lower()
         text_words = set(re.findall(r"[a-z']+", text))
-        return len(significant_words & text_words)
+        base = len(significant_words & text_words)
+        # strong boost when the doc belongs to the exact league the user named
+        if _named_league and _named_league in text:
+            base += 5
+        return base
 
     detected_sport = _detect_sport(question)
     if detected_sport:
         all_results = [r for r in all_results if r.get("sport") == detected_sport]
 
+    # CHANGED: for match/fixture/score/race questions, drop news/injury/transaction
+    # docs from the candidates. Those carry TODAY's published date, which the
+    # "soonest-first" ranking otherwise treats as the nearest "upcoming" item —
+    # so F1/football news was outranking the actual upcoming races/fixtures.
+    _ql_cat = question.lower()
+    _wants_matches = any(w in _ql_cat for w in (
+        "upcoming", "next", "fixture", "fixtures", "schedule", "match", "matches",
+        "race", "races", "result", "results", "game", "games", "score", "scores",
+        "playing", "live", "standings", "table", "leading", "kickoff", "scorer"))
+    _wants_other = any(w in _ql_cat for w in (
+        "news", "injury", "injuries", "transfer", "transaction", "signing", "headline"))
+    if _wants_matches and not _wants_other:
+        _match_only = [r for r in all_results
+                       if (r.get("category") or "") not in ("live-news", "live-injury", "live-transaction")]
+        if _match_only:
+            all_results = _match_only
+    # ADDED: mirror image — for news/injury/transfer questions, filter TO those
+    # categories so fixture/standings docs don't outrank the actual news. Fixes
+    # "latest football news" returning La Liga fixtures instead of news.
+    elif _wants_other and not _wants_matches:
+        _cat_map = {
+            "news": "live-news", "headline": "live-news",
+            "injury": "live-injury", "injuries": "live-injury",
+            "transfer": "live-transaction", "transaction": "live-transaction", "signing": "live-transaction",
+        }
+        _want_cats = {_cat_map[w] for w in _cat_map if w in _ql_cat}
+        if _want_cats:
+            _other_only = [r for r in all_results if (r.get("category") or "") in _want_cats]
+            if _other_only:
+                all_results = _other_only
+
     scored = [
         (relevance(r), _extract_match_date(r.get("content", "")), r)
         for r in all_results
     ]
-    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    # CHANGED: order by query intent instead of always latest-first (the old
+    # reverse=True wrongly surfaced far-future fixtures like a Sep 16 La Liga game
+    # ahead of matches happening today). For "upcoming" we want the SOONEST future
+    # matches first; for "recent/latest" the most recent first; else keep the old
+    # most-recent-first default.
+    import datetime as _dt
+    _today_int = int(_dt.date.today().strftime("%Y%m%d"))
+    def _di(d):
+        return int(d.replace("-", "")) if d else 0
+    _ql = question.lower()
+    _upcoming = any(w in _ql for w in ("upcoming", "next", "fixture", "schedule", "coming up", "this week"))
+    _recent = any(w in _ql for w in ("latest", "recent", "result", "yesterday", "finished", "most recent"))
+    if _upcoming:
+        def _order(x):
+            di = _di(x[1]); future = di >= _today_int and di > 0
+            return (-x[0], 0 if future else 1, di if future else -di)
+        scored.sort(key=_order)
+    elif _recent:
+        scored.sort(key=lambda x: (-x[0], -_di(x[1])))
+    else:
+        scored.sort(key=lambda x: (-x[0], -_di(x[1])))
 
     min_relevance = min(len(significant_words), 2) if significant_words else 0
+    # CHANGED: if the ONLY significant word is the sport's own name (e.g. "basketball",
+    # "baseball", "football", "f1"), it never appears literally in team-vs-team docs, so
+    # every doc scores 0 and the threshold would wrongly reject everything. When a sport
+    # was detected, treat sport-name-only queries as "no threshold" so the sorted docs
+    # (already filtered to that sport) are returned directly.
+    _sport_name_words = {"basketball", "baseball", "football", "soccer", "f1", "formula",
+                         "nba", "wnba", "mlb", "nfl", "race", "races"}
+    if detected_sport and significant_words and significant_words.issubset(_sport_name_words):
+        min_relevance = 0
+
     thresholded = [s for s in scored if min_relevance > 0 and s[0] >= min_relevance]
 
     if not thresholded:
