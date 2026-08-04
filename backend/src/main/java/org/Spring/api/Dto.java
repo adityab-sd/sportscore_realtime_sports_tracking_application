@@ -9,32 +9,6 @@ import java.util.List;
 public final class Dto {
     private Dto() {}
 
-    public record MatchSummary(
-    List<MatchLeader> leaders,
-    List<TeamStatRow> teamStats,
-    List<XgRow> xg,
-    List<FormResult> homeForm,
-    List<FormResult> awayForm,
-    List<MomentumPoint> momentum,
-    String referee,
-    String stadium,
-    String location
-) {}
-
-public record MatchLeader(String category, String displayName, String playerId,
-    String player, String jersey, String position, String team,
-    String teamShort, String value, String detail, String imageUrl) {}
-
-public record TeamStatRow(String label, String home, String away,
-    Double homePct, Double awayPct, String group) {}
-
-public record XgRow(String label, String home, String away) {}
-
-public record FormResult(String date, String opponentShort, String homeAway,
-    String result, String outcome, String competition) {}
-
-public record MomentumPoint(int minute, double value) {}
-
     public record TeamRef(String id, String name, String shortName, String logo) {}
 
     // Addressed: removed telescoping constructors that were passing null/List.of() positionally
@@ -70,6 +44,54 @@ public record MomentumPoint(int minute, double value) {}
             }
         }
     }
+    /** A single play with field coordinates, forwarded from ESPN's plays endpoint. */
+    public record PlayDto(
+        String id,
+        double clockSeconds,
+        String minute,
+        int period,
+        String type,
+        boolean scoring,
+        String text,
+        String teamId,
+        String player,
+        double fx, double fy,
+        double f2x, double f2y,
+        double gx, double gy,
+        boolean yellowCard,
+        boolean redCard,
+        boolean substitution,
+        boolean priority,
+        String playerId,
+        String jersey,
+        String position
+    ) {}
+
+    public record MatchSummary(
+        List<MatchLeader> leaders,
+        List<TeamStatRow> teamStats,
+        List<XgRow> xg,
+        List<FormResult> homeForm,
+        List<FormResult> awayForm,
+        List<MomentumPoint> momentum,
+        String referee,
+        String stadium,
+        String location
+    ) {}
+
+    public record MatchLeader(String category, String displayName, String playerId,
+        String player, String jersey, String position, String team,
+        String teamShort, String value, String detail, String imageUrl) {}
+
+    public record TeamStatRow(String label, String home, String away,
+        Double homePct, Double awayPct, String group) {}
+
+    public record XgRow(String label, String home, String away) {}
+
+    public record FormResult(String date, String opponentShort, String homeAway,
+        String result, String outcome, String competition) {}
+
+    public record MomentumPoint(int minute, double value) {}
 
     public record Fixtures(List<MatchDto> results, List<MatchDto> upcoming) {}
 
@@ -119,7 +141,7 @@ public record MomentumPoint(int minute, double value) {}
     public record Leader(int rank, String category, String player, String team,
                          String teamLogo, String headshot, double value, String displayValue) {}
 
-    public record MatchEventDto(int minute, String type, String detail,
+    public record MatchEventDto(int minute, String displayMinute, String type, String detail,
                                 String player, String assist, String teamId) {}
 
     public record LineupPlayer(String id, String name, String jersey, String position,
@@ -151,35 +173,10 @@ public record MomentumPoint(int minute, double value) {}
 
     public record StatLine(String label, String value) {}
 
-    /** A single play with field coordinates, forwarded from ESPN's plays endpoint.
-     *  Coordinates are normalized 0..1; (0,0) means "no coordinate". */
-    public record PlayDto(
-    String id,
-    double clockSeconds,
-    String minute,
-    int period,
-    String type,
-    boolean scoring,
-    String text,
-    String teamId,
-    String player,
-    double fx, double fy,
-    double f2x, double f2y,
-    double gx, double gy,
-    boolean yellowCard,
-    boolean redCard,
-    boolean substitution,
-    boolean priority,
-    String playerId,   // ← add
-    String jersey,     // ← add
-    String position    // ← add
-) {}
-
-
-
     // Addressed: removed telescoping constructors, added builder pattern instead.
     // Optional list fields (lineups, officials, odds) default to empty lists in the builder
     // so callers only need to set what they have.
+
     public record MatchDetail(String id, String status, String statusState, String kickoff,
                               String competition, String venue, Integer attendance,
                               TeamRef homeTeam, TeamRef awayTeam, Integer homeScore, Integer awayScore,
@@ -198,7 +195,8 @@ public record MomentumPoint(int minute, double value) {}
             private List<Official> officials = List.of();
             private List<OddsPick> odds = List.of();
             private List<PlayDto> plays = List.of();
-            private MatchSummary summary;           // ← ADD THIS
+            private MatchSummary summary;
+
 
             public Builder id(String v)           { this.id = v;           return this; }
             public Builder status(String v)       { this.status = v;       return this; }
@@ -215,8 +213,9 @@ public record MomentumPoint(int minute, double value) {}
             public Builder lineups(List<TeamLineup> v)    { this.lineups = v != null ? v : List.of();    return this; }
             public Builder officials(List<Official> v)    { this.officials = v != null ? v : List.of();  return this; }
             public Builder odds(List<OddsPick> v)         { this.odds = v != null ? v : List.of();       return this; }
-            public Builder plays(List<PlayDto> v)         { this.plays = v != null ? v : List.of();       return this; }
-            public Builder summary(MatchSummary v)        { this.summary = v; return this; }
+            public Builder plays(List<PlayDto> v)    { this.plays = v != null ? v : List.of(); return this; }
+            public Builder summary(MatchSummary v)   { this.summary = v; return this; }
+
             public MatchDetail build() {
                 return new MatchDetail(id, status, statusState, kickoff, competition, venue,
                                       attendance, homeTeam, awayTeam, homeScore, awayScore,
@@ -224,7 +223,6 @@ public record MomentumPoint(int minute, double value) {}
             }
         }
     }
-    
 
     // ── World Cup bracket ────────────────────────────────────────────────
     // Contract lives on the frontend at src/types/worldcup.ts — field names
