@@ -50,7 +50,7 @@ function hasUsableImage(image: string | null | undefined): boolean {
 
 const UPCOMING_PER_SPORT = 8;
 
-const FOOTBALL_UPCOMING_LEAGUES = ["fifa.world", "eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions", "usa.1", "mex.1", "bra.1", "arg.1"];
+const FOOTBALL_UPCOMING_LEAGUES = ["fifa.world", "eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions", "usa.1", "club.friendly", "bra.1", "arg.1"];
 const BASKETBALL_UPCOMING_LEAGUES = ["nba", "wnba"];
 const BASEBALL_UPCOMING_LEAGUES = ["mlb", "college-baseball"];
 
@@ -66,7 +66,7 @@ const LEAGUE_LABELS: Record<string, string> = {
   "nba": "NBA", "wnba": "WNBA", "mlb": "MLB", "college-baseball": "NCAA Baseball",
   "bra.1": "Brasileirão", "arg.1": "Argentine Primera",
   "uefa.europa": "Europa League", "uefa.europa.conf": "Europa Conference",
-  "fifa.friendly": "International Friendlies",
+  "fifa.friendly": "International Friendlies", "club.friendly": "Club Friendlies",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
