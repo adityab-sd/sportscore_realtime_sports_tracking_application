@@ -68,7 +68,7 @@ function hasUsableImage(image: string | null | undefined): boolean {
 
 const UPCOMING_PER_SPORT = 8;
 
-const FOOTBALL_UPCOMING_LEAGUES = ["fifa.world", "eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions", "usa.1", "mex.1", "bra.1", "arg.1"];
+const FOOTBALL_UPCOMING_LEAGUES = ["fifa.world", "eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions", "usa.1", "mex.1", "bra.1", "arg.1", "club.friendly"];
 const BASKETBALL_UPCOMING_LEAGUES = ["nba", "wnba"];
 const BASEBALL_UPCOMING_LEAGUES = ["mlb", "college-baseball"];
 
