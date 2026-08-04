@@ -527,7 +527,7 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
             player = playerByKey.get(quarter + ":" + teamId + ":" + (clock != null ? clock : ""));
         }
 
-        return new Dto.MatchEventDto(quarter, "score", detail, player, null, teamId);
+        return new Dto.MatchEventDto(quarter, String.valueOf(quarter), "score", detail, player, null, teamId);
     }
 
     private java.util.Map<String, String> fetchPlayersFromCoreApi(String league, String eventId) {

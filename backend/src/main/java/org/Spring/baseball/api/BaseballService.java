@@ -582,7 +582,7 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
             if (player == null) player = playerByKey.get((inning + 1) + ":" + teamId);
         }
 
-        return new Dto.MatchEventDto(inning, "score", detail, player, null, teamId);
+        return new Dto.MatchEventDto(inning, String.valueOf(inning), "score", detail, player, null, teamId);
     }
 
     private java.util.Map<String, String> fetchPlayersFromCoreApi(String league, String eventId) {
