@@ -1,4 +1,5 @@
 flask
+gunicorn
 azure-search-documents
 python-dotenv
 requests

@@ -48,7 +48,14 @@ KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds"
 
 LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season", "latest", 
                 "last race", "last game", "last match", "most recent", "standings", "current standing", "next", "now", "play next",
-                 "playing next", "playing", "live", "what is","what's","whats")
+                 "playing next", "playing", "live", "what is","what's","whats",
+                 # ADDED: fixture/match/upcoming words so "upcoming matches in basketball",
+                 # "fixtures", "who scored", "next game", etc. route to the LIVE index (not the
+                 # knowledge corpus). This was the bug: "upcoming" wasn't here, so basketball/
+                 # baseball fixture questions were misrouted to Postgres and returned format info.
+                 "upcoming", "fixture", "fixtures", "schedule", "scheduled", "match", "matches",
+                 "game", "games", "race", "races", "scorer", "kickoff", "leading", "top scorer",
+                 "who scored", "score")
 
 def fast_classify_question(question):
     """
