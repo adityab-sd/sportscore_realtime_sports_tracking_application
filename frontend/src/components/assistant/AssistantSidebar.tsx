@@ -17,7 +17,7 @@ const STARTERS: { icon: typeof CalendarDays; label: string; hint: string; color:
   { icon: Trophy,       label: "Upcoming basketball games this week?",     hint: "basketball", color: "#ea580c", bg: "#fff7ed" },
   { icon: Flag,         label: "What are the upcoming F1 races?",          hint: "formula 1",  color: "#dc2626", bg: "#fef2f2" },
   { icon: Newspaper,    label: "Latest football news",                     hint: "news",       color: "#d97706", bg: "#fffbeb" },
-  { icon: User,         label: "Who is Lionel Messi?",                     hint: "player",     color: "#7c3aed", bg: "#f5f3ff" },
+  { icon: User,         label: "Who is cristiano ronaldo?",                hint: "player",     color: "#7c3aed", bg: "#f5f3ff" },
   { icon: BookOpen,     label: "When is a handball called in soccer?",     hint: "rules",      color: "#0d9488", bg: "#f0fdfa" },
 ];
 
