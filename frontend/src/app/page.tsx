@@ -6,6 +6,10 @@ import MultiSportNews from "@/components/home/MultiSportNews";
 import { getNews as getFootballNews, getFixtures as getFootballFixtures, getScoreboard as getFootballScoreboard } from "@/lib/api/espn";
 import { getNews as getBasketballNews, getFixtures as getBasketballFixtures, getScoreboard as getBasketballScoreboard, BBNews } from "@/lib/api/basketball";
 import { getNews as getBaseballNews, getFixtures as getBaseballFixtures, getScoreboard as getBaseballScoreboard } from "@/lib/api/baseball";
+import { getNews as getF1News } from "@/lib/api/f1";
+import { LEAGUES as FOOTBALL_LEAGUES } from "@/types/football";
+import { LEAGUES as BASKETBALL_LEAGUES } from "@/types/basketball";
+import { LEAGUES as BASEBALL_LEAGUES } from "@/types/baseball";
 import { classifyStatus as classifyFootballStatus } from "@/types/football";
 import { ESPNNews } from "@/lib/api/espn";
 import HeroStrip from "@/components/home/HeroStrip";
@@ -18,21 +22,35 @@ export const dynamic = "force-dynamic";
 type CarouselArticle = (ESPNNews | BBNews) & { sport: "football" | "basketball" | "baseball" | "f1" };
 
 async function getCarouselNews(): Promise<CarouselArticle[]> {
-  const [footballNews, basketballNews, baseballNews] = await Promise.allSettled([
-    getFootballNews("eng.1", 8),
-    getBasketballNews("nba", 8),
-    getBaseballNews("mlb", 8),
+  // Pull news from ALL leagues of every sport (not just the flagship league),
+  // plus F1. Each league fetched in parallel; results flattened, deduped by id,
+  // filtered to image-backed stories, and the newest 8 kept.
+  const [footballSettled, basketballSettled, baseballSettled, f1Settled] = await Promise.all([
+    Promise.allSettled(FOOTBALL_LEAGUES.map(l => getFootballNews(l.slug, 4))),
+    Promise.allSettled(BASKETBALL_LEAGUES.map(l => getBasketballNews(l.slug, 4))),
+    Promise.allSettled(BASEBALL_LEAGUES.map(l => getBaseballNews(l.slug, 4))),
+    getF1News(6).then(v => [{ status: "fulfilled" as const, value: v }]).catch(() => []),
   ]);
+
   const seen = new Set<string>();
   const all: CarouselArticle[] = [];
   const append = (items: (ESPNNews | BBNews)[], sport: CarouselArticle["sport"]) => {
     for (const a of items) {
-      if (!seen.has(a.id)) { seen.add(a.id); all.push({ ...a, sport }); }
+      if (!a.id || seen.has(a.id)) continue;
+      seen.add(a.id);
+      all.push({ ...a, sport });
     }
   };
-  if (footballNews.status   === "fulfilled") append(footballNews.value, "football");
-  if (basketballNews.status === "fulfilled") append(basketballNews.value, "basketball");
-  if (baseballNews.status   === "fulfilled") append(baseballNews.value, "baseball");
+  const collect = (settled: PromiseSettledResult<(ESPNNews | BBNews)[]>[], sport: CarouselArticle["sport"]) => {
+    for (const r of settled) if (r.status === "fulfilled") append(r.value, sport);
+  };
+
+  collect(footballSettled, "football");
+  collect(basketballSettled, "basketball");
+  collect(baseballSettled, "baseball");
+  // F1 news items are a slightly different shape but share id/headline/image/published.
+  for (const r of f1Settled) if (r.status === "fulfilled") append(r.value as unknown as (ESPNNews | BBNews)[], "f1");
+
   return all
     .filter(a => hasUsableImage(a.image))   // home carousel: only real image-backed stories
     .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())

@@ -95,7 +95,21 @@ if (!name) return undefined;
   if (lower.includes("ligue 1"))     return LEAGUES.find(l => l.slug === "fra.1");
   if (lower.includes("la liga") || lower.includes("laliga")) return LEAGUES.find(l => l.slug === "esp.1");
   if (lower.includes("mls"))         return LEAGUES.find(l => l.slug === "usa.1");
+  // Friendlies: distinguish club vs international
+  if (lower.includes("friendly") || lower.includes("friendlies")) {
+    return lower.includes("club")
+      ? LEAGUES.find(l => l.slug === "club.friendly")
+      : LEAGUES.find(l => l.slug === "fifa.friendly");
+  }
   return undefined;
+}
+
+/** Competition NAME → league slug, derived from LEAGUES (single source of
+ *  truth). Falls back to "eng.1" when nothing matches, so callers always get a
+ *  usable slug. Use this everywhere instead of local copies. */
+export function slugFromCompetition(name: string): string {
+  return leagueByName(name)?.slug ?? "eng.1";
+
 }
 
 // ── Status classification ──

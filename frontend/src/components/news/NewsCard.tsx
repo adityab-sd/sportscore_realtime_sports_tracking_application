@@ -45,7 +45,13 @@ function hasUsableImage(image: string | null | undefined): boolean {
 function useImageOk(src: string | null) {
   const [failed, setFailed] = useState(false);
   const ok = hasUsableImage(src) && !failed;
-  return { ok, onError: () => setFailed(true) };
+  // CSP-blocked images often don't fire onError. onLoad still fires, but a
+  // blocked/broken image loads with naturalWidth === 0 — treat that as a
+  // failure too, so the card falls back to the clean text layout.
+  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (e.currentTarget.naturalWidth === 0) setFailed(true);
+  };
+  return { ok, onError: () => setFailed(true), onLoad };
 }
 
 export default function NewsCard({ article, sport = "football", className }: NewsCardProps) {
@@ -66,7 +72,7 @@ export default function NewsCard({ article, sport = "football", className }: New
           <div style={{ position: "relative", aspectRatio: "16/9", overflow: "hidden", background: "var(--cloud)", flexShrink: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={article.image!} alt="" onError={img.onError}
+              src={article.image!} alt="" onError={img.onError} onLoad={img.onLoad}
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
             />
             <span style={{

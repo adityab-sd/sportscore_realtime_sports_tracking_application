@@ -1,11 +1,31 @@
 import Link from "next/link";
 import NewsCard from "@/components/news/NewsCard";
 import { getNews as getFootballNews, ESPNNews } from "@/lib/api/espn";
+import { LEAGUES } from "@/types/football";
 import { getNews as getBasketballNews, BBNews } from "@/lib/api/basketball";
 import { getNews as getBaseballNews } from "@/lib/api/baseball";
 import { getNews as getF1News, type NewsItem as F1News } from "@/lib/api/f1";
 
 type AnyNews = ESPNNews | BBNews | F1News;
+
+/** Football news across ALL leagues (not just one). Fetches each league in
+ *  parallel, flattens, and dedupes by headline so the homepage shows a broad
+ *  mix rather than only Premier League. Mirrors the football news page. */
+async function getAllFootballNews(limit = 6): Promise<ESPNNews[]> {
+  const results = await Promise.allSettled(LEAGUES.map(l => getFootballNews(l.slug, 4)));
+  const seen = new Set<string>();
+  const all: ESPNNews[] = [];
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue;
+    for (const n of r.value) {
+      const key = String(n.id ?? "").trim() || (n.headline ?? "").toLowerCase().trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      all.push(n);
+    }
+  }
+  return all.slice(0, limit);
+}
 
 // A backend/ESPN "image" can be null, "", whitespace, or a non-http value —
 // all of which render as a broken/blank card. Only keep real absolute URLs.
@@ -42,7 +62,7 @@ const SPORT_FEEDS: {
   {
     sport: "football",
     slots: 2,
-    fetch: () => getFootballNews("eng.1", 6),
+    fetch: () => getAllFootballNews(6),
     label: "Football",
     color: "var(--navy)",
     bg: "var(--navy-light)",

@@ -2,8 +2,9 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "a.espncdn.com" },
-      { protocol: "https", hostname: "a2.espncdn.com" },
+      { protocol: "https", hostname: "**.espncdn.com" },
+      { protocol: "https", hostname: "**.espn.com" },
+      { protocol: "https", hostname: "flagcdn.com" },
     ],
   },
   async headers() {
@@ -23,9 +24,10 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://rsms.me",
               "font-src 'self' https://rsms.me",
-              // CHANGED: added a2.espncdn.com so images from that CDN aren't blocked
-              // (it's already allowed for Next image optimization in remotePatterns above).
-              "img-src 'self' data: https://flagcdn.com https://a.espncdn.com https://a2.espncdn.com",
+              // Wildcard *.espncdn.com covers all ESPN image CDN hosts
+              // (a.–a4.espncdn.com, s.espncdn.com, etc.) so news article images
+              // aren't blocked. Also allow ESPN's video/combiner image hosts.
+              "img-src 'self' data: https://flagcdn.com https://*.espncdn.com https://*.espn.com",
               "media-src 'self' data: blob:",
               // CHANGED: added the deployed Azure backend origin so the browser is allowed to
               // call it. Without this, every API/RAG request to the backend is blocked by CSP.

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSignalR } from "@/hooks/useSignalR";
-import { classifyStatus, Match } from "@/types/football";
+import { classifyStatus, slugFromCompetition, Match } from "@/types/football";
 import TeamLogo from "@/components/football/TeamLogo";
 import LiveStatus from "@/components/ui/LiveStatus";
 
@@ -32,30 +32,7 @@ const SPORT_CONFIGS: Record<string, SportConfig> = {
     label: "Football",
     color: "var(--navy)",
     detailPath: "/football",
-    slugFromCompetition: (name: string) => {
-      const exact: Record<string, string> = {
-        "World Cup 2026": "fifa.world", "Champions League": "uefa.champions",
-        "Premier League": "eng.1", "La Liga": "esp.1", "Serie A": "ita.1",
-        "Bundesliga": "ger.1", "Ligue 1": "fra.1", "MLS": "usa.1",
-        "Brasileirão": "bra.1", "Argentine Primera": "arg.1",
-        "Europa League": "uefa.europa", "Europa Conference": "uefa.europa.conf",
-        "International Friendlies": "fifa.friendly",
-      };
-      if (exact[name]) return exact[name];
-      const l = name.toLowerCase();
-      if (l.includes("champions")) return "uefa.champions";
-      if (l.includes("premier"))   return "eng.1";
-      if (l.includes("bundesliga")) return "ger.1";
-      if (l.includes("argentin") || l.includes("profesional") || l.includes("apertura") || l.includes("clausura")) return "arg.1";
-      if (l.includes("brasileir") || l.includes("brazil"))  return "bra.1";
-      if (l.includes("argentin"))    return "arg.1";
-  if (l.includes("apertura"))    return "arg.1";
-  if (l.includes("clausura"))    return "arg.1";
-  if (l.includes("profesional")) return "arg.1";
-  if (l.includes("brasileir"))   return "bra.1";
-  if (l.includes("liga mx") || l.includes("mexican")) return "mex.1";
-      return "eng.1";
-    },
+    slugFromCompetition,
   },
   basketball: {
     label: "Basketball",
