@@ -16,14 +16,29 @@ const API_BASE =
  * Fetch a typed payload from the backend. Returns `fallback` on any failure
  * (missing base URL, non-2xx, network error, bad JSON) so callers never throw.
  * Every caller must still branch on the null/empty fallback before rendering.
+ *
+ * All failure paths log the reason via console.error before falling back, so
+ * they show up in Vercel Runtime Logs instead of failing silently.
  */
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
-  if (!API_BASE) return fallback;
+  if (!API_BASE) {
+    console.error(`[baseball.ts] NEXT_PUBLIC_BASEBALL_API_BASE is not set — skipping fetch for ${path}`);
+    return fallback;
+  }
+
+  const url = `${API_BASE}${path}`;
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
-    if (!res.ok) return fallback;
+    const res = await fetch(url, { next: { revalidate } });
+
+    if (!res.ok) {
+      console.error(`[baseball.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
+      return fallback;
+    }
+
     return (await res.json()) as T;
-  } catch {
+  } catch (err) {
+    console.error(`[baseball.ts] Network/parse error for ${url}:`, err);
     return fallback;
   }
 }

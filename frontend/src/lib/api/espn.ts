@@ -1,18 +1,30 @@
 import type { BracketMatch } from "@/types/worldcup";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "";
+    process.env.NEXT_PUBLIC_API_BASE || "";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawJSON = Record<string, any> | null;
 
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
-  if (!API_BASE) return fallback;
+  if (!API_BASE) {
+    console.error(`[espn.ts] NEXT_PUBLIC_API_BASE is not set — skipping fetch for ${path}`);
+    return fallback;
+  }
+
+  const url = `${API_BASE}${path}`;
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
-    if (!res.ok) return fallback;
+    const res = await fetch(url, { next: { revalidate } });
+
+    if (!res.ok) {
+      console.error(`[espn.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
+      return fallback;
+    }
+
     return (await res.json()) as T;
-  } catch {
+  } catch (err) {
+    console.error(`[espn.ts] Network/parse error for ${url}:`, err);
     return fallback;
   }
 }
