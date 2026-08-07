@@ -42,7 +42,7 @@ class EspnHttpClientRetryTest {
         @Bean HttpClient httpClient() { return HttpClient.newHttpClient(); }
         @Bean ObjectMapper objectMapper() { return new ObjectMapper(); }
         @Bean EspnHttpClient espnHttpClient(HttpClient http, ObjectMapper mapper) {
-            return new EspnHttpClient(http, mapper);
+            return new EspnHttpClient(http, mapper, null);
         }
     }
 

@@ -148,7 +148,7 @@ class F1ServiceStandingsTest {
         final List<String> requested = new ArrayList<>();
         JsonNode standingsResponse;
 
-        FakeHttpClient() { super(HttpClient.newHttpClient(), new ObjectMapper()); }
+        FakeHttpClient() { super(HttpClient.newHttpClient(), new ObjectMapper(), null); }
 
         @Override
         public JsonNode get(String url) {

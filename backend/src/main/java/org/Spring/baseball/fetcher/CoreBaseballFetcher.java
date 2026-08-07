@@ -24,7 +24,7 @@ import org.Spring.api.EspnHttpClient;
 @Component
 public class CoreBaseballFetcher extends AbstractEspnFetcher {
 
-    private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/baseball";
+    private static final String BASE = "https://site.web.api.espn.com/apis/site/v2/sports/baseball";
 
     // Every baseball/softball competition ESPN documents for this sport slug.
     // Previously only mlb + college-baseball were polled here, silently dropping
@@ -125,7 +125,7 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
         ObjectMapper mapper = new ObjectMapper();
 
         EspnHttpClient httpClient =
-                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null);
 
         CoreBaseballAdapter adapter = new CoreBaseballAdapter();
         CoreBaseballFetcher fetcher = new CoreBaseballFetcher(new EventHubProducer("", ""),

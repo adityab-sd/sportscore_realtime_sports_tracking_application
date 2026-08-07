@@ -67,6 +67,16 @@ public abstract class AbstractEspnFetcher {
             } catch (Exception e) {
                 System.out.println("(skipped " + league + ": " + e.getMessage() + ")");
             }
+
+            // Stagger requests within a poll cycle so we don't fire 15-20 rapid
+            // back-to-back calls at ESPN every 30s — that burst pattern is what
+            // triggers ESPN's rate limiting/403 blocking in the first place.
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
         return matches;
     }

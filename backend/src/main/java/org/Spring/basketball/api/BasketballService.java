@@ -21,8 +21,8 @@ public class BasketballService extends EspnApiHelper {
 
     private static final Logger log = LoggerFactory.getLogger(BasketballService.class);
 
-    private static final String SITE      = "https://site.api.espn.com/apis/site/v2/sports/basketball";
-    private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/basketball";
+    private static final String SITE      = "https://site.web.api.espn.com/apis/site/v2/sports/basketball";
+    private static final String STANDINGS = "https://site.web.api.espn.com/apis/v2/sports/basketball";
     private static final String CORE      = "https://sports.core.api.espn.com/v2/sports/basketball";
     private static final String WEB       = "https://site.web.api.espn.com/apis/common/v3/sports/basketball";
 

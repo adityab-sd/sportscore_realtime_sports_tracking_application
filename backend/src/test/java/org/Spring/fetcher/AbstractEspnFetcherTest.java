@@ -116,7 +116,7 @@ class AbstractEspnFetcherTest {
     /** Returns an empty node for any URL — adapt() ignores it, so content is irrelevant. */
     static class FakeHttpClient extends EspnHttpClient {
         private final ObjectMapper m = new ObjectMapper();
-        FakeHttpClient() { super(HttpClient.newHttpClient(), new ObjectMapper()); }
+        FakeHttpClient() { super(HttpClient.newHttpClient(), new ObjectMapper(), null); }
         @Override public JsonNode get(String url) { return m.createObjectNode(); }
     }
 
