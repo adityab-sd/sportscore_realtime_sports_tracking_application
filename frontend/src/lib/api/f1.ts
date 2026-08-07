@@ -6,24 +6,48 @@
 const API_BASE = process.env.NEXT_PUBLIC_F1_API_BASE || "";
 
 async function apiGet<T>(path: string, fallback: T, revalidate = 120): Promise<T> {
-  if (!API_BASE) return fallback;
+  if (!API_BASE) {
+    console.error(`[f1.ts] NEXT_PUBLIC_F1_API_BASE is not set — skipping fetch for ${path}`);
+    return fallback;
+  }
+
+  const url = `${API_BASE}${path}`;
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
-    if (!res.ok) return fallback;
+    const res = await fetch(url, { next: { revalidate } });
+
+    if (!res.ok) {
+      console.error(`[f1.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
+      return fallback;
+    }
+
     return (await res.json()) as T;
-  } catch {
+  } catch (err) {
+    console.error(`[f1.ts] Network/parse error for ${url}:`, err);
     return fallback;
   }
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 async function apiGetRaw(path: string, revalidate = 120): Promise<any> {
-  if (!API_BASE) return null;
+  if (!API_BASE) {
+    console.error(`[f1.ts] NEXT_PUBLIC_F1_API_BASE is not set — skipping fetch for ${path}`);
+    return null;
+  }
+
+  const url = `${API_BASE}${path}`;
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
-    if (!res.ok) return null;
+    const res = await fetch(url, { next: { revalidate } });
+
+    if (!res.ok) {
+      console.error(`[f1.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
+      return null;
+    }
+
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.error(`[f1.ts] Network/parse error for ${url}:`, err);
     return null;
   }
 }

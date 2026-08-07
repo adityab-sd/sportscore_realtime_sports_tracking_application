@@ -33,12 +33,24 @@ const API_BASE =
 //   return parsed.success ? parsed.data : fallback;
 // ============================================================================
 async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T> {
-  if (!API_BASE) return fallback;
+  if (!API_BASE) {
+    console.error(`[basketball.ts] NEXT_PUBLIC_BASKETBALL_API_BASE is not set — skipping fetch for ${path}`);
+    return fallback;
+  }
+
+  const url = `${API_BASE}${path}`;
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, { next: { revalidate } });
-    if (!res.ok) return fallback;
+    const res = await fetch(url, { next: { revalidate } });
+
+    if (!res.ok) {
+      console.error(`[basketball.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
+      return fallback;
+    }
+
     return (await res.json()) as T;
-  } catch {
+  } catch (err) {
+    console.error(`[basketball.ts] Network/parse error for ${url}:`, err);
     return fallback;
   }
 }
