@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class CoreFootballFetcher extends AbstractEspnFetcher {
 
     private static final String BASE =
-            "https://site.api.espn.com/apis/site/v2/sports/soccer";
+            "https://site.web.api.espn.com/apis/site/v2/sports/soccer";
 
     /** Competitions to pull. Key = slug, value = friendly name. */
     private static final Map<String, String> LEAGUES = new LinkedHashMap<>();
@@ -97,7 +97,7 @@ public class CoreFootballFetcher extends AbstractEspnFetcher {
         ObjectMapper mapper = new ObjectMapper();
 
         EspnHttpClient httpClient =
-                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null);
 
         CoreFootballAdapter adapter = new CoreFootballAdapter();
 

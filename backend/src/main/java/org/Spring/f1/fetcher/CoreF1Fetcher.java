@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Component
 public class CoreF1Fetcher extends AbstractEspnFetcher {
 
-    private static final String BASE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
+    private static final String BASE = "https://site.web.api.espn.com/apis/site/v2/sports/racing/f1";
 
     private static final Map<String, String> LEAGUES = Map.of(
             "f1", "Formula 1"
@@ -98,7 +98,7 @@ public class CoreF1Fetcher extends AbstractEspnFetcher {
         ObjectMapper mapper = new ObjectMapper();
 
         EspnHttpClient httpClient =
-                new EspnHttpClient(HttpClient.newHttpClient(), mapper);
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null);
 
         CoreF1Adapter adapter = new CoreF1Adapter();
         CoreF1Fetcher fetcher = new CoreF1Fetcher(new EventHubProducer("", ""), httpClient, mapper, adapter);

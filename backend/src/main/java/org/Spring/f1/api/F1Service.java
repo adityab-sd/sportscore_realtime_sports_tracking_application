@@ -27,12 +27,12 @@ public class F1Service extends EspnApiHelper {
 
     private static final Logger log = LoggerFactory.getLogger(F1Service.class);
 
-    private static final String SITE = "https://site.api.espn.com/apis/site/v2/sports/racing/f1";
+    private static final String SITE = "https://site.web.api.espn.com/apis/site/v2/sports/racing/f1";
     // Standings live on the /apis/v2/ domain, NOT /apis/site/v2/. The site/v2 standings
     // resource returns only a stub ({"fullViewLink": {...}}) with no entries, which is why
     // driver standings previously fell through to the race-only compute fallback (no sprint
     // points). This base is used solely for the standings call below.
-    private static final String SITE_V2 = "https://site.api.espn.com/apis/v2/sports/racing/f1";
+    private static final String SITE_V2 = "https://site.web.api.espn.com/apis/v2/sports/racing/f1";
     private static final String CORE = "https://sports.core.api.espn.com/v2/sports/racing/leagues/f1";
 
     // manufacturerId -> team name. Names don't change mid-season, so cache one lookup each.
