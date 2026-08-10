@@ -622,24 +622,21 @@ public Dto.Fixtures fixtures(String league) throws Exception {
                 return map;
             }
 
-            java.util.Map<String, String> athleteCache = new java.util.HashMap<>();
+            java.util.Map<String, JsonNode> athleteCache = new java.util.HashMap<>(); // was Map<String, String>
 
             for (JsonNode p : items) {
                 String typeText = p.path("type").path("text").asText("").toLowerCase();
                 boolean isGoal  = p.path("scoringPlay").asBoolean(false) || typeText.contains("goal");
                 boolean isCard  = p.path("yellowCard").asBoolean(false)
-                                  || p.path("redCard").asBoolean(false)
-                                  || typeText.contains("card");
+                        || p.path("redCard").asBoolean(false)
+                        || typeText.contains("card");
                 if (!isGoal && !isCard) continue;
 
                 int    minute = parseMinute(p.path("clock").path("displayValue").asText(""));
                 String teamId = resolveTeamId(p.path("team"));
                 if (teamId == null) continue;
 
-                // 1. Try regex extraction from the play's text field.
                 String name = extractPlayerFromText(p.path("text").asText(""));
-
-                // 2. Try inline displayName / $ref resolution.
                 if (name == null) name = resolveAthleteName(p, athleteCache);
 
                 if (name != null) {

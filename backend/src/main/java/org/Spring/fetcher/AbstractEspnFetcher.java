@@ -6,18 +6,30 @@ import org.Spring.api.EspnHttpClient;
 import org.Spring.model.Match;
 import org.Spring.model.MatchEvent;
 import org.Spring.producer.EventHubProducer;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 
 public abstract class AbstractEspnFetcher {
 
     protected final EspnHttpClient client;
     protected final ObjectMapper mapper;
     protected final EventHubProducer producer;
+    protected final ExecutorService executor;
+
+    // How many leagues this fetcher polls concurrently per cycle. Was previously
+    // strictly sequential with a 500ms sleep between each (20 leagues = ~10s of
+    // pure waiting). Bounded concurrency instead of unlimited, so we don't look
+    // like a burst to ESPN's rate limiter/bot detection.
+    @Value("${espn.fetch.league-concurrency:4}")
+    private int leagueConcurrency;
 
     // Per-fetcher (per-sport) instance state -- safe because LivePipelineRunner
     // keeps one long-lived instance of each fetcher for the app's lifetime, and
@@ -29,11 +41,13 @@ public abstract class AbstractEspnFetcher {
     protected AbstractEspnFetcher(
             EventHubProducer producer,
             EspnHttpClient client,
-            ObjectMapper mapper) {
+            ObjectMapper mapper,
+            ExecutorService executor) {
 
         this.producer = producer;
-        this.client = client;
-        this.mapper = mapper;
+        this.client   = client;
+        this.mapper   = mapper;
+        this.executor = executor;
     }
 
     protected abstract String baseUrl();
@@ -59,24 +73,34 @@ public abstract class AbstractEspnFetcher {
         return adapt(root, leagues().getOrDefault(league, league));
     }
 
+    /**
+     * Fetches every league concurrently instead of sequentially with a fixed
+     * stagger. Bounded by a semaphore (default 4 in flight) so we still don't
+     * burst ESPN, but wall-clock time per poll cycle drops from ~N*500ms to
+     * roughly (N / concurrency) * (single-request latency) — e.g. football's
+     * 20 leagues go from ~10s of pure sleep down to a handful of overlapped
+     * requests finishing together.
+     */
     public final List<Match> fetchAllMatches() {
-        List<Match> matches = new ArrayList<>();
-        for (String league : leagues().keySet()) {
-            try {
-                matches.addAll(fetchMatches(league));
-            } catch (Exception e) {
-                System.out.println("(skipped " + league + ": " + e.getMessage() + ")");
-            }
+        Semaphore limiter = new Semaphore(Math.max(1, leagueConcurrency));
 
-            // Stagger requests within a poll cycle so we don't fire 15-20 rapid
-            // back-to-back calls at ESPN every 30s — that burst pattern is what
-            // triggers ESPN's rate limiting/403 blocking in the first place.
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                break;
-            }
+        List<CompletableFuture<List<Match>>> futures = leagues().keySet().stream()
+                .map(league -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        limiter.acquire();
+                        return fetchMatches(league);
+                    } catch (Exception e) {
+                        System.out.println("(skipped " + league + ": " + e.getMessage() + ")");
+                        return List.<Match>of();
+                    } finally {
+                        limiter.release();
+                    }
+                }, executor))
+                .toList();
+
+        List<Match> matches = new ArrayList<>();
+        for (var f : futures) {
+            matches.addAll(f.join());
         }
         return matches;
     }
