@@ -76,7 +76,7 @@ class EspnApiHelperTest {
             ObjectMapper om = new ObjectMapper();
             this.mapper = om;
             List<String> recorded = this.urls;
-            this.espnHttp = new EspnHttpClient(HttpClient.newHttpClient(), om, null) {
+            this.espnHttp = new EspnHttpClient(HttpClient.newHttpClient(), om, null, null) {
                 @Override public JsonNode get(String url) {
                     recorded.add(url);
                     return om.createObjectNode();

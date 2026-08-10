@@ -4,6 +4,8 @@ import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.Spring.api.EspnHttpClient;
 import org.Spring.f1.adapter.CoreF1Adapter;
@@ -39,9 +41,10 @@ public class CoreF1Fetcher extends AbstractEspnFetcher {
             EventHubProducer producer,
             EspnHttpClient client,
             ObjectMapper mapper,
-            CoreF1Adapter adapter) {
+            CoreF1Adapter adapter,
+            ExecutorService executorService) {
 
-        super(producer, client, mapper);
+        super(producer, client, mapper, executorService);
         this.adapter = adapter;
     }
 
@@ -96,12 +99,13 @@ public class CoreF1Fetcher extends AbstractEspnFetcher {
 
     public static void main(String[] args) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         EspnHttpClient httpClient =
-                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null);
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null, executor);
 
         CoreF1Adapter adapter = new CoreF1Adapter();
-        CoreF1Fetcher fetcher = new CoreF1Fetcher(new EventHubProducer("", ""), httpClient, mapper, adapter);
+        CoreF1Fetcher fetcher = new CoreF1Fetcher(new EventHubProducer("", ""), httpClient, mapper, adapter, executor);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

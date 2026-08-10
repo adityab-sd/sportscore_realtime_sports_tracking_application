@@ -6,6 +6,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +35,13 @@ public class EspnHttpClient {
     private static final Duration REF_TTL  = Duration.ofHours(6);
     private static final Duration LIVE_TTL = Duration.ofSeconds(30);
 
+    // Cap on how many ESPN requests fire at once for a single getMany() batch.
+    // Keep conservative — we got 403'd before for looking bursty. Independent
+    // of the shared executor's total pool size (espn.fetch.pool-size) — this
+    // just bounds how many of THIS client's own tasks run concurrently.
+    private static final int MAX_CONCURRENT = 4;
+    private final Semaphore concurrencyLimiter = new Semaphore(MAX_CONCURRENT);
+
     public static class EspnServerException extends RuntimeException {
         public final int status;
         public EspnServerException(int status, String url) {
@@ -39,14 +53,16 @@ public class EspnHttpClient {
     private final HttpClient          http;
     private final ObjectMapper        mapper;
     private final StringRedisTemplate redis;
+    private final ExecutorService     executor;
 
     @Value("${espn.http.timeout:15}")
     private int timeout;
 
-    public EspnHttpClient(HttpClient http, ObjectMapper mapper, StringRedisTemplate redis) {
-        this.http   = http;
-        this.mapper = mapper;
-        this.redis  = redis;
+    public EspnHttpClient(HttpClient http, ObjectMapper mapper, StringRedisTemplate redis, ExecutorService executor) {
+        this.http     = http;
+        this.mapper   = mapper;
+        this.redis    = redis;
+        this.executor = executor;
     }
 
     @Retryable(
@@ -97,6 +113,66 @@ public class EspnHttpClient {
             Thread.currentThread().interrupt();
             throw e;
         }
+    }
+
+    /**
+     * Batched fetch for a set of URLs (typically $ref links collected from a
+     * whole payload before any HTTP call is made). Not currently called by the
+     * football adapter (its player data is inline, no $ref to resolve) — kept
+     * here for baseball/basketball adapters if their payloads do dereference
+     * athlete/team refs.
+     *
+     * Step 1: one Redis MGET for all URLs — cache hits resolve with zero ESPN calls.
+     * Step 2: remaining misses are fetched with bounded concurrency (MAX_CONCURRENT
+     * in flight at once) on the shared espnFetchExecutor pool, instead of
+     * sequentially and instead of the JVM-wide ForkJoinPool.commonPool().
+     */
+    public Map<String, JsonNode> getMany(List<String> urls) throws InterruptedException {
+        Map<String, JsonNode> results = new LinkedHashMap<>();
+        if (urls == null || urls.isEmpty()) return results;
+
+        List<String> misses = new ArrayList<>();
+
+        if (redis != null) {
+            List<String> cacheKeys = urls.stream().map(u -> CACHE_PREFIX + u).toList();
+            List<String> cached = redis.opsForValue().multiGet(cacheKeys);
+            for (int i = 0; i < urls.size(); i++) {
+                String val = (cached != null) ? cached.get(i) : null;
+                if (val != null) {
+                    try {
+                        results.put(urls.get(i), mapper.readTree(val));
+                        continue;
+                    } catch (IOException ignored) { /* fall through to miss */ }
+                }
+                misses.add(urls.get(i));
+            }
+        } else {
+            misses.addAll(urls);
+        }
+
+        if (misses.isEmpty()) return results;
+
+        List<CompletableFuture<Map.Entry<String, JsonNode>>> futures = misses.stream()
+                .map(url -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        concurrencyLimiter.acquire();
+                        JsonNode node = get(url); // retry + per-entry caching still apply here
+                        return Map.entry(url, node);
+                    } catch (IOException | InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return Map.entry(url, (JsonNode) mapper.createObjectNode());
+                    } finally {
+                        concurrencyLimiter.release();
+                    }
+                }, executor))
+                .toList();
+
+        for (var f : futures) {
+            var entry = f.join();
+            results.put(entry.getKey(), entry.getValue());
+        }
+
+        return results;
     }
 
     @Recover

@@ -594,7 +594,7 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
             JsonNode items = plays.path("items");
             if (!items.isArray() || items.size() == 0) return map;
 
-            java.util.Map<String, String> athleteCache = new java.util.HashMap<>();
+            java.util.Map<String, JsonNode> athleteCache = new java.util.HashMap<>(); // was Map<String, String>
             for (JsonNode p : items) {
                 if (!p.path("scoringPlay").asBoolean(false)) continue;
                 int inning = p.path("period").path("number").canConvertToInt()

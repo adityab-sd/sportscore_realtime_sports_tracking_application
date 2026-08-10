@@ -1,6 +1,10 @@
 package org.Spring.api;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,23 +18,20 @@ import org.springframework.beans.factory.annotation.Autowired;
  * that {@code @Retryable} crosses the Spring proxy boundary and actually fires.
  * {@link ObjectMapper} is the single application-wide bean from {@code AppConfig}
  * — thread-safe and shared rather than re-constructed per class.
+ *
+ * <p><b>Ref resolution</b> is now a two-pass process to avoid N sequential
+ * blocking HTTP calls while iterating plays/competitors:
+ *   1. {@link # collectRefs(JsonNode)} walks a payload and gathers every
+ *      unresolved {@code $ref} URL without fetching anything.
+ *   2. {@link #resolveAllRefs(Set)} resolves the whole set in one batched
+ *      call via {@link EspnHttpClient#getMany}, which checks Redis in bulk
+ *      and fetches only genuine misses with bounded concurrency.
+ * Callers then pass the resulting {@code Map<String, JsonNode>} into
+ * {@link #athleteName} / {@link #resolveRef}, which are now pure lookups —
+ * no HTTP call happens inside the per-play loop anymore.
  */
 public abstract class EspnApiHelper {
 
-    // PLEASE review — Singleton (Spring-managed), NOT a Factory.
-    // ~10 classes each do `new ObjectMapper()` / `new HttpClient()`. ObjectMapper is
-    // thread-safe and expensive to build — share ONE bean instead of per-class copies.
-    // Resist wrapping this in a GoF Factory hierarchy; a single @Bean is the right tool.
-    // EXAMPLE:
-    //   @Bean ObjectMapper objectMapper() { return new ObjectMapper(); }  // injected everywhere
-    // UPDATE
-    // Refactored to use the shared Spring-managed ObjectMapper and EspnHttpClient
-    // beans, removing redundant per-class HTTP client and mapper instances.
-        /**
-     * Injected by Spring into every concrete subclass (@Service / @Component).
-     * Field injection is used here because the abstract base has no constructor
-     * that subclasses are required to call with these collaborators.
-     */
     @Autowired protected EspnHttpClient espnHttp;
     @Autowired protected ObjectMapper   mapper;
 
@@ -47,51 +48,10 @@ public abstract class EspnApiHelper {
 
     // ── HTTP ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Fetches a URL with up to 3 attempts and exponential backoff (500 ms → 1 s → 2 s).
-     * Retries on 5xx responses and I/O / timeout failures.
-     * 4xx responses are returned as an empty node immediately (no retry).
-     */
-    // ========================================================================
-    // PLEASE review — Proxy (GoF) + a real latent bug
-    // ------------------------------------------------------------------------
-    // @Retryable works because Spring wraps this bean in a PROXY that intercepts
-    // calls and adds retry/backoff. But this get() is reached via SELF-INVOCATION
-    // (athleteName() -> get(), and subclasses -> super.get()). Self-calls do NOT
-    // cross the proxy, so the retry/backoff SILENTLY NEVER FIRES today.
-    //
-    // FIX — move the retryable call to its own injected bean (a real proxy boundary):
-    //
-    //   @Component
-    //   class EspnHttpClient {
-    //       @Retryable(retryFor = IOException.class,
-    //                  backoff = @Backoff(delay = 500, multiplier = 2))
-    //       public JsonNode get(String url) { ... }
-    //   }
-    //   // then in the services:  private final EspnHttpClient http;  ...  http.get(url);
-    //
-    // WHY: AOP annotations only apply to calls that CROSS the proxy boundary —
-    // one of the most common Spring production traps.
-    // UPDATE
-    // Retry logic has been delegated to the injected EspnHttpClient bean so that
-    // calls cross the Spring proxy boundary and @Retryable is applied correctly.
-    // ========================================================================
     protected JsonNode get(String url) throws Exception {
         return espnHttp.get(url);
     }
 
-    // ============================================================================
-    // PLEASE review — Pagination bounds / URL encoding
-    // (raised independently on F1Service, BaseballService and BasketballService,
-    // which all forward REST page/limit params straight through to ESPN)
-    // UPDATE:
-    // Clamped centrally here instead of in each service, since every sport's
-    // paginated passthrough calls end up here. page is floored at 1; limit is
-    // clamped to [1, 100] so a bad/huge REST param can no longer force an
-    // oversized upstream ESPN request. URL encoding for free-text query params
-    // (category/sort/date fragments passed to get(), not getPaged()) is still
-    // open - those live in each service's own passthrough methods.
-    // ============================================================================
     protected JsonNode getPaged(String baseUrl, int page, int limit) throws Exception {
         int safePage  = Math.max(page, 1);
         int safeLimit = Math.max(1, Math.min(limit, 100));
@@ -161,7 +121,81 @@ public abstract class EspnApiHelper {
         return m.find() ? m.group(1) : null;
     }
 
-    protected String resolveAthleteName(JsonNode play, Map<String, String> cache) {
+    private String normalizeRef(String ref) {
+        return ref == null ? null : ref.replaceFirst("^http://", "https://");
+    }
+
+    // ── Pass 1: collect refs without fetching ───────────────────────────────
+
+    /**
+     * Walks a single play node and collects every unresolved athlete $ref
+     * (from participants and athletesInvolved) into the given set. Call this
+     * once per play across a whole payload BEFORE resolving anything, so all
+     * refs for a game (or a whole league poll) can be fetched in one batch.
+     */
+    protected void collectAthleteRefs(JsonNode play, Set<String> refs) {
+        for (JsonNode part : play.path("participants")) {
+            String ref = txt(part.path("athlete").path("$ref"));
+            if (ref != null) refs.add(normalizeRef(ref));
+        }
+        for (JsonNode a : play.path("athletesInvolved")) {
+            String ref = txt(a.path("$ref"));
+            if (ref != null) refs.add(normalizeRef(ref));
+        }
+    }
+
+    /**
+     * Collects a $ref from any generic node (team, venue, etc.) that would
+     * otherwise be resolved via {@link #resolveRef}.
+     */
+    protected void collectRef(JsonNode node, Set<String> refs) {
+        if (node == null || node.isMissingNode() || node.isNull()) return;
+        if (node.has("displayName") || node.has("fullName")) return; // already inline
+        String ref = txt(node.path("$ref"));
+        if (ref != null) refs.add(normalizeRef(ref));
+    }
+
+    /** Convenience: start a fresh collection set. */
+    protected Set<String> newRefSet() {
+        return new LinkedHashSet<>();
+    }
+
+    // ── Pass 2: resolve the whole batch in one call ─────────────────────────
+
+    /**
+     * Resolves every URL in refs in one batched call — bulk Redis check, then
+     * bounded-concurrency fetch for actual misses. Returns a map keyed by the
+     * normalized (https) URL, ready to pass into athleteName()/resolveRef().
+     */
+    protected Map<String, JsonNode> resolveAllRefs(Set<String> refs) throws Exception {
+        if (refs.isEmpty()) return Map.of();
+        List<String> urls = new ArrayList<>(refs);
+        return espnHttp.getMany(urls);
+    }
+    // EspnApiHelper.java — revert to fetch-on-miss
+
+    protected String athleteName(JsonNode ath, Map<String, JsonNode> cache) {
+        if (ath.isMissingNode() || ath.isNull()) return null;
+        String inline = first(txt(ath.path("displayName")), txt(ath.path("fullName")), txt(ath.path("shortName")));
+        if (inline != null) return inline;
+        String ref = txt(ath.path("$ref"));
+        if (ref == null) return null;
+        String normalized = ref.replaceFirst("^http://", "https://");
+        if (cache.containsKey(normalized)) {
+            JsonNode cached = cache.get(normalized);
+            return cached == null ? null : first(txt(cached.path("displayName")), txt(cached.path("fullName")), txt(cached.path("shortName")));
+        }
+        try {
+            JsonNode athlete = espnHttp.get(normalized);
+            cache.put(normalized, athlete);
+            return first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), txt(athlete.path("shortName")));
+        } catch (Exception e) {
+            cache.put(normalized, null);
+            return null;
+        }
+    }
+
+    protected String resolveAthleteName(JsonNode play, Map<String, JsonNode> cache) {
         JsonNode parts = play.path("participants");
         if (parts.isArray() && parts.size() > 0) {
             for (JsonNode part : parts) {
@@ -179,37 +213,19 @@ public abstract class EspnApiHelper {
         return null;
     }
 
-    protected String athleteName(JsonNode ath, Map<String, String> cache) {
-        if (ath.isMissingNode() || ath.isNull()) return null;
-        String inline = first(txt(ath.path("displayName")), txt(ath.path("fullName")), txt(ath.path("shortName")));
-        if (inline != null) return inline;
-        String ref = txt(ath.path("$ref"));
-        if (ref == null) return null;
-        if (cache.containsKey(ref)) return cache.get(ref);
-        try {
-            // Calls through espnHttp — crosses the proxy, retry fires correctly.
-            JsonNode athlete = espnHttp.get(ref.replaceFirst("^http://", "https://"));
-            String name = first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), txt(athlete.path("shortName")));
-            cache.put(ref, name);
-            return name;
-        } catch (Exception e) {
-            cache.put(ref, null);
-            return null;
-        }
-    }
-
     protected JsonNode resolveRef(JsonNode node, Map<String, JsonNode> cache) {
         if (node == null || node.isMissingNode() || node.isNull()) return null;
         if (node.has("displayName") || node.has("fullName")) return node;
         String ref = txt(node.path("$ref"));
         if (ref == null) return null;
-        if (cache.containsKey(ref)) return cache.get(ref);
+        String normalized = ref.replaceFirst("^http://", "https://");
+        if (cache.containsKey(normalized)) return cache.get(normalized);
         try {
-            JsonNode resolved = espnHttp.get(ref.replaceFirst("^http://", "https://"));
-            cache.put(ref, resolved);
+            JsonNode resolved = espnHttp.get(normalized);
+            cache.put(normalized, resolved);
             return resolved;
         } catch (Exception e) {
-            cache.put(ref, null);
+            cache.put(normalized, null);
             return null;
         }
     }

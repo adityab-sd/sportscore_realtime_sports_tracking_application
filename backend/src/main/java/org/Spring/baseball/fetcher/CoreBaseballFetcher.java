@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.Spring.baseball.adapter.CoreBaseballAdapter;
 import org.Spring.fetcher.AbstractEspnFetcher;
@@ -52,9 +54,10 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
             EventHubProducer producer,
             EspnHttpClient client,
             ObjectMapper mapper,
-            CoreBaseballAdapter adapter) {
+            CoreBaseballAdapter adapter,
+            ExecutorService executor) {
 
-        super(producer, client, mapper);
+        super(producer, client, mapper, executor);
         this.adapter = adapter;
     }
 
@@ -123,13 +126,12 @@ public class CoreBaseballFetcher extends AbstractEspnFetcher {
         // Empty strings trigger the null-guard in EventHubProducer.send()
         // so live matches are logged instead of pushed to Event Hub.
         ObjectMapper mapper = new ObjectMapper();
-
+        ExecutorService executor = Executors.newFixedThreadPool(4);
         EspnHttpClient httpClient =
-                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null);
-
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null, executor);
         CoreBaseballAdapter adapter = new CoreBaseballAdapter();
         CoreBaseballFetcher fetcher = new CoreBaseballFetcher(new EventHubProducer("", ""),
-                httpClient, mapper, adapter);
+                httpClient, mapper, adapter, executor);
 
         List<String> live      = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

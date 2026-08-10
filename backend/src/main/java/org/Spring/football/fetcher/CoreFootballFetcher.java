@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.Spring.api.EspnHttpClient;
 import org.Spring.fetcher.AbstractEspnFetcher;
@@ -56,9 +58,10 @@ public class CoreFootballFetcher extends AbstractEspnFetcher {
             EventHubProducer producer,
             EspnHttpClient client,
             ObjectMapper mapper,
-            CoreFootballAdapter adapter) {
+            CoreFootballAdapter adapter,
+            ExecutorService executorService) {
 
-        super(producer, client, mapper);
+        super(producer, client, mapper, executorService);
         this.adapter = adapter;
     }
 
@@ -95,10 +98,10 @@ public class CoreFootballFetcher extends AbstractEspnFetcher {
     public static void main(String[] args) throws Exception {
 
         ObjectMapper mapper = new ObjectMapper();
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         EspnHttpClient httpClient =
-                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null);
-
+                new EspnHttpClient(HttpClient.newHttpClient(), mapper, null, executor);
         CoreFootballAdapter adapter = new CoreFootballAdapter();
 
         CoreFootballFetcher fetcher =
@@ -106,7 +109,8 @@ public class CoreFootballFetcher extends AbstractEspnFetcher {
                         new EventHubProducer("", ""),
                         httpClient,
                         mapper,
-                        adapter);
+                        adapter,
+                        executor);
 
         List<String> live = new ArrayList<>();
         List<String> scheduled = new ArrayList<>();

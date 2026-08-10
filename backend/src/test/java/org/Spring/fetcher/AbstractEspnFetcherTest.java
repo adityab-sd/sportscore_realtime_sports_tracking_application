@@ -116,7 +116,7 @@ class AbstractEspnFetcherTest {
     /** Returns an empty node for any URL — adapt() ignores it, so content is irrelevant. */
     static class FakeHttpClient extends EspnHttpClient {
         private final ObjectMapper m = new ObjectMapper();
-        FakeHttpClient() { super(HttpClient.newHttpClient(), new ObjectMapper(), null); }
+        FakeHttpClient() { super(HttpClient.newHttpClient(), new ObjectMapper(), null, null); }
         @Override public JsonNode get(String url) { return m.createObjectNode(); }
     }
 
@@ -129,7 +129,7 @@ class AbstractEspnFetcherTest {
         List<Match> nextMatches = List.of();
 
         TestFetcher(EventHubProducer producer, EspnHttpClient client, ObjectMapper mapper) {
-            super(producer, client, mapper);
+            super(producer, client, mapper, null);
         }
 
         @Override protected String baseUrl() { return "http://test"; }
