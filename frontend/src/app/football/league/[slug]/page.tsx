@@ -3,6 +3,7 @@ import {
   getStandings, getNews, getFixtures, getTeamsList, getRawLeaders,
   type ESPNNews, type RawJSON,
 } from "@/lib/api/espn";
+import { resolveApiBase } from "@/lib/api/base";
 import { LEAGUES, Match } from "@/types/football";
 import LeaguePageClient from "@/components/football/LeaguePageClient";
 
@@ -78,7 +79,7 @@ async function parseRawLeaders(raw: RawJSON | null, slug: string, rows: any[]): 
   const athleteNames = new Map<string, string>();
   const athleteTeams = new Map<string, { name: string; logo: string | null }>();
   try {
-    const BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8081/api/football';
+    const BASE = resolveApiBase("football");
     // Step 1: build name map from ALL teams in standings
     const teamIds = rows.map((r: any) => r.teamId).filter(Boolean);
     const rosterResults = await Promise.allSettled(

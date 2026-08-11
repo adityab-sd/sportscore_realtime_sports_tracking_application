@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useSignalR } from "@/hooks/useSignalR";
+import { classifyStatus } from "@/types/football";
 
 /* ================================================================== */
 /* CONFIG                                                              */
@@ -195,6 +197,16 @@ function SportColumn({ sport, intervalMs, initialDelayMs }: SportColumnProps) {
 /* ================================================================== */
 
 export default function HeroSplit() {
+  const prefersReducedMotion = useReducedMotion();
+
+  // Same live signal the nav badge uses, so the label always agrees with it.
+  const { matches } = useSignalR();
+  const hasLive = matches.some((m) => classifyStatus(m.status) === "live");
+  const ctaLabel = hasLive ? "View live scores" : "View upcoming fixtures";
+
+  const scrollToFixtures = () =>
+    document.getElementById("live-scores")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   const activeSports = useMemo(
     () => SPORTS_CONFIG.filter((sport) => sport.active && sport.images.length > 0),
     []
@@ -242,13 +254,40 @@ export default function HeroSplit() {
 
       {/* Centerpiece title — dead center, drop-shadow keeps it readable over
           any frame passing underneath. */}
-      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 text-center">
+      <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-7 px-6 text-center">
         <h1 className="max-w-4xl text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.15] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.9)]">
           Your Ultimate Hub for{" "}
           <span className="text-[var(--color-accent,#f2c200)]">Football</span>,{" "}
           <span className="text-[var(--color-accent,#f2c200)]">Basketball</span>,{" "}
           <span className="text-[var(--color-accent,#f2c200)]">F1 </span> &amp; More
         </h1>
+
+        {/* Fades in shortly after the hero settles. Label is dynamic: live scores
+            when anything is live, otherwise upcoming fixtures. Scrolls to the
+            match section. Only the button is interactive; the headline is not. */}
+        <motion.button
+          type="button"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.5, ease: "easeOut" }}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={scrollToFixtures}
+          aria-label={ctaLabel}
+          className="pointer-events-auto inline-flex cursor-pointer items-center gap-2 rounded-full bg-[var(--color-accent,#f2c200)] px-7 py-3.5 text-[15px] font-bold text-[#111] shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-shadow duration-150 hover:shadow-[0_14px_38px_rgba(0,0,0,0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
+        >
+          {ctaLabel}
+          <motion.span
+            aria-hidden
+            animate={prefersReducedMotion ? undefined : { y: [0, 3, 0] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+            className="inline-flex"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </motion.span>
+        </motion.button>
       </div>
     </section>
   );

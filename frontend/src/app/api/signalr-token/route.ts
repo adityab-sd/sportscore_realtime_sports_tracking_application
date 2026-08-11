@@ -15,10 +15,19 @@ const WINDOW_MS = 60_000; // 1 minute
 
 const requestCounts = new Map<string, { count: number; windowStart: number }>();
 
+// Drop windows that have fully expired so the map can't grow without bound in a
+// long-lived serverless instance. Cheap: runs on each request, O(entries).
+function evictExpired(now: number): void {
+  for (const [id, entry] of requestCounts) {
+    if (now - entry.windowStart > WINDOW_MS) requestCounts.delete(id);
+  }
+}
+
 function isRateLimited(clientId: string): boolean {
   const now = Date.now();
-  const entry = requestCounts.get(clientId);
+  evictExpired(now);
 
+  const entry = requestCounts.get(clientId);
   if (!entry || now - entry.windowStart > WINDOW_MS) {
     requestCounts.set(clientId, { count: 1, windowStart: now });
     return false;
@@ -28,16 +37,25 @@ function isRateLimited(clientId: string): boolean {
   return entry.count > MAX_REQUESTS;
 }
 
-function resolveClientId(request: NextRequest): string {
+// Real per-client IP. Returns null when it can't be determined — we do NOT bucket
+// all such requests under one "unknown" key, since that would let a single client
+// exhaust the shared limit and lock out everyone else. On Vercel x-forwarded-for
+// is always set, so null only happens in unusual local setups.
+function resolveClientId(request: NextRequest): string | null {
   const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return "unknown";
+  if (forwarded) {
+    const first = forwarded.split(",")[0].trim();
+    if (first) return first;
+  }
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  return null;
 }
 
 export async function GET(request: NextRequest) {
   const clientId = resolveClientId(request);
 
-  if (isRateLimited(clientId)) {
+  if (clientId && isRateLimited(clientId)) {
     return NextResponse.json(
       { error: "rate_limit_exceeded", message: "Too many token requests. Please slow down." },
       { status: 429 }

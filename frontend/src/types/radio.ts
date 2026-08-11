@@ -1,13 +1,3 @@
-// Kept for backwards compat with any code still importing the mock/text-only shape.
-export interface RadioEvent {
-  id: string;
-  matchId: string;
-  source: "mock" | "live";
-  minute: number;
-  text: string;
-  match: string;
-}
-
 // Mirrors RadioModeAudioMessage (EventHubToRadioModeFunction.java) field-for-field.
 // This is what arrives over the "radioModeEvent" SignalR method on radioModeHub.
 export interface RadioAudioEvent {

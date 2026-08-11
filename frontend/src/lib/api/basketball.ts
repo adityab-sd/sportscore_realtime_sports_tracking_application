@@ -6,20 +6,9 @@
  * passthrough endpoints that return unstructured ESPN data.
  */
 
-// ============================================================================
-// ADDRESSED: API base URL is duplicated and environment-specific
-// ----------------------------------------------------------------------------
-// The data layer hard-codes a localhost fallback and repeats URL assembly in
-// multiple sports modules, which can drift between environments. Centralize the
-// base URL and fail closed when it is not configured.
-//
-// RESOLUTION: Changed fallback to empty string so app fails closed. Future: centralize base URL.
-// EXAMPLE:
-//   const API_BASE = getRequiredPublicEndpoint("NEXT_PUBLIC_SPORTS_API_BASE");
-// ============================================================================
-const API_BASE =
-  process.env.NEXT_PUBLIC_BASKETBALL_API_BASE ||
-  "";
+import { resolveApiBase } from "@/lib/api/base";
+
+const API_BASE = resolveApiBase("basketball");
 
 // ============================================================================
 // ADDRESSED: Fetch responses are cast without runtime validation

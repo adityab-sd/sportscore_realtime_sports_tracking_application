@@ -6,8 +6,9 @@
 // route through the Java backend rather than hitting Python services
 // straight from the browser.
 
-const JAVA_GATEWAY_BASE =
-  process.env.NEXT_PUBLIC_JAVA_API_BASE || "http://localhost:8081";
+import { resolveGatewayBase } from "@/lib/api/base";
+
+const JAVA_GATEWAY_BASE = resolveGatewayBase();
 
 export interface RagSource {
   title: string;
@@ -30,6 +31,7 @@ export interface RagResponse {
  * for null before rendering, same convention as espnGet() in config.ts.
  */
 export async function askAssistant(question: string): Promise<RagResponse | null> {
+  if (!JAVA_GATEWAY_BASE) return null; // gateway not configured — fail closed
   try {
     const res = await fetch(`${JAVA_GATEWAY_BASE}/api/ask`, {
       method: "POST",
