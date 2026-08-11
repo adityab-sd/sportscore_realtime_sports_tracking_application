@@ -22,8 +22,8 @@ SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 INDEX_NAME      = "football-live-index"
 
-SITE_BASE      = "https://site.api.espn.com/apis/site/v2/sports/soccer"
-STANDINGS_BASE = "https://site.api.espn.com/apis/v2/sports/soccer"
+SITE_BASE      = "https://site.web.api.espn.com/apis/site/v2/sports/soccer"
+STANDINGS_BASE = "https://site.web.api.espn.com/apis/v2/sports/soccer"
 
 LEAGUES = {
     "fifa.world":        "World Cup 2026",
@@ -63,13 +63,35 @@ def _safe_id(text):
     return text.replace(".", "-")
 
 
+# -- simple in-process cache: {url: (expiry_epoch, data)} --
+_CACHE = {}
+
+def _ttl_for(url):
+    # Reference data (athletes/teams/rosters) is near-static -> cache 6h.
+    # Standings / leaders / news / stats barely change -> cache 10 min.
+    # Everything else (scoreboards) stays effectively uncached so live-ish
+    # data stays fresh.
+    if "athletes" in url or "/teams/" in url or "roster" in url:
+        return 6 * 3600
+    if "standings" in url or "leaders" in url or "news" in url or "statistics" in url:
+        return 600
+    return 20
+
 def _get(url):
+    now = time.time()
+    hit = _CACHE.get(url)
+    if hit and hit[0] > now:
+        return hit[1]
     try:
         response = requests.get(url, headers={"User-Agent": "SportScore/1.0"}, timeout=10)
         if response.status_code == 200:
-            return response.json()
-        else:
-            pass
+            data = response.json()
+            _CACHE[url] = (now + _ttl_for(url), data)
+            # light cleanup so day-changing scoreboard URLs don't pile up
+            if len(_CACHE) > 500:
+                for k in [k for k, v in _CACHE.items() if v[0] <= now]:
+                    _CACHE.pop(k, None)
+            return data
     except Exception as e:
         print(f"  Error fetching {url}: {e}")
     return None
