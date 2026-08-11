@@ -1,7 +1,7 @@
 import type { BracketMatch } from "@/types/worldcup";
+import { resolveApiBase } from "@/lib/api/base";
 
-const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE || "";
+const API_BASE = resolveApiBase("football");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawJSON = Record<string, any> | null;

@@ -3,7 +3,9 @@
  * Typed fetchers matching F1Controller endpoints.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_F1_API_BASE || "";
+import { resolveApiBase } from "@/lib/api/base";
+
+const API_BASE = resolveApiBase("f1");
 
 async function apiGet<T>(path: string, fallback: T, revalidate = 120): Promise<T> {
   if (!API_BASE) {

@@ -8,9 +8,9 @@
  * runs / hits / errors.
  */
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_BASEBALL_API_BASE ||
-  "";
+import { resolveApiBase } from "@/lib/api/base";
+
+const API_BASE = resolveApiBase("baseball");
 
 /**
  * Fetch a typed payload from the backend. Returns `fallback` on any failure

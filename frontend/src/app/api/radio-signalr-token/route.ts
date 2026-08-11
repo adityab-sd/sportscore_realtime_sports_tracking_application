@@ -15,14 +15,10 @@ export async function GET() {
   // SIGNALR_ACCESS_KEY is read from server-only env, not a NEXT_PUBLIC_ variable.
 
   if (!endpoint || !hub || !key) {
-    const missing = [
-      !endpoint && "SIGNALR_ENDPOINT",
-      !hub      && "SIGNALR_RADIO_HUB",
-      !key      && "SIGNALR_ACCESS_KEY",
-    ].filter(Boolean).join(", ");
-    console.error("[radio-signalr-token] Missing env vars:", missing);
+    // Names withheld from the client response; logged server-side only.
+    console.error("[radio-signalr-token] Missing required env vars (names withheld from client response)");
     return NextResponse.json(
-      { error: `Missing required env vars: ${missing}` },
+      { error: "Server misconfigured. Contact an administrator." },
       { status: 503 }
     );
   }

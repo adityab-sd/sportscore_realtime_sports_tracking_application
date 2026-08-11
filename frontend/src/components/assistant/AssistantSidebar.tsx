@@ -58,6 +58,13 @@ function parseScores(text: string): ParsedMatch[] {
   while ((m = re.exec(text)) && out.length < 8) out.push({ home: m[1].trim(), away: m[4].trim(), hs: +m[2], as: +m[3], live });
   return out;
 }
+// A line that parseScores would turn into a ScoreCard. Used to drop it from the
+// text body so a score isn't printed once as prose AND again as a card.
+const SCORE_LINE_RE = /[A-Z][A-Za-z .'&-]{1,26}?\s+\d{1,3}\s*[-–:]\s*\d{1,3}\s+[A-Z][A-Za-z .'&-]{1,26}/;
+function stripScoreLines(text: string): string {
+  return text.split("\n").filter(l => !SCORE_LINE_RE.test(l)).join("\n");
+}
+
 interface Fixture { home: string; away: string; when?: string }
 function parseFixtures(text: string): { league: string; fixtures: Fixture[] }[] | null {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
@@ -166,7 +173,11 @@ function AssistantContent({ content, citations }: { content: string; citations?:
     return <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{intro && <TextBody text={intro} />}<FixtureGroups groups={fx} /></div>;
   }
   const scores = parseScores(content);
-  return <div><TextBody text={content} />{scores.map((m, i) => <ScoreCard key={i} m={m} />)}</div>;
+  if (scores.length) {
+    const rest = stripScoreLines(content).trim();
+    return <div>{rest && <TextBody text={rest} />}{scores.map((m, i) => <ScoreCard key={i} m={m} />)}</div>;
+  }
+  return <TextBody text={content} />;
 }
 
 export default function AssistantSidebar({ open, onClose }: Props) {

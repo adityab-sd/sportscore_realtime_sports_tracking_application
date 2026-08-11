@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ShieldOff, LockKeyhole } from "lucide-react";
+import { resolveGatewayBase } from "@/lib/api/base";
 
 interface Stats {
   blockedRequests: number;
@@ -10,8 +11,9 @@ interface Stats {
 
 export default function SecurityStats() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
+  const apiBase = resolveGatewayBase();
   useEffect(() => {
+    if (!apiBase) return; // gateway not configured — render nothing
     let cancelled = false;
 
     fetch(`${apiBase}/api/security/stats`)

@@ -306,7 +306,7 @@ export default async function HomePage() {
       <HeroSplit />
       <LiveTicker />
 
-      <div style={{ borderBottom: "1px solid var(--border)" }}>
+      <div id="live-scores" style={{ borderBottom: "1px solid var(--border)", scrollMarginTop: 72 }}>
         <AllSportsLiveStrip upcomingBySport={upcomingBySport} f1Races={f1Races} />
       </div>
 
