@@ -392,6 +392,11 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
         });
     }
 
+    /**
+     * Ref resolution batched via EspnHttpClient.getMany() instead of up to 20
+     * sequential resolveRef() calls (10 athletes + 10 teams) — collect every
+     * $ref first, resolve them all in one call, then build the leader list.
+     */
     private List<Dto.Leader> leadersFromCoreApi(String league) {
         List<Dto.Leader> out = new ArrayList<>();
         try {
@@ -406,15 +411,27 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
             if (cat == null) return out;
 
             String catName = first(txt(cat.path("displayName")), txt(cat.path("name")), "Leaders");
-            java.util.Map<String, JsonNode> athleteCache = new java.util.HashMap<>();
-            java.util.Map<String, JsonNode> teamCache    = new java.util.HashMap<>();
+
+            List<JsonNode> leaderNodes = new ArrayList<>();
+            java.util.LinkedHashSet<String> refs = new java.util.LinkedHashSet<>();
+            int count = 0;
+            for (JsonNode l : cat.path("leaders")) {
+                if (count >= 10) break;
+                leaderNodes.add(l);
+                count++;
+                String athleteRef = txt(l.path("athlete").path("$ref"));
+                if (athleteRef != null) refs.add(athleteRef.replaceFirst("^http://", "https://"));
+                String teamRef = txt(l.path("team").path("$ref"));
+                if (teamRef != null) refs.add(teamRef.replaceFirst("^http://", "https://"));
+            }
+
+            java.util.Map<String, JsonNode> resolved = espnHttp.getMany(new ArrayList<>(refs));
 
             int i = 0;
-            for (JsonNode l : cat.path("leaders")) {
-                if (i >= 10) break;
-                JsonNode athlete = resolveRef(l.path("athlete"), athleteCache);
+            for (JsonNode l : leaderNodes) {
+                JsonNode athlete = resolveFromBatch(l.path("athlete"), resolved);
                 if (athlete == null) continue;
-                JsonNode team = resolveRef(l.path("team"), teamCache);
+                JsonNode team = resolveFromBatch(l.path("team"), resolved);
 
                 out.add(new Dto.Leader(
                         i + 1, catName,
@@ -430,6 +447,15 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
             // Common early/off-season: no leader data yet to rank.
         }
         return out;
+    }
+
+    /** Looks up an already-batch-resolved $ref, or returns the node itself if inline. */
+    private JsonNode resolveFromBatch(JsonNode node, java.util.Map<String, JsonNode> resolved) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node.has("displayName") || node.has("fullName")) return node;
+        String ref = txt(node.path("$ref"));
+        if (ref == null) return null;
+        return resolved.get(ref.replaceFirst("^http://", "https://"));
     }
 
     // match detail (with player-attributed events, officials, odds)
