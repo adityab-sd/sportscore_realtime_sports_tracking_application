@@ -32,6 +32,10 @@ public class EspnHttpClient {
     private static final Duration REF_TTL  = Duration.ofHours(6);
     private static final Duration LIVE_TTL = Duration.ofSeconds(30);
 
+    // Manual retry config. NOT @Retryable — Spring Retry's recovery-handler
+    // lookup breaks under concurrent invocation of the same proxied method
+    // ("Cannot locate recovery method"), which is exactly what happens once
+    // fetchAllMatches() calls get()/getFresh() concurrently across leagues.
     private static final int  MAX_ATTEMPTS  = 3;
     private static final long BASE_DELAY_MS = 500;
 
@@ -62,28 +66,10 @@ public class EspnHttpClient {
     }
 
     /**
-     * Manual retry loop (replaces @Retryable/@Recover — those had issues under
-     * concurrent invocation of the same proxied method once fetchAllMatches()
-     * started calling this concurrently). Redis reads/writes are individually
-     * wrapped so a Redis outage/quota error degrades to a direct ESPN fetch
-     * instead of failing the whole request.
+     * Single raw HTTP fetch, no retry, no cache. Callers that need retry/cache
+     * wrap this themselves (see get()/getFresh() below).
      */
-    public JsonNode get(String url) throws IOException, InterruptedException {
-        String cacheKey = CACHE_PREFIX + url;
-
-        if (redis != null) {
-            try {
-                String cached = redis.opsForValue().get(cacheKey);
-                if (cached != null) {
-                    try {
-                        return mapper.readTree(cached);
-                    } catch (IOException ignored) { /* fall through to ESPN */ }
-                }
-            } catch (Exception redisEx) {
-                log.warn("Redis GET failed for {}, falling through to ESPN: {}", cacheKey, redisEx.getMessage());
-            }
-        }
-
+    private String fetchBodyOnce(String url) throws IOException, InterruptedException {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .timeout(Duration.ofSeconds(timeout))
@@ -94,35 +80,31 @@ public class EspnHttpClient {
                 .header("Referer", "https://www.espn.com/")
                 .GET().build();
 
+        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
+        if (res.statusCode() >= 500) throw new EspnServerException(res.statusCode(), url);
+        if (res.statusCode() != 200) {
+            log.warn("ESPN {} for {}", res.statusCode(), url);
+            return null;
+        }
+        return res.body();
+    }
+
+    /**
+     * Manual retry loop around fetchBodyOnce() — 3 attempts, exponential backoff
+     * (500ms → 1s → 2s). Retries on 5xx and IOException; 4xx returns null
+     * immediately (no retry, matches original behavior). Shared by get() and
+     * getFresh() — the only difference between them is Redis usage.
+     */
+    private String fetchBody(String url) throws IOException, InterruptedException {
         Exception lastFailure = null;
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-
-                if (res.statusCode() >= 500) {
-                    lastFailure = new EspnServerException(res.statusCode(), url);
-                    log.warn("ESPN {} for {} (attempt {}/{})", res.statusCode(), url, attempt, MAX_ATTEMPTS);
-                    sleepBackoff(attempt);
-                    continue;
-                }
-                if (res.statusCode() != 200) {
-                    log.warn("ESPN {} for {}", res.statusCode(), url);
-                    return mapper.createObjectNode();
-                }
-
-                JsonNode result = mapper.readTree(res.body());
-
-                if (redis != null) {
-                    try {
-                        Duration ttl = (url.contains("/athletes/") || url.contains("/teams/")) ? REF_TTL : LIVE_TTL;
-                        redis.opsForValue().set(cacheKey, res.body(), ttl);
-                    } catch (Exception redisEx) {
-                        log.warn("Redis SET failed for {}: {}", cacheKey, redisEx.getMessage());
-                    }
-                }
-
-                return result;
+                return fetchBodyOnce(url);
+            } catch (EspnServerException e) {
+                lastFailure = e;
+                log.warn("ESPN {} for {} (attempt {}/{})", e.status, url, attempt, MAX_ATTEMPTS);
+                sleepBackoff(attempt);
             } catch (IOException e) {
                 lastFailure = e;
                 log.warn("IO failure for {} (attempt {}/{}): {}", url, attempt, MAX_ATTEMPTS, e.getMessage());
@@ -131,7 +113,7 @@ public class EspnHttpClient {
         }
 
         log.error("ESPN request failed after {} attempts for {}", MAX_ATTEMPTS, url, lastFailure);
-        return mapper.createObjectNode();
+        return null;
     }
 
     private void sleepBackoff(int attempt) throws InterruptedException {
@@ -139,29 +121,93 @@ public class EspnHttpClient {
         Thread.sleep(delay);
     }
 
+    /**
+     * Cached fetch — used by user-facing service controllers and getMany()'s
+     * $ref resolution. These repeat often enough (same athlete/team looked up
+     * across many games; same endpoint hit by multiple users) that Redis
+     * genuinely absorbs load. Redis GET/SET are wrapped so an outage/quota
+     * error falls through to a live ESPN fetch instead of failing the request.
+     */
+    public JsonNode get(String url) throws IOException, InterruptedException {
+        String cacheKey = CACHE_PREFIX + url;
+
+        if (redis != null) {
+            try {
+                String cached = redis.opsForValue().get(cacheKey);
+                if (cached != null) {
+                    try {
+                        return mapper.readTree(cached);
+                    } catch (IOException ignored) { /* corrupt cache entry → refetch */ }
+                }
+            } catch (Exception e) {
+                log.warn("Redis GET failed for {}, fetching from ESPN: {}", cacheKey, e.getMessage());
+            }
+        }
+
+        String body = fetchBody(url);
+        if (body == null) return mapper.createObjectNode();
+
+        if (redis != null) {
+            try {
+                Duration ttl = (url.contains("/athletes/") || url.contains("/teams/")) ? REF_TTL : LIVE_TTL;
+                redis.opsForValue().set(cacheKey, body, ttl);
+            } catch (Exception e) {
+                log.warn("Redis SET failed for {}: {}", cacheKey, e.getMessage());
+            }
+        }
+
+        return mapper.readTree(body);
+    }
+
+    /**
+     * Uncached fetch — for the background live-score poll loop specifically.
+     *
+     * Why bypass Redis here: the loop polls every 30s (LivePipelineRunner.POLL_MS)
+     * and the live-score cache TTL is also 30s — so by the time a league's next
+     * poll runs, its own previous cache entry has just expired. The GET almost
+     * always misses, meaning every poll pays for a Redis GET *and* SET for a
+     * cache that never actually gets hit by its own repeat calls. Across ~70+
+     * leagues polled every 30s, that's on the order of 10M+ wasted Redis
+     * commands/month — a real contributor to hitting Upstash's free-tier quota.
+     * Going straight to ESPN here removes that waste with zero loss of benefit,
+     * since nothing was actually being served from cache in this path anyway.
+     */
+    public JsonNode getFresh(String url) throws IOException, InterruptedException {
+        String body = fetchBody(url);
+        return body == null ? mapper.createObjectNode() : mapper.readTree(body);
+    }
+
+    /**
+     * Batched fetch for $ref links. The Redis MGET is wrapped: if it fails,
+     * every URL is simply treated as a cache miss and fetched from ESPN.
+     */
     public Map<String, JsonNode> getMany(List<String> urls) throws InterruptedException {
         Map<String, JsonNode> results = new LinkedHashMap<>();
         if (urls == null || urls.isEmpty()) return results;
 
         List<String> misses = new ArrayList<>();
 
+        List<String> cached = null;
         if (redis != null) {
             try {
                 List<String> cacheKeys = urls.stream().map(u -> CACHE_PREFIX + u).toList();
-                List<String> cached = redis.opsForValue().multiGet(cacheKeys);
-                for (int i = 0; i < urls.size(); i++) {
-                    String val = (cached != null) ? cached.get(i) : null;
-                    if (val != null) {
-                        try {
-                            results.put(urls.get(i), mapper.readTree(val));
-                            continue;
-                        } catch (IOException ignored) { /* fall through to miss */ }
-                    }
-                    misses.add(urls.get(i));
+                cached = redis.opsForValue().multiGet(cacheKeys);
+            } catch (Exception e) {
+                log.warn("Redis MGET failed, treating all as cache misses: {}", e.getMessage());
+                cached = null;
+            }
+        }
+
+        if (cached != null) {
+            for (int i = 0; i < urls.size(); i++) {
+                String val = cached.get(i);
+                if (val != null) {
+                    try {
+                        results.put(urls.get(i), mapper.readTree(val));
+                        continue;
+                    } catch (IOException ignored) { /* fall through to miss */ }
                 }
-            } catch (Exception redisEx) {
-                log.warn("Redis multiGet failed, treating all as misses: {}", redisEx.getMessage());
-                misses.addAll(urls);
+                misses.add(urls.get(i));
             }
         } else {
             misses.addAll(urls);
@@ -173,7 +219,7 @@ public class EspnHttpClient {
                 .map(url -> CompletableFuture.supplyAsync(() -> {
                     try {
                         concurrencyLimiter.acquire();
-                        JsonNode node = get(url);
+                        JsonNode node = get(url); // retry + fail-open caching still apply here
                         return Map.entry(url, node);
                     } catch (IOException | InterruptedException e) {
                         Thread.currentThread().interrupt();

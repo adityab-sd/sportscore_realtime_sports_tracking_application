@@ -24,16 +24,9 @@ public abstract class AbstractEspnFetcher {
     protected final EventHubProducer producer;
     protected final ExecutorService executor;
 
-    // How many leagues this fetcher polls concurrently per cycle. Was previously
-    // strictly sequential with a 500ms sleep between each (20 leagues = ~10s of
-    // pure waiting). Bounded concurrency instead of unlimited, so we don't look
-    // like a burst to ESPN's rate limiter/bot detection.
     @Value("${espn.fetch.league-concurrency:4}")
     private int leagueConcurrency;
 
-    // Per-fetcher (per-sport) instance state -- safe because LivePipelineRunner
-    // keeps one long-lived instance of each fetcher for the app's lifetime, and
-    // each sport gets its own fetcher bean, so match ids never collide across sports.
     private final Map<Integer, Set<String>> seenEvents = new ConcurrentHashMap<>();
     private final Map<Integer, String> lastStatus = new ConcurrentHashMap<>();
     private final Map<Integer, Match> lastSnapshot = new ConcurrentHashMap<>();
@@ -60,27 +53,23 @@ public abstract class AbstractEspnFetcher {
         return baseUrl() + "/" + league + "/scoreboard";
     }
 
-    // New extension point. Football/basketball ignore this (their per-play events
-    // come from m.events() via ESPN's `details` array). Baseball/F1 override it
-    // to synthesize events by diffing the current poll against the previous one,
-    // since their ESPN scoreboard payload carries no play-by-play array at all.
     protected List<MatchEvent> detectCustomEvents(Match current, Match previous) {
         return List.of();
     }
 
+    /**
+     * Uses getFresh() instead of get() — this is the background poll path,
+     * where Redis's 30s live-score TTL matches the 30s poll cadence, so caching
+     * here never actually gets hit by its own repeat calls (see getFresh()'s
+     * javadoc in EspnHttpClient for the full reasoning). Going straight to
+     * ESPN removes a large chunk of wasted Redis traffic with no loss of
+     * benefit, since nothing was being served from cache in this path anyway.
+     */
     public final List<Match> fetchMatches(String league) throws Exception {
-        JsonNode root = client.get(scoreboardUrl(league));
+        JsonNode root = client.getFresh(scoreboardUrl(league));
         return adapt(root, leagues().getOrDefault(league, league));
     }
 
-    /**
-     * Fetches every league concurrently instead of sequentially with a fixed
-     * stagger. Bounded by a semaphore (default 4 in flight) so we still don't
-     * burst ESPN, but wall-clock time per poll cycle drops from ~N*500ms to
-     * roughly (N / concurrency) * (single-request latency) — e.g. football's
-     * 20 leagues go from ~10s of pure sleep down to a handful of overlapped
-     * requests finishing together.
-     */
     public final List<Match> fetchAllMatches() {
         Semaphore limiter = new Semaphore(Math.max(1, leagueConcurrency));
 
@@ -111,17 +100,13 @@ public abstract class AbstractEspnFetcher {
         List<Match> toPublish = new ArrayList<>();
 
         for (Match m : live) {
-            if (m.id() == null) continue; // no dedup key possible, skip rather than crash
+            if (m.id() == null) continue;
 
             List<MatchEvent> newEvents = new ArrayList<>();
 
-            // Synthetic transition event (kickoff/half-time/full-time), since ESPN
-            // never puts these in `details` -- they only show up as a status change.
             MatchEvent transition = detectTransition(m);
             if (transition != null) newEvents.add(transition);
 
-            // Real incident events (goals/cards/subs), de-duplicated per match so the
-            // same event from ESPN's `details` array isn't re-announced every poll.
             Set<String> seen = seenEvents.computeIfAbsent(m.id(), k -> ConcurrentHashMap.newKeySet());
             for (MatchEvent e : m.events()) {
                 if (seen.add(fingerprint(e))) {
@@ -141,9 +126,6 @@ public abstract class AbstractEspnFetcher {
             producer.send(mapper.writeValueAsString(toPublish));
         }
 
-        // Finished matches won't be polled again (filtered out by isLive upstream),
-        // so their dedup/status state would otherwise sit in memory forever. Clean up
-        // anything not seen in this live batch.
         Set<Integer> stillLiveIds = live.stream().map(Match::id).filter(java.util.Objects::nonNull)
                 .collect(java.util.stream.Collectors.toSet());
         seenEvents.keySet().retainAll(stillLiveIds);
@@ -154,9 +136,6 @@ public abstract class AbstractEspnFetcher {
     private MatchEvent detectTransition(Match m) {
         String prev = lastStatus.put(m.id(), m.status());
 
-        // First time we've ever seen this match (e.g. app just started, or it
-        // came into scope mid-match) -- don't invent a fake kickoff/HT event
-        // just because there's no prior status to compare against.
         if (prev == null || prev.equals(m.status())) return null;
 
         if ("HT".equals(m.status())) {
