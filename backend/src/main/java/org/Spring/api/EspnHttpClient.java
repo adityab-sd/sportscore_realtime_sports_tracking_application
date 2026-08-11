@@ -18,9 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,10 +32,9 @@ public class EspnHttpClient {
     private static final Duration REF_TTL  = Duration.ofHours(6);
     private static final Duration LIVE_TTL = Duration.ofSeconds(30);
 
-    // Cap on how many ESPN requests fire at once for a single getMany() batch.
-    // Keep conservative — we got 403'd before for looking bursty. Independent
-    // of the shared executor's total pool size (espn.fetch.pool-size) — this
-    // just bounds how many of THIS client's own tasks run concurrently.
+    private static final int  MAX_ATTEMPTS  = 3;
+    private static final long BASE_DELAY_MS = 500;
+
     private static final int MAX_CONCURRENT = 4;
     private final Semaphore concurrencyLimiter = new Semaphore(MAX_CONCURRENT);
 
@@ -65,20 +61,26 @@ public class EspnHttpClient {
         this.executor = executor;
     }
 
-    @Retryable(
-            retryFor    = { EspnServerException.class, IOException.class },
-            maxAttempts = 3,
-            backoff     = @Backoff(delay = 500, multiplier = 2)
-    )
+    /**
+     * Manual retry loop (replaces @Retryable/@Recover — those had issues under
+     * concurrent invocation of the same proxied method once fetchAllMatches()
+     * started calling this concurrently). Redis reads/writes are individually
+     * wrapped so a Redis outage/quota error degrades to a direct ESPN fetch
+     * instead of failing the whole request.
+     */
     public JsonNode get(String url) throws IOException, InterruptedException {
         String cacheKey = CACHE_PREFIX + url;
 
         if (redis != null) {
-            String cached = redis.opsForValue().get(cacheKey);
-            if (cached != null) {
-                try {
-                    return mapper.readTree(cached);
-                } catch (IOException ignored) { /* fall through */ }
+            try {
+                String cached = redis.opsForValue().get(cacheKey);
+                if (cached != null) {
+                    try {
+                        return mapper.readTree(cached);
+                    } catch (IOException ignored) { /* fall through to ESPN */ }
+                }
+            } catch (Exception redisEx) {
+                log.warn("Redis GET failed for {}, falling through to ESPN: {}", cacheKey, redisEx.getMessage());
             }
         }
 
@@ -92,41 +94,51 @@ public class EspnHttpClient {
                 .header("Referer", "https://www.espn.com/")
                 .GET().build();
 
-        try {
-            HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() >= 500) throw new EspnServerException(res.statusCode(), url);
-            if (res.statusCode() != 200) {
-                log.warn("ESPN {} for {}", res.statusCode(), url);
-                return mapper.createObjectNode();
+        Exception lastFailure = null;
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
+
+                if (res.statusCode() >= 500) {
+                    lastFailure = new EspnServerException(res.statusCode(), url);
+                    log.warn("ESPN {} for {} (attempt {}/{})", res.statusCode(), url, attempt, MAX_ATTEMPTS);
+                    sleepBackoff(attempt);
+                    continue;
+                }
+                if (res.statusCode() != 200) {
+                    log.warn("ESPN {} for {}", res.statusCode(), url);
+                    return mapper.createObjectNode();
+                }
+
+                JsonNode result = mapper.readTree(res.body());
+
+                if (redis != null) {
+                    try {
+                        Duration ttl = (url.contains("/athletes/") || url.contains("/teams/")) ? REF_TTL : LIVE_TTL;
+                        redis.opsForValue().set(cacheKey, res.body(), ttl);
+                    } catch (Exception redisEx) {
+                        log.warn("Redis SET failed for {}: {}", cacheKey, redisEx.getMessage());
+                    }
+                }
+
+                return result;
+            } catch (IOException e) {
+                lastFailure = e;
+                log.warn("IO failure for {} (attempt {}/{}): {}", url, attempt, MAX_ATTEMPTS, e.getMessage());
+                sleepBackoff(attempt);
             }
-
-            JsonNode result = mapper.readTree(res.body());
-
-            if (redis != null) {
-                Duration ttl = (url.contains("/athletes/") || url.contains("/teams/")) ? REF_TTL : LIVE_TTL;
-                redis.opsForValue().set(cacheKey, res.body(), ttl);
-            }
-
-            return result;
         }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw e;
-        }
+
+        log.error("ESPN request failed after {} attempts for {}", MAX_ATTEMPTS, url, lastFailure);
+        return mapper.createObjectNode();
     }
 
-    /**
-     * Batched fetch for a set of URLs (typically $ref links collected from a
-     * whole payload before any HTTP call is made). Not currently called by the
-     * football adapter (its player data is inline, no $ref to resolve) — kept
-     * here for baseball/basketball adapters if their payloads do dereference
-     * athlete/team refs.
-     *
-     * Step 1: one Redis MGET for all URLs — cache hits resolve with zero ESPN calls.
-     * Step 2: remaining misses are fetched with bounded concurrency (MAX_CONCURRENT
-     * in flight at once) on the shared espnFetchExecutor pool, instead of
-     * sequentially and instead of the JVM-wide ForkJoinPool.commonPool().
-     */
+    private void sleepBackoff(int attempt) throws InterruptedException {
+        long delay = BASE_DELAY_MS * (1L << (attempt - 1));
+        Thread.sleep(delay);
+    }
+
     public Map<String, JsonNode> getMany(List<String> urls) throws InterruptedException {
         Map<String, JsonNode> results = new LinkedHashMap<>();
         if (urls == null || urls.isEmpty()) return results;
@@ -134,17 +146,22 @@ public class EspnHttpClient {
         List<String> misses = new ArrayList<>();
 
         if (redis != null) {
-            List<String> cacheKeys = urls.stream().map(u -> CACHE_PREFIX + u).toList();
-            List<String> cached = redis.opsForValue().multiGet(cacheKeys);
-            for (int i = 0; i < urls.size(); i++) {
-                String val = (cached != null) ? cached.get(i) : null;
-                if (val != null) {
-                    try {
-                        results.put(urls.get(i), mapper.readTree(val));
-                        continue;
-                    } catch (IOException ignored) { /* fall through to miss */ }
+            try {
+                List<String> cacheKeys = urls.stream().map(u -> CACHE_PREFIX + u).toList();
+                List<String> cached = redis.opsForValue().multiGet(cacheKeys);
+                for (int i = 0; i < urls.size(); i++) {
+                    String val = (cached != null) ? cached.get(i) : null;
+                    if (val != null) {
+                        try {
+                            results.put(urls.get(i), mapper.readTree(val));
+                            continue;
+                        } catch (IOException ignored) { /* fall through to miss */ }
+                    }
+                    misses.add(urls.get(i));
                 }
-                misses.add(urls.get(i));
+            } catch (Exception redisEx) {
+                log.warn("Redis multiGet failed, treating all as misses: {}", redisEx.getMessage());
+                misses.addAll(urls);
             }
         } else {
             misses.addAll(urls);
@@ -156,7 +173,7 @@ public class EspnHttpClient {
                 .map(url -> CompletableFuture.supplyAsync(() -> {
                     try {
                         concurrencyLimiter.acquire();
-                        JsonNode node = get(url); // retry + per-entry caching still apply here
+                        JsonNode node = get(url);
                         return Map.entry(url, node);
                     } catch (IOException | InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -173,17 +190,5 @@ public class EspnHttpClient {
         }
 
         return results;
-    }
-
-    @Recover
-    public JsonNode recover(EspnServerException ex, String url) {
-        log.error("ESPN server error after retries for {}", url, ex);
-        return mapper.createObjectNode();
-    }
-
-    @Recover
-    public JsonNode recover(IOException ex, String url) {
-        log.error("IO failure after retries for {}", url, ex);
-        return mapper.createObjectNode();
     }
 }
