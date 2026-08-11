@@ -21,8 +21,8 @@ SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_KEY")
 INDEX_NAME      = "football-live-index"
 
-SITE_BASE      = "https://site.api.espn.com/apis/site/v2/sports/basketball"
-STANDINGS_BASE = "https://site.api.espn.com/apis/v2/sports/basketball"
+SITE_BASE      = "https://site.web.api.espn.com/apis/site/v2/sports/basketball"
+STANDINGS_BASE = "https://site.web.api.espn.com/apis/v2/sports/basketball"
 
 LEAGUES = {
     "nba":                       "NBA",
@@ -44,11 +44,35 @@ def _safe_id(text):
     return text.replace(".", "-")
 
 
+# -- simple in-process cache: {url: (expiry_epoch, data)} --
+_CACHE = {}
+
+def _ttl_for(url):
+    # Reference data (athletes/teams/rosters) is near-static -> cache 6h.
+    # Standings / leaders / news / stats barely change -> cache 10 min.
+    # Everything else (scoreboards) stays effectively uncached so live-ish
+    # data stays fresh.
+    if "athletes" in url or "/teams/" in url or "roster" in url:
+        return 6 * 3600
+    if "standings" in url or "leaders" in url or "news" in url or "statistics" in url:
+        return 600
+    return 20
+
 def _get(url):
+    now = time.time()
+    hit = _CACHE.get(url)
+    if hit and hit[0] > now:
+        return hit[1]
     try:
         response = requests.get(url, headers={"User-Agent": "SportScore/1.0"}, timeout=10)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            _CACHE[url] = (now + _ttl_for(url), data)
+            # light cleanup so day-changing scoreboard URLs don't pile up
+            if len(_CACHE) > 500:
+                for k in [k for k, v in _CACHE.items() if v[0] <= now]:
+                    _CACHE.pop(k, None)
+            return data
     except Exception as e:
         print(f"  Error fetching {url}: {e}")
     return None
@@ -111,6 +135,96 @@ def parse_matches(data, league_name):
         except Exception as e:
             print(f"  Error parsing match event: {e}")
     return docs
+
+def build_next_game_summary(scoreboard_data, league_name, league_slug):
+    """Mirrors baseball's build_next_game_summary(): finds the soonest upcoming
+    (state == 'pre') game(s) and groups those sharing that soonest date into one
+    doc, so 'upcoming basketball games' has a single strong doc to match."""
+    if not scoreboard_data:
+        return None
+    upcoming = []
+    for event in scoreboard_data.get("events", []):
+        try:
+            competition = event.get("competitions", [{}])[0]
+            competitors = competition.get("competitors", [])
+            status_type = competition.get("status", {}).get("type", {})
+            state = status_type.get("state", "pre")
+            if state != "pre":
+                continue
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+            game_date = competition.get("date") or ""
+            if not game_date:
+                continue
+            upcoming.append({
+                "date": game_date,
+                "home": home.get("team", {}).get("displayName", "Unknown"),
+                "away": away.get("team", {}).get("displayName", "Unknown"),
+            })
+        except Exception as e:
+            print(f"  Error scanning game for next game: {e}")
+    if not upcoming:
+        return None
+    soonest_date = min(g["date"] for g in upcoming)
+    next_games = [g for g in upcoming if g["date"] == soonest_date]
+    lines = [f"{g['away']} at {g['home']}" for g in next_games]
+    content = (
+        f"The next upcoming {league_name} game(s) are scheduled for {soonest_date}:\n"
+        + "\n".join(lines)
+    )
+    return {
+        "id": f"live-basketball-next-game-{_safe_id(league_slug)}",
+        "sport": "basketball",
+        "category": "live-match",
+        "title": f"{league_name} — Next Game",
+        "content": content,
+        "source": "espn.com",
+        "last_updated": datetime.utcnow().isoformat()
+    }
+
+
+def build_live_now_summary(scoreboard_data, league_name, league_slug):
+    """One doc that explicitly lists every game currently in progress, with
+    'LIVE now' / 'in progress' in the text, so 'any live games?' queries have
+    a single strong doc to match instead of relying on buried per-game docs."""
+    if not scoreboard_data:
+        return None
+    live = []
+    for event in scoreboard_data.get("events", []):
+        try:
+            competition = event.get("competitions", [{}])[0]
+            status_type = competition.get("status", {}).get("type", {})
+            if status_type.get("state") != "in":
+                continue
+            competitors = competition.get("competitors", [])
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+            live.append({
+                "home": home.get("team", {}).get("displayName", "Unknown"),
+                "away": away.get("team", {}).get("displayName", "Unknown"),
+                "home_score": home.get("score", "0"),
+                "away_score": away.get("score", "0"),
+                "detail": status_type.get("detail", ""),
+            })
+        except Exception as e:
+            print(f"  Error scanning game for live-now: {e}")
+    if not live:
+        return None
+    lines = [f"{g['away']} {g['away_score']} - {g['home_score']} {g['home']} ({g['detail']})" for g in live]
+    content = (
+        f"There are {len(live)} {league_name} games LIVE and in progress right now:\n"
+        + "\n".join(lines)
+    )
+    return {
+        "id": f"live-basketball-live-now-{_safe_id(league_slug)}",
+        "sport": "basketball",
+        "category": "live-match",
+        "title": f"{league_name} — Live Now (In Progress)",
+        "content": content,
+        "source": "espn.com",
+        "last_updated": datetime.utcnow().isoformat()
+    }
+
 
 def build_latest_results_summary(scoreboard_data, league_name, league_slug):
     """Same fix as baseball's build_latest_results_summary() and F1's
@@ -306,7 +420,12 @@ MAJOR_LEAGUES = {"nba": "NBA", "wnba": "WNBA"}
 
 
 def _safe_id(s):
-    return ("".join(c if (c.isalnum() or c in "-_=") else "-" for c in str(s))[:120]) or "x"
+    # ASCII-only: accented letters (á, é, ñ, ...) are NOT allowed in Azure
+    # Search keys and would reject the whole upload batch, so map them to '-'.
+    return ("".join(
+        c if (c.isascii() and c.isalnum()) or c in "-_=" else "-"
+        for c in str(s)
+    )[:120]) or "x"
 
 
 def fetch_backend(path):
@@ -420,6 +539,12 @@ def run():
                 scoreboard_data = fetch_scoreboard(slug)
                 match_docs = parse_matches(scoreboard_data, name)
                 all_docs.extend(match_docs)
+                next_game_doc = build_next_game_summary(scoreboard_data, name, slug)
+                if next_game_doc:
+                    all_docs.append(next_game_doc)
+                live_now_doc = build_live_now_summary(scoreboard_data, name, slug)
+                if live_now_doc:
+                    all_docs.append(live_now_doc)
 
                 latest_results_doc = build_latest_results_summary(scoreboard_data, name, slug)
                 if latest_results_doc:
