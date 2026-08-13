@@ -15,7 +15,7 @@ import { ESPNNews } from "@/lib/api/espn";
 import HeroStrip from "@/components/home/HeroStrip";
 import HeroSplit from "@/components/landing/HeroSplit";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 // Merge each sport's news into one feed, tagging every article with its sport
 // so links route to the correct /{sport}/news/[id].
@@ -103,11 +103,24 @@ function toFixture(g: any, dateField: string, path: string, slug: string, state:
 async function collectFootball(slug: string): Promise<UpcomingFixture[]> {
   const [sbR, fxR] = await Promise.allSettled([getFootballScoreboard(slug), getFootballFixtures(slug)]);
   const out: UpcomingFixture[] = [];
-  if (fxR.status === "fulfilled") for (const f of (fxR.value.upcoming ?? [])) out.push(toFixture(f, "kickoff", "football", slug, "scheduled"));
-  if (sbR.status === "fulfilled") for (const g of (Array.isArray(sbR.value) ? sbR.value : [])) {
-    const st = classifyFootballStatus(g.status);
-    if (st !== "live") out.push(toFixture(g, "kickoff", "football", slug, st));
-  }
+
+  if (fxR.status === "fulfilled") for (const f of (fxR.value.upcoming ?? [])) {
+  const st = classifyFootballStatus(f.status);
+  const t = f.kickoff ? Date.parse(f.kickoff) : NaN;
+  if (st === "finished") continue;
+  if (st === "scheduled" && Number.isFinite(t) && t < Date.now() - 3 * 3600_000) continue;
+  out.push(toFixture(f, "kickoff", "football", slug, st));
+}
+
+if (sbR.status === "fulfilled") for (const g of (Array.isArray(sbR.value) ? sbR.value : [])) {
+  const st = classifyFootballStatus(g.status);
+  if (st === "finished") continue;                    // skip FT / FT-Pens / Canceled
+  // Stale ESPN status: still "Scheduled" hours after kickoff → it's over.
+  const t = g.kickoff ? Date.parse(g.kickoff) : NaN;
+  if (st === "scheduled" && Number.isFinite(t) && t < Date.now() - 3 * 3600_000) continue;
+  if (st !== "live") out.push(toFixture(g, "kickoff", "football", slug, st));
+}
+
   return out;
 }
 
@@ -117,11 +130,24 @@ function makeBBCollector(path: string, dateField: string,
   return async (slug: string): Promise<UpcomingFixture[]> => {
     const [sbR, fxR] = await Promise.allSettled([fetchSb(slug), fetchFx(slug)]);
     const out: UpcomingFixture[] = [];
-    if (fxR.status === "fulfilled") for (const f of (fxR.value?.upcoming ?? [])) out.push(toFixture(f, dateField, path, slug, "scheduled"));
+
+    if (fxR.status === "fulfilled") for (const f of (fxR.value?.upcoming ?? [])) {
+      // Don't hardcode "scheduled" — derive real state; drop finished + stale-past.
+      const st = stateOfBB(f.statusState);
+      if (st === "finished") continue;
+      const t = f[dateField] ? Date.parse(f[dateField]) : NaN;
+      if (st === "scheduled" && Number.isFinite(t) && t < Date.now() - 3 * 3600_000) continue;
+      out.push(toFixture(f, dateField, path, slug, st));
+    }
+
     if (sbR.status === "fulfilled") for (const g of (Array.isArray(sbR.value) ? sbR.value : [])) {
       const st = stateOfBB(g.statusState);
+      if (st === "finished") continue;                    // skip finished
+      const t = g[dateField] ? Date.parse(g[dateField]) : NaN;
+      if (st === "scheduled" && Number.isFinite(t) && t < Date.now() - 3 * 3600_000) continue;
       if (st !== "live") out.push(toFixture(g, dateField, path, slug, st));
     }
+
     return out;
   };
 }
@@ -137,7 +163,7 @@ async function espnMlbUpcoming(): Promise<UpcomingFixture[]> {
     const fmt = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
     const now = new Date();
     const end = new Date(now); end.setDate(end.getDate() + 6);
-    const url = `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${fmt(now)}-${fmt(end)}`;
+    const url = `https://site.web.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${fmt(now)}-${fmt(end)}`;
     const res = await fetch(url, { headers: ESPN_HEADERS, next: { revalidate: 300 } });
     if (!res.ok) return [];
     const data = await res.json();
@@ -152,6 +178,9 @@ async function espnMlbUpcoming(): Promise<UpcomingFixture[]> {
       const comp: any = (ev.competitions ?? [])[0] ?? {};
       const state = comp.status?.type?.state ?? ev.status?.type?.state ?? "pre";
       if (state === "post") continue; // upcoming / live only
+      const fp = comp.date ?? ev.date ?? null;
+      const fpMs = fp ? Date.parse(fp) : NaN;
+      if (state !== "in" && Number.isFinite(fpMs) && fpMs < Date.now() - 3 * 3600_000) continue;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const comps: any[] = comp.competitors ?? [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -238,8 +267,8 @@ async function getF1Races(): Promise<F1Race[]> {
     const fmt = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
     const now = new Date();
     const end = new Date(now.getFullYear(), 11, 31);
-    let events = await fetchEvents(`https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates=${fmt(now)}-${fmt(end)}`);
-    if (events.length === 0) events = await fetchEvents("https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard");
+    let events = await fetchEvents(`https://site.web.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates=${fmt(now)}-${fmt(end)}`);
+    if (events.length === 0) events = await fetchEvents("https://site.web.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard");
     const clean = (name: string) => name.replace(/^Formula 1\s+/i, "").replace(/\s+20\d\d$/, "").trim();
     const nowMs = Date.now();
     const races: F1Race[] = events.map((ev) => {

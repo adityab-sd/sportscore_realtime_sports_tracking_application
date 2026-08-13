@@ -166,7 +166,7 @@ async function getF1RaceCards(): Promise<RaceCard[]> {
     const fmt = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
     const now = new Date();
     const end = new Date(now.getFullYear(), 11, 31);
-    const url = `https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates=${fmt(now)}-${fmt(end)}`;
+    const url = `https://site.web.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates=${fmt(now)}-${fmt(end)}`;
     const res = await fetch(url, { headers: ESPN_HEADERS, next: { revalidate: 600 } });
     if (!res.ok) return [];
     const data = await res.json();

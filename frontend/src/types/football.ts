@@ -120,13 +120,16 @@ export function classifyStatus(status: string | null | undefined): MatchState {
   if (!status) return "scheduled";
   const s = status.toUpperCase().trim();
   // Finished — check before ET to prevent AET being caught as live
-  if (s === "FT" || s.includes("FULL TIME") || s.includes("FULL")) return "finished";
-  if (s === "AET" || s.includes("AFTER EXTRA") || s.includes("PENALTIES")) return "finished";
+// Finished — check before ET to prevent AET being caught as live
+  if (s === "FT" || s.startsWith("FT") || s.includes("FULL TIME") || s.includes("FULL")) return "finished";
+  if (s === "AET" || s.includes("AFTER EXTRA") || s.includes("PEN")) return "finished";
   if (s === "POST" || s === "FINISHED" || s.includes("FINAL")) return "finished";
+  // Canceled / postponed / abandoned — treat as finished so they're excluded
+  // from "upcoming", not shown as scheduled.
+  if (s.includes("CANCEL") || s.includes("POSTPON") || s.includes("ABANDON") || s.includes("AWARDED")) return "finished";
   // Scheduled
   if (s.includes("TBD") || s.includes("SCHEDULED") || s.includes("AT ")) return "scheduled";
   if (s.includes("NS") || s.includes("NOT STARTED")) return "scheduled";
-  if (s.includes("CANCEL") || s.includes("POSTPON")) return "scheduled";
   // Live
   const hasMinute = /\d+'/.test(s);
   const inPlay = s.includes("1H") || s.includes("2H") || s.includes("HT") || s.includes("LIVE");

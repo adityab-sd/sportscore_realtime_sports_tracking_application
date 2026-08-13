@@ -6,6 +6,7 @@ import { LeagueInfo, classifyStatus } from "@/types/basketball";
 import MatchCard from "./MatchCard";
 import StandingsTable from "./StandingsTable";
 import NewsCard from "@/components/news/NewsCard";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Tab = "fixtures" | "standings" | "news" | "statistics";
 interface Team { id: string; name: string; logo: string | null }
@@ -136,11 +137,19 @@ function LeaderCard({ category, rows }: { category: string; rows: BBLeader[] }) 
 }
 
 export default function LeaguePageClient({
-  league, slug, standings, seedGames, news, leaders, teams,
+  league, slug, standings, seedGames, news, leaders, teams, season, availableSeasons,
 }: {
   league: LeagueInfo; slug: string; standings: BBStandingRow[]; seedGames: BBFixture[]; news: BBNews[]; leaders: BBLeader[]; teams: Team[];
+  season: string; availableSeasons: string[];
 }) {
   const [tab, setTab] = useState<Tab>("fixtures");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  function onSeasonChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("season", e.target.value);
+    router.push(`${SPORT_PATH}/league/${slug}?${params.toString()}`);
+  }
   const today = startOfDayLocal(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(() => pickInitialDate(seedGames, today));
 
@@ -221,7 +230,15 @@ export default function LeaguePageClient({
 
         {tab === "standings" && (
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 16px" }}>Standings</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, margin: "0 0 16px" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Standings</h2>
+              <select value={season} onChange={onSeasonChange}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}>
+                {availableSeasons.map(y => (
+                  <option key={y} value={y}>{`${Number(y) - 1}–${y.slice(2)}`}</option>
+                ))}
+              </select>
+            </div>
             {standings.length > 0 ? <StandingsTable rows={standings} league={slug} /> : <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No standings available yet.</p>}
           </div>
         )}
@@ -242,7 +259,7 @@ export default function LeaguePageClient({
                 <p style={{ fontSize: 13, margin: 0 }}>The season may not have started or no data has been recorded.</p>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="page-split">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
                 {leaderGroups.map(g => <LeaderCard key={g.category} category={g.category} rows={g.rows} />)}
               </div>
             )}

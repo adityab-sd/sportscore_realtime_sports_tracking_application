@@ -18,11 +18,122 @@ const ESPN_HEADERS = {
   "Accept": "application/json",
 };
 
+// ─── Map an ESPN competition NAME → one of OUR supported league slugs ───────
+// ESPN's /all/ schedule tags each event only by name (e.g. "2026 Club Friendly",
+// "2026-27 LALIGA") — there is no slug in the payload. We keyword-match those
+// names to our LEAGUES. Option 2: anything that doesn't match is HIDDEN.
+const LEAGUE_NAME_KEYWORDS: { slug: string; label: string; kws: string[] }[] = [
+  { slug: "uefa.champions",   label: "Champions League",       kws: ["champions league", "uefa champions"] },
+  { slug: "uefa.europa.conf", label: "Europa Conf.",           kws: ["europa conference", "conference league"] },
+  { slug: "uefa.europa",      label: "Europa League",          kws: ["europa league", "uefa europa"] },
+  { slug: "eng.1",            label: "Premier League",         kws: ["premier league", "english premier", "epl"] },
+  { slug: "esp.1",            label: "La Liga",                 kws: ["laliga", "la liga", "spanish la"] },
+  { slug: "ita.1",            label: "Serie A",                 kws: ["serie a", "italian serie"] },
+  { slug: "ger.1",            label: "Bundesliga",             kws: ["bundesliga"] },
+  { slug: "fra.1",            label: "Ligue 1",                 kws: ["ligue 1", "french ligue"] },
+  { slug: "usa.1",            label: "MLS",                     kws: ["mls", "major league soccer"] },
+  { slug: "bra.1",            label: "Brasileirão",            kws: ["brasileir", "brazilian serie", "brazil serie"] },
+  { slug: "arg.1",            label: "Argentine Primera",       kws: ["argentine", "primera divisi", "liga profesional"] },
+  { slug: "fifa.world",       label: "World Cup",               kws: ["world cup"] },
+  { slug: "fifa.friendly",    label: "International Friendlies", kws: ["international friendly", "friendly international", "fifa friendly"] },
+  { slug: "club.friendly",    label: "Club Friendlies",         kws: ["club friendly", "club friendlies"] },
+];
+
+// Returns { slug, label } for a supported league, or null (→ hidden, Option 2).
+function mapCompetition(name: string | null | undefined): { slug: string; label: string } | null {
+  if (!name) return null;
+  const n = name.toLowerCase();
+  for (const L of LEAGUE_NAME_KEYWORDS) {
+    if (L.kws.some(k => n.includes(k))) return { slug: L.slug, label: L.label };
+  }
+  return null;
+}
+
+// Parse one ESPN schedule "events" array into our Match[], keeping only events
+// that map to a supported league. Each Match gets `competition` = the mapped
+// LABEL (used by the Fixtures league dropdown).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseScheduleEvents(events: any[]): Match[] {
+  const out: Match[] = [];
+  for (const event of events ?? []) {
+    // Competition name lives on seasonType.name / season.displayName.
+    const compName: string =
+      event?.seasonType?.name ?? event?.season?.displayName ?? event?.competitions?.[0]?.type?.text ?? "";
+    const mapped = mapCompetition(compName);
+    if (!mapped) continue; // Option 2: hide competitions we don't support.
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const comp = event?.competitions?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const competitors: any[] = comp?.competitors ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const home = competitors.find((c: any) => c.homeAway === "home");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const away = competitors.find((c: any) => c.homeAway === "away");
+    const statusName: string = event?.status?.type?.name ?? comp?.status?.type?.name ?? "STATUS_SCHEDULED";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scoreOf = (c: any) =>
+      c?.score?.value != null ? Number(c.score.value)
+      : (c?.score != null && typeof c.score !== "object" ? Number(c.score) : null);
+
+    out.push({
+      id: Number(event.id),
+      sport: "football" as const,
+      status: statusName,
+      elapsed: null,
+      kickoff: event.date ?? null,
+      competition: mapped.label, // mapped LABEL, so the dropdown reads cleanly
+      homeTeam: {
+        id: Number(home?.team?.id ?? 0),
+        name: home?.team?.displayName ?? home?.team?.name ?? "TBD",
+        shortName: home?.team?.shortDisplayName ?? home?.team?.abbreviation ?? "TBD",
+        logo: home?.team?.logos?.[0]?.href ?? home?.team?.logo ?? null,
+      },
+      awayTeam: {
+        id: Number(away?.team?.id ?? 0),
+        name: away?.team?.displayName ?? away?.team?.name ?? "TBD",
+        shortName: away?.team?.shortDisplayName ?? away?.team?.abbreviation ?? "TBD",
+        logo: away?.team?.logos?.[0]?.href ?? away?.team?.logo ?? null,
+      },
+      homeScore: scoreOf(home),
+      awayScore: scoreOf(away),
+      events: [],
+    });
+  }
+  return out;
+}
+
+// UPCOMING fixtures across all competitions (?fixture=true, /all/, no season).
+async function fetchTeamFixtures(teamId: string): Promise<Match[]> {
+  try {
+    const res = await fetch(
+      `https://site.web.api.espn.com/apis/site/v2/sports/soccer/all/teams/${teamId}/schedule?fixture=true`,
+      { headers: ESPN_HEADERS, next: { revalidate: 600 } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return parseScheduleEvents(data.events ?? []);
+  } catch { return []; }
+}
+
+// FINISHED results for a given season (?fixture=false&season=YYYY, /all/).
+async function fetchTeamResults(teamId: string, season: string): Promise<Match[]> {
+  try {
+    const res = await fetch(
+      `https://site.web.api.espn.com/apis/site/v2/sports/soccer/all/teams/${teamId}/schedule?fixture=false&season=${season}`,
+      { headers: ESPN_HEADERS, next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return parseScheduleEvents(data.events ?? []);
+  } catch { return []; }
+}
+
 // ─── Team schedule (direct ESPN, season-aware) ──────────────────────────────
 async function fetchTeamSchedule(league: string, teamId: string, season: string): Promise<Match[]> {
   try {
     const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/teams/${teamId}/schedule?season=${season}`,
+      `https://site.web.api.espn.com/apis/site/v2/sports/soccer/${league}/teams/${teamId}/schedule?season=${season}`,
       { headers: ESPN_HEADERS, next: { revalidate: 3600 } },
     );
     if (!res.ok) return [];
@@ -68,7 +179,7 @@ async function fetchStandings(league: string, season: string): Promise<ESPNStand
   try {
     // FIX 1: Corrected API path to apis/v2/ (removed duplicate /site/)
     const res = await fetch(
-      `https://site.api.espn.com/apis/v2/sports/soccer/${league}/standings?season=${season}`,
+      `https://site.web.api.espn.com/apis/v2/sports/soccer/${league}/standings?season=${season}`,
       { headers: ESPN_HEADERS, next: { revalidate: 3600 } },
     );
     if (!res.ok) return [];
@@ -183,12 +294,13 @@ export default async function TeamPage({ params, searchParams }: Props) {
   const selectedSeason = season ?? String(currentYear);
   const availableSeasons = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
-  const [team, roster, standings, news, seedMatches, coreData] = await Promise.all([
+const [team, roster, standings, news, teamFixtures, teamResults, coreData] = await Promise.all([
     getTeam(league, id),
     getRoster(league, id),
     fetchStandings(league, selectedSeason),
     getNews(league, 12) as Promise<ESPNNews[]>,
-    fetchTeamSchedule(league, id, selectedSeason),
+    fetchTeamFixtures(id),
+    fetchTeamResults(id, selectedSeason),
     fetchTeamStats(league, id, selectedSeason).catch(() => ({ stats: null, leaders: null })),
   ]);
 
@@ -208,7 +320,8 @@ export default async function TeamPage({ params, searchParams }: Props) {
       roster={roster}
       standingRow={teamRow ?? null}
       news={news}
-      seedMatches={seedMatches}
+      teamFixtures={teamFixtures}
+      teamResults={teamResults}
       teamStats={teamStats}
       teamLeaders={teamLeaders}
       season={selectedSeason}

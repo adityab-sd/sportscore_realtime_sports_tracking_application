@@ -8,7 +8,10 @@ import { LEAGUES, Match } from "@/types/football";
 import LeaguePageClient from "@/components/football/LeaguePageClient";
 
 export const dynamic = "force-dynamic";
-interface Props { params: Promise<{ slug: string }> }
+interface Props {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ season?: string }>;
+}
 
 function fixturesToMatches(fixtures: { results: any[]; upcoming: any[] }): Match[] {
   return [...fixtures.results, ...fixtures.upcoming].map(f => ({
@@ -153,25 +156,26 @@ async function parseRawLeaders(raw: RawJSON | null, slug: string, rows: any[]): 
   return cats;
 }
 
-export default async function LeaguePage({ params }: Props) {
+export default async function LeaguePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { season } = await searchParams;
   const league = LEAGUES.find(l => l.slug === slug);
   if (!league) return notFound();
 
   const currentYear = new Date().getFullYear();
-  // Try current year first, fall back to previous year (handles both MLS and European leagues)
+  const selectedSeason = season ?? String(currentYear);
+  const availableSeasons = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+
   const [rows, news, fixtures, teamsRaw, rawLeadersData] = await Promise.all([
-    getStandings(slug),
+    getStandings(slug, selectedSeason),
     getNews(slug, 20),
     getFixtures(slug),
     getTeamsList(slug),
-    getRawLeaders(slug, String(currentYear))
-      .catch(() => getRawLeaders(slug, String(currentYear - 1)).catch(() => null)),
+    // Use the season the user selected (defaults to current year).
+    getRawLeaders(slug, selectedSeason).catch(() => null),
   ]);
 
-const seedMatches = fixturesToMatches(fixtures);
-console.log("[fixtures]", fixtures.results.length, "results,",
-  fixtures.upcoming.length, "upcoming; last:", fixtures.upcoming.at(-1)?.kickoff); // TEMP
+  const seedMatches = fixturesToMatches(fixtures);
   const teams = parseTeams(teamsRaw);
   const leaderCategories = await parseRawLeaders(rawLeadersData, slug, rows);
 
@@ -184,6 +188,8 @@ console.log("[fixtures]", fixtures.results.length, "results,",
       teams={teams}
       seedMatches={seedMatches}
       slug={slug}
+      season={selectedSeason}
+      availableSeasons={availableSeasons}
     />
   );
 }

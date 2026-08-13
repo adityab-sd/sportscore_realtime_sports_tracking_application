@@ -9,7 +9,7 @@ import MatchCard from "./MatchCard";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
 import NewsCard from "@/components/news/NewsCard";
 
-type Tab = "fixtures" | "standings" | "squad" | "news" | "stats";
+type Tab = "fixtures" | "results" | "standings" | "squad" | "news" | "stats";
 
 // ─── Country flags ─────────────────────────────────────────────────────────────
 const COUNTRY_TO_ISO: Record<string, string> = {
@@ -333,7 +333,7 @@ function FormBadge({ result }: { result: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TeamPageClient({
-  team, teamId, league, leagueInfo, roster, standingRow, news, seedMatches, teamStats, teamLeaders,
+  team, teamId, league, leagueInfo, roster, standingRow, news, teamFixtures, teamResults, teamStats, teamLeaders,
   season, availableSeasons,
 }: {
   team: ESPNTeam;
@@ -343,31 +343,46 @@ export default function TeamPageClient({
   roster: ESPNPlayer[];
   standingRow: ESPNStandingRow | null;
   news: ESPNNews[];
-  seedMatches: Match[];
+  teamFixtures: Match[];
+  teamResults: Match[];
   teamStats: { category: string; stats: { label: string; value: string }[] }[];
   teamLeaders: { category: string; name: string; value: string; athleteId: string; headshot: string | null }[];
   season: string;
   availableSeasons: string[];
 }) {
-  const [tab, setTab] = useState<Tab>("fixtures");
+const [tab, setTab] = useState<Tab>("fixtures");
+  const [fixtureLeague, setFixtureLeague] = useState<string>("all");
   const { matches: live } = useSignalR();
 
-  // Merge seed + live. seedMatches are already team-specific from ESPN's
-  // /teams/{id}/schedule endpoint, so we trust them all. Live SignalR updates
-  // are league-wide, so those still need filtering.
-  const seedIds = new Set(seedMatches.map(m => m.id));
-  const byId = new Map<number, Match>();
-  for (const m of seedMatches) byId.set(m.id, m);
+  // Merge live SignalR updates onto whichever list holds that match (so an
+  // in-progress fixture reflects the live score). Live games belonging to this
+  // team surface under Fixtures.
+  const liveById = new Map<number, Match>();
   for (const m of live.filter(m => !m.sport || m.sport === "football")) {
-    // Only merge live matches that are either updates to existing seeds or belong to this team
-    if (seedIds.has(m.id) || String(m.homeTeam?.id) === String(teamId) || String(m.awayTeam?.id) === String(teamId)) {
-      byId.set(m.id, m);
+    if (String(m.homeTeam?.id) === String(teamId) || String(m.awayTeam?.id) === String(teamId)) {
+      liveById.set(m.id, m);
     }
   }
-  const teamMatches = Array.from(byId.values());
-  const liveM = teamMatches.filter(m => classifyStatus(m.status) === "live");
-  const monthGroups = groupByMonth(
-    [...teamMatches].sort((a, b) => Date.parse(a.kickoff ?? "0") - Date.parse(b.kickoff ?? "0"))
+  const applyLive = (list: Match[]) => list.map(m => liveById.get(m.id) ?? m);
+
+  const fixtures = applyLive(teamFixtures);   // upcoming (+ live)
+  const results  = applyLive(teamResults);    // finished
+
+  // Competitions present in fixtures → league dropdown options (Option 2: only
+  // supported leagues; unsupported were already dropped in the parser).
+  const fixtureComps = Array.from(new Set(fixtures.map(m => m.competition).filter(Boolean)));
+
+  // Fixtures filtered by the selected competition, grouped by month (soonest first).
+  const fixturesFiltered = fixtureLeague === "all"
+    ? fixtures
+    : fixtures.filter(m => m.competition === fixtureLeague);
+  const fixtureGroups = groupByMonth(
+    [...fixturesFiltered].sort((a, b) => Date.parse(a.kickoff ?? "0") - Date.parse(b.kickoff ?? "0"))
+  );
+
+  // Results grouped by month (newest first).
+  const resultGroups = groupByMonth(
+    [...results].sort((a, b) => Date.parse(b.kickoff ?? "0") - Date.parse(a.kickoff ?? "0"))
   );
 
   const bannerColor = team.color
@@ -378,16 +393,17 @@ export default function TeamPageClient({
 
   const navItems: { key: Tab; label: string }[] = [
     { key: "fixtures", label: "Fixtures" },
+    { key: "results",  label: "Results" },
     { key: "standings", label: "Standings" },
     { key: "squad", label: "Squad" },
     { key: "news", label: "News" },
     { key: "stats", label: "Stats" },
   ];
 
-  // Form guide from last 5 finished matches
-  const finished = teamMatches
+  // Form guide from last 5 finished results.
+  const finished = results
     .filter(m => classifyStatus(m.status) === "finished")
-    .sort((a,b) => Date.parse(b.kickoff ?? "0") - Date.parse(a.kickoff ?? "0"))
+    .sort((a, b) => Date.parse(b.kickoff ?? "0") - Date.parse(a.kickoff ?? "0"))
     .slice(0, 5);
   const form = finished.map(m => {
     const isHome = String(m.homeTeam.id) === teamId;
@@ -467,7 +483,7 @@ export default function TeamPageClient({
                 </button>
               ))}
             </div>
-            {(tab === "fixtures" || tab === "standings" || tab === "stats") && (
+            {(tab === "results" || tab === "standings" || tab === "stats") && (
               <YearDropdown league={league} season={season} seasons={availableSeasons} />
             )}
           </div>
@@ -478,24 +494,53 @@ export default function TeamPageClient({
       <div className="container" style={{ paddingTop:28, paddingBottom:48 }}>
 
         {/* FIXTURES */}
+        {/* FIXTURES — upcoming, with competition dropdown */}
         {tab === "fixtures" && (
           <div>
-            {teamMatches.length === 0 ? (
-              <EmptyState detail={`No matches found for ${team.shortName} in ${season}.`} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Upcoming Fixtures</h2>
+              {fixtureComps.length > 0 && (
+                <select
+                  value={fixtureLeague}
+                  onChange={(e) => setFixtureLeague(e.target.value)}
+                  style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}
+                >
+                  <option value="all">All competitions</option>
+                  {fixtureComps.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+            </div>
+            {fixtureGroups.length === 0 ? (
+              <EmptyState detail={`No upcoming fixtures for ${team.shortName}.`} />
             ) : (
-              <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
-                {liveM.length > 0 && (
-                  <section>
-                    <div className="section-label"><span style={{ width:7, height:7, borderRadius:"50%", background:"#ff4d4d" }} />Live Now</div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                      {liveM.map(m => <MatchCard key={m.id} match={m} league={league} />)}
-                    </div>
-                  </section>
-                )}
-                {monthGroups.map(group => (
+              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                {fixtureGroups.map(group => (
                   <section key={group.label}>
                     <div className="section-label">{group.label}</div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {group.matches.map(m => <MatchCard key={m.id} match={m} />)}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* RESULTS — finished, year via banner YearDropdown */}
+        {tab === "results" && (
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 16px" }}>
+              Results <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>· {season}</span>
+            </h2>
+            {resultGroups.length === 0 ? (
+              <EmptyState detail={`No results for ${team.shortName} in ${season}.`} />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                {resultGroups.map(group => (
+                  <section key={group.label}>
+                    <div className="section-label">{group.label}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {group.matches.map(m => <MatchCard key={m.id} match={m} />)}
                     </div>
                   </section>

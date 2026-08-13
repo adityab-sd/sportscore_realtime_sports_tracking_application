@@ -8,6 +8,7 @@ import type { LeaderCategory } from "@/app/football/league/[slug]/page";
 import MatchCard from "./MatchCard";
 import StandingsTable from "./StandingsTable";
 import NewsCard from "@/components/news/NewsCard";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Tab = "fixtures" | "standings" | "news" | "statistics";
 
@@ -46,6 +47,29 @@ function isSameDay(kickoff: string | null, date: Date) {
     k.getUTCMonth() === date.getUTCMonth() &&
     k.getUTCDate() === date.getUTCDate()
   );
+}
+
+// Pick the initial date to show: today if it has matches, otherwise the nearest
+// date (past or future) that does. Keeps off-season users from landing on an
+// empty day and scrolling through a whole month to find fixtures.
+function pickInitialDate(matches: Match[], today: Date): Date {
+  const keys = new Set<number>();
+  for (const m of matches) {
+    const t = m.kickoff ? Date.parse(m.kickoff) : NaN;
+    if (Number.isFinite(t)) {
+      const d = new Date(t);
+      d.setUTCHours(0, 0, 0, 0);
+      keys.add(d.getTime());
+    }
+  }
+  const todayMs = today.getTime();
+  if (keys.has(todayMs) || keys.size === 0) return today;
+  let best = todayMs, bestDist = Infinity;
+  for (const k of keys) {
+    const dist = Math.abs(k - todayMs);
+    if (dist < bestDist || (dist === bestDist && k < todayMs)) { best = k; bestDist = dist; }
+  }
+  return new Date(best);
 }
 
 // ─── Date Picker ─────────────────────────────────────────────────────────────
@@ -208,7 +232,7 @@ function LeaderCard({ cat, slug }: { cat: LeaderCategory; slug: string }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LeaguePageClient({
-  league, standings, news, leaderCategories, teams, seedMatches, slug,
+  league, standings, news, leaderCategories, teams, seedMatches, slug, season, availableSeasons,
 }: {
   league: LeagueInfo;
   standings: any[];
@@ -217,10 +241,20 @@ export default function LeaguePageClient({
   teams: Team[];
   seedMatches: Match[];
   slug: string;
+  season: string;
+  availableSeasons: string[];
 }) {
   const [tab, setTab] = useState<Tab>("fixtures");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  function onSeasonChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("season", e.target.value);
+    router.push(`/football/league/${slug}?${params.toString()}`);
+  }
   const today = startOfDayUTC(new Date());
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => pickInitialDate(seedMatches, today));
   const { matches: live, state, lastUpdate } = useSignalR();
 
   // Merge seed + live
@@ -337,7 +371,18 @@ export default function LeaguePageClient({
         {/* STANDINGS */}
         {tab === "standings" && leagueHasFullTable(slug) && (
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 16px" }}>Standings</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, margin: "0 0 16px" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Standings</h2>
+              <select
+                value={season}
+                onChange={onSeasonChange}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}
+              >
+                {availableSeasons.map(y => (
+                  <option key={y} value={y}>{`${y}–${String(Number(y) + 1).slice(2)}`}</option>
+                ))}
+              </select>
+            </div>
             {standings.length > 0 ? (
               <div style={{ overflowX: "auto" }}>
                 <div style={{ minWidth: 600 }}>
@@ -369,10 +414,21 @@ export default function LeaguePageClient({
         {/* STATISTICS */}
         {tab === "statistics" && (
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 20px" }}>
-              Statistics
-              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)", marginLeft: 8 }}>{league.name}</span>
-            </h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, margin: "0 0 20px" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>
+                Statistics
+                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)", marginLeft: 8 }}>{league.name}</span>
+              </h2>
+              <select
+                value={season}
+                onChange={onSeasonChange}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}
+              >
+                {availableSeasons.map(y => (
+                  <option key={y} value={y}>{`${y}–${String(Number(y) + 1).slice(2)}`}</option>
+                ))}
+              </select>
+            </div>
             {allCats.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 0", color: "var(--text-muted)" }}>
                 <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 6px" }}>No statistics available yet</p>
