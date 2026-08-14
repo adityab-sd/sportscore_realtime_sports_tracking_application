@@ -8,6 +8,8 @@ import type { LeaderCategory } from "@/app/football/league/[slug]/page";
 import MatchCard from "./MatchCard";
 import StandingsTable from "./StandingsTable";
 import NewsCard from "@/components/news/NewsCard";
+import { useRouter, useSearchParams } from "next/navigation";
+import DatePicker from "@/components/ui/DatePicker";
 
 type Tab = "fixtures" | "standings" | "news" | "statistics";
 
@@ -48,74 +50,29 @@ function isSameDay(kickoff: string | null, date: Date) {
   );
 }
 
-// ─── Date Picker ─────────────────────────────────────────────────────────────
-function DatePicker({ selected, onSelect }: { selected: Date; onSelect: (d: Date) => void }) {
-  const today = startOfDayUTC(new Date());
-  const [windowStart, setWindowStart] = useState(() => addDays(today, -1));
-  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
-  const animRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pills = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(windowStart, i)), [windowStart]);
-
-  const months = [...new Set(pills.map(p => p.toLocaleDateString("en-US", { month: "long", year: "numeric" })))];
-  const monthLabel = months.join(" / ");
-  const isToday = toKey(selected) === toKey(today);
-
-  function shift(dir: "left" | "right") {
-    setSlideDir(dir);
-    if (animRef.current) clearTimeout(animRef.current);
-    animRef.current = setTimeout(() => {
-      setWindowStart(prev => addDays(prev, dir === "right" ? 7 : -7));
-      setSlideDir(null);
-    }, 180);
+// Pick the initial date to show: today if it has matches, otherwise the nearest
+// date (past or future) that does. Keeps off-season users from landing on an
+// empty day and scrolling through a whole month to find fixtures.
+function pickInitialDate(matches: Match[], today: Date): Date {
+  const keys = new Set<number>();
+  for (const m of matches) {
+    const t = m.kickoff ? Date.parse(m.kickoff) : NaN;
+    if (Number.isFinite(t)) {
+      const d = new Date(t);
+      d.setUTCHours(0, 0, 0, 0);
+      keys.add(d.getTime());
+    }
   }
-
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, justifyContent: "center" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>{monthLabel}</span>
-        {!isToday && (
-          <button onClick={() => { onSelect(today); setWindowStart(addDays(today, -1)); }}
-            style={{ fontSize: 12, fontWeight: 600, color: "var(--navy)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-            · Return to today
-          </button>
-        )}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
-        <button onClick={() => shift("left")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--text-secondary)", padding: "0 4px", lineHeight: 1 }}>‹</button>
-        <div style={{
-          display: "flex", gap: 6,
-          transition: "transform 0.18s ease, opacity 0.18s ease",
-          transform: slideDir === "right" ? "translateX(-20px)" : slideDir === "left" ? "translateX(20px)" : "none",
-          opacity: slideDir ? 0 : 1,
-        }}>
-          {pills.map(d => {
-            const key = toKey(d);
-            const isSelected = key === toKey(selected);
-            const label = pillLabel(d, today);
-            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-            const parts = label.split(" ");
-            return (
-              <button key={key} onClick={() => onSelect(d)} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                width: 72, height: 52, borderRadius: 8, cursor: "pointer", flexShrink: 0,
-                border: isSelected ? "2px solid var(--navy)" : "1px solid var(--border)",
-                background: isSelected ? "var(--navy)" : "var(--white)",
-                color: isSelected ? "#fff" : isWeekend ? "var(--text-secondary)" : "var(--obsidian)",
-                transition: "all 0.15s ease",
-                transform: isSelected ? "translateY(-1px)" : "none",
-                boxShadow: isSelected ? "0 4px 12px rgba(30,58,138,0.25)" : "none",
-              }}>
-                <span style={{ fontSize: parts[0].length > 5 ? 9 : 11, fontWeight: 700, lineHeight: 1.2 }}>{parts[0]}</span>
-                {parts[1] && <span style={{ fontSize: 9, fontWeight: 500, opacity: 0.7, lineHeight: 1.2 }}>{parts[1]}</span>}
-              </button>
-            );
-          })}
-        </div>
-        <button onClick={() => shift("right")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--text-secondary)", padding: "0 4px", lineHeight: 1 }}>›</button>
-      </div>
-    </div>
-  );
+  const todayMs = today.getTime();
+  if (keys.has(todayMs) || keys.size === 0) return today;
+  let best = todayMs, bestDist = Infinity;
+  for (const k of keys) {
+    const dist = Math.abs(k - todayMs);
+    if (dist < bestDist || (dist === bestDist && k < todayMs)) { best = k; bestDist = dist; }
+  }
+  return new Date(best);
 }
+
 
 // ─── Teams Dropdown ───────────────────────────────────────────────────────────
 function TeamsDropdown({ teams, slug }: { teams: Team[]; slug: string }) {
@@ -208,7 +165,7 @@ function LeaderCard({ cat, slug }: { cat: LeaderCategory; slug: string }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LeaguePageClient({
-  league, standings, news, leaderCategories, teams, seedMatches, slug,
+  league, standings, news, leaderCategories, teams, seedMatches, slug, season, availableSeasons,
 }: {
   league: LeagueInfo;
   standings: any[];
@@ -217,10 +174,20 @@ export default function LeaguePageClient({
   teams: Team[];
   seedMatches: Match[];
   slug: string;
+  season: string;
+  availableSeasons: string[];
 }) {
   const [tab, setTab] = useState<Tab>("fixtures");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  function onSeasonChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("season", e.target.value);
+    router.push(`/football/league/${slug}?${params.toString()}`);
+  }
   const today = startOfDayUTC(new Date());
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => pickInitialDate(seedMatches, today));
   const { matches: live, state, lastUpdate } = useSignalR();
 
   // Merge seed + live
@@ -337,7 +304,18 @@ export default function LeaguePageClient({
         {/* STANDINGS */}
         {tab === "standings" && leagueHasFullTable(slug) && (
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 16px" }}>Standings</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, margin: "0 0 16px" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Standings</h2>
+              <select
+                value={season}
+                onChange={onSeasonChange}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}
+              >
+                {availableSeasons.map(y => (
+                  <option key={y} value={y}>{`${y}–${String(Number(y) + 1).slice(2)}`}</option>
+                ))}
+              </select>
+            </div>
             {standings.length > 0 ? (
               <div style={{ overflowX: "auto" }}>
                 <div style={{ minWidth: 600 }}>
@@ -369,10 +347,21 @@ export default function LeaguePageClient({
         {/* STATISTICS */}
         {tab === "statistics" && (
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 20px" }}>
-              Statistics
-              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)", marginLeft: 8 }}>{league.name}</span>
-            </h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, margin: "0 0 20px" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>
+                Statistics
+                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)", marginLeft: 8 }}>{league.name}</span>
+              </h2>
+              <select
+                value={season}
+                onChange={onSeasonChange}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}
+              >
+                {availableSeasons.map(y => (
+                  <option key={y} value={y}>{`${y}–${String(Number(y) + 1).slice(2)}`}</option>
+                ))}
+              </select>
+            </div>
             {allCats.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 0", color: "var(--text-muted)" }}>
                 <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)", margin: "0 0 6px" }}>No statistics available yet</p>

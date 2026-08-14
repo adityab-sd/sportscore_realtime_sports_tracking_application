@@ -298,8 +298,8 @@ export const getFixturesByDate = (league: string, date: string) =>
       `/${league}/fixtures?date=${date}`, { results: [], upcoming: [] }, 30);
   
 
-export const getStandings = (league: string) =>
-  apiGet<BBStandingRow[]>(`/${league}/standings`, [], 300);
+export const getStandings = (league: string, season?: string) =>
+  apiGet<BBStandingRow[]>(`/${league}/standings${season ? `?season=${season}` : ""}`, [], 300);
 
 export const getNews = (league: string, limit = 12) =>
   apiGet<BBNews[]>(`/${league}/news?limit=${limit}`, [], 120);
@@ -310,8 +310,8 @@ export const getTeam = (league: string, teamId: string) =>
 export const getRoster = (league: string, teamId: string) =>
   apiGet<BBPlayer[]>(`/${league}/teams/${teamId}/roster`, [], 3600);
 
-export const getLeaders = (league: string) =>
-  apiGet<BBLeader[]>(`/${league}/leaders`, [], 3600);
+export const getLeaders = (league: string, season?: string) =>
+  apiGet<BBLeader[]>(`/${league}/leaders${season ? `?season=${season}` : ""}`, [], 300);
 
 export const getGameDetail = (league: string, eventId: string) =>
   apiGet<BBGameDetail | null>(`/${league}/match/${eventId}`, null, 30);

@@ -6,6 +6,8 @@ import { LeagueInfo, classifyStatus } from "@/types/basketball";
 import MatchCard from "./MatchCard";
 import StandingsTable from "./StandingsTable";
 import NewsCard from "@/components/news/NewsCard";
+import { useRouter, useSearchParams } from "next/navigation";
+import DatePicker from "@/components/ui/DatePicker";
 
 type Tab = "fixtures" | "standings" | "news" | "statistics";
 interface Team { id: string; name: string; logo: string | null }
@@ -42,46 +44,6 @@ function pickInitialDate(games: BBFixture[], today: Date): Date {
   return new Date(best);
 }
 
-function DatePicker({ selected, onSelect }: { selected: Date; onSelect: (d: Date) => void }) {
-  const today = startOfDayLocal(new Date());
-  const [windowStart, setWindowStart] = useState(() => addDays(startOfDayLocal(selected), -1));
-  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
-  const animRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pills = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(windowStart, i)), [windowStart]);
-  const monthLabel = [...new Set(pills.map(p => p.toLocaleDateString("en-US", { month: "long", year: "numeric" })))].join(" / ");
-  const isToday = toKey(selected) === toKey(today);
-  function shift(dir: "left" | "right") {
-    setSlideDir(dir);
-    if (animRef.current) clearTimeout(animRef.current);
-    animRef.current = setTimeout(() => { setWindowStart(prev => addDays(prev, dir === "right" ? 7 : -7)); setSlideDir(null); }, 180);
-  }
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, justifyContent: "center" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>{monthLabel}</span>
-        {!isToday && <button onClick={() => { onSelect(today); setWindowStart(addDays(today, -1)); }} style={{ fontSize: 12, fontWeight: 600, color: "var(--navy)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>· Return to today</button>}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", overflow: "hidden" }}>
-        <button onClick={() => shift("left")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--text-secondary)", padding: "0 4px", lineHeight: 1 }}>‹</button>
-        <div style={{ display: "flex", gap: 6, transition: "transform 0.18s ease, opacity 0.18s ease", transform: slideDir === "right" ? "translateX(-20px)" : slideDir === "left" ? "translateX(20px)" : "none", opacity: slideDir ? 0 : 1 }}>
-          {pills.map(d => {
-            const key = toKey(d);
-            const isSelected = key === toKey(selected);
-            const parts = pillLabel(d, today).split(" ");
-            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-            return (
-              <button key={key} onClick={() => onSelect(d)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: 72, height: 52, borderRadius: 8, cursor: "pointer", flexShrink: 0, border: isSelected ? "2px solid var(--navy)" : "1px solid var(--border)", background: isSelected ? "var(--navy)" : "var(--white)", color: isSelected ? "#fff" : isWeekend ? "var(--text-secondary)" : "var(--obsidian)", transition: "all 0.15s ease", transform: isSelected ? "translateY(-1px)" : "none", boxShadow: isSelected ? "0 4px 12px rgba(0,63,136,0.25)" : "none" }}>
-                <span style={{ fontSize: parts[0].length > 5 ? 9 : 11, fontWeight: 700, lineHeight: 1.2 }}>{parts[0]}</span>
-                {parts[1] && <span style={{ fontSize: 9, fontWeight: 500, opacity: 0.7, lineHeight: 1.2 }}>{parts[1]}</span>}
-              </button>
-            );
-          })}
-        </div>
-        <button onClick={() => shift("right")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--text-secondary)", padding: "0 4px", lineHeight: 1 }}>›</button>
-      </div>
-    </div>
-  );
-}
 
 function TeamsDropdown({ teams }: { teams: Team[] }) {
   const [open, setOpen] = useState(false);
@@ -136,11 +98,19 @@ function LeaderCard({ category, rows }: { category: string; rows: BBLeader[] }) 
 }
 
 export default function LeaguePageClient({
-  league, slug, standings, seedGames, news, leaders, teams,
+  league, slug, standings, seedGames, news, leaders, teams, season, availableSeasons,
 }: {
   league: LeagueInfo; slug: string; standings: BBStandingRow[]; seedGames: BBFixture[]; news: BBNews[]; leaders: BBLeader[]; teams: Team[];
+  season: string; availableSeasons: string[];
 }) {
   const [tab, setTab] = useState<Tab>("fixtures");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  function onSeasonChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("season", e.target.value);
+    router.push(`${SPORT_PATH}/league/${slug}?${params.toString()}`);
+  }
   const today = startOfDayLocal(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(() => pickInitialDate(seedGames, today));
 
@@ -221,7 +191,15 @@ export default function LeaguePageClient({
 
         {tab === "standings" && (
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 16px" }}>Standings</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, margin: "0 0 16px" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: 0 }}>Standings</h2>
+              <select value={season} onChange={onSeasonChange}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--obsidian)", background: "var(--white)", cursor: "pointer" }}>
+                {availableSeasons.map(y => (
+                  <option key={y} value={y}>{`${Number(y) - 1}–${y.slice(2)}`}</option>
+                ))}
+              </select>
+            </div>
             {standings.length > 0 ? <StandingsTable rows={standings} league={slug} /> : <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No standings available yet.</p>}
           </div>
         )}
@@ -242,7 +220,7 @@ export default function LeaguePageClient({
                 <p style={{ fontSize: 13, margin: 0 }}>The season may not have started or no data has been recorded.</p>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="page-split">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
                 {leaderGroups.map(g => <LeaderCard key={g.category} category={g.category} rows={g.rows} />)}
               </div>
             )}

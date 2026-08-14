@@ -29,7 +29,7 @@ async function fetchSummary(league: string, id: string): Promise<any | null> {
   if (league !== "nba") cands.push("nba");
   for (const lg of [...new Set(cands)]) {
     try {
-      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/${lg}/summary?event=${id}`, { headers: ESPN_HEADERS, next: { revalidate: 60 } });
+      const res = await fetch(`https://site.web.api.espn.com/apis/site/v2/sports/basketball/${lg}/summary?event=${id}`, { headers: ESPN_HEADERS, next: { revalidate: 60 } });
       if (!res.ok) continue;
       const data = await res.json();
       if (data?.boxscore || data?.plays) return data;

@@ -19,7 +19,7 @@ const ESPN_HEADERS = {
 async function fetchTeamSchedule(league: string, teamId: string, season: string): Promise<BBGame[]> {
   try {
     const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/basketball/${league}/teams/${teamId}/schedule?season=${season}`,
+      `https://site.web.api.espn.com/apis/site/v2/sports/basketball/${league}/teams/${teamId}/schedule?season=${season}`,
       { headers: ESPN_HEADERS, next: { revalidate: 3600 } },
     );
     if (!res.ok) return [];

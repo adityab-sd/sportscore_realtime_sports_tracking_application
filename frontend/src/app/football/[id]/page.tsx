@@ -12,6 +12,7 @@ import MiniStandings from "@/components/football/MiniStandings";
 import MatchSidebar from "@/components/football/MatchSidebar";
 import GameInfoCard from "@/components/football/GameInfoCard";
 import OddsCard from "@/components/football/OddsCard";
+import MatchPreview from "@/components/football/MatchPreview";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,14 @@ export default async function MatchPage({ params, searchParams }: Props) {
             It renders the ScoreHeader itself and shows the ball tracker /
             shot map + events for live and finished matches. */}
         <div className="match-col-mid">
+          {isPre && (
+          <MatchPreview
+            match={match}
+            league={league}
+            homeInfo={homeTeamInfo}
+            awayInfo={awayTeamInfo}
+          />
+        )}
           <MatchLiveSection
             initialDetail={match}
             league={league}

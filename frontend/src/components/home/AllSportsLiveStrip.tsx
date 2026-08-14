@@ -433,7 +433,7 @@ export default function AllSportsLiveStrip({ upcomingBySport = {}, f1Races = [] 
             {allSports.map(sport => {
               const config   = SPORT_CONFIGS[sport];
               const signalR  = bySport[sport] ?? [];
-              const pool     = upcomingBySport[sport] ?? [];
+              const pool = (upcomingBySport[sport] ?? []).filter(f => f.state !== "finished");
               const live     = signalR.filter(m => classifyStatus(m.status) === "live");
 
               // Always aim for 6 cards per sport: live matches (from the hub)

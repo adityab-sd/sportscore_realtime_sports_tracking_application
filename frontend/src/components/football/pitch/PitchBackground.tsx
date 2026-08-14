@@ -148,18 +148,6 @@ export default function PitchBackground({
       />
       <rect x={rightGoalLineX} y={goalY} width={3} height={GOAL_H} fill="rgba(255,255,255,0.55)" />
 
-      {/* Direction labels */}
-      {homeShort && (
-        <text x={PAD + 8} y={PITCH_H - 12} fontSize="10" fill="rgba(255,255,255,0.55)" fontWeight="700">
-          {homeShort} →
-        </text>
-      )}
-      {awayShort && (
-        <text x={PITCH_W - PAD - 8} y={PITCH_H - 12} fontSize="10" fill="rgba(255,255,255,0.55)" fontWeight="700" textAnchor="end">
-          ← {awayShort}
-        </text>
-      )}
-
       {children}
     </svg>
   );

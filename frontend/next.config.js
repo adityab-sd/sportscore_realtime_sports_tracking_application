@@ -32,7 +32,7 @@ const nextConfig = {
               // CHANGED: added the deployed Azure backend origin so the browser is allowed to
               // call it. Without this, every API/RAG request to the backend is blocked by CSP.
               // localhost:8081 is kept so local dev still works.
-              "connect-src 'self' https://sportscore-backend-ecaue6buc5bwf7at.northeurope-01.azurewebsites.net http://localhost:8081 https://site.api.espn.com https://sports.core.api.espn.com https://sportscore-sr1.service.signalr.net wss://sportscore-sr1.service.signalr.net",
+              "connect-src 'self' https://sportscore-backend-ecaue6buc5bwf7at.northeurope-01.azurewebsites.net http://localhost:8081 https://site.web.api.espn.com https://sports.core.api.espn.com https://sportscore-sr1.service.signalr.net wss://sportscore-sr1.service.signalr.net",
               "frame-ancestors 'none'",
             ].join("; "),
           },

@@ -7,7 +7,10 @@ import { LEAGUES } from "@/types/baseball";
 import LeaguePageClient from "@/components/baseball/LeaguePageClient";
 
 export const dynamic = "force-dynamic";
-interface Props { params: Promise<{ slug: string }> }
+interface Props {
+    params: Promise<{ slug: string }>;
+    searchParams: Promise<{ season?: string }>;
+  }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function parseTeams(raw: RawJSON | null): { id: string; name: string; logo: string | null }[] {
@@ -21,17 +24,21 @@ function parseTeams(raw: RawJSON | null): { id: string; name: string; logo: stri
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export default async function LeaguePage({ params }: Props) {
-  const { slug } = await params;
+export default async function LeaguePage({ params, searchParams }: Props) {
+    const { slug } = await params;
+    const { season } = await searchParams;
+    const currentYear = new Date().getFullYear();
+    const selectedSeason = season ?? String(currentYear);
+    const availableSeasons = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
   const league = LEAGUES.find(l => l.slug === slug);
   if (!league) return notFound();
 
   const [standings, scoreboard, fixtures, news, leaders, teamsRaw] = await Promise.all([
-    getStandings(slug),
+    getStandings(slug, selectedSeason),
     getScoreboard(slug),
     getFixtures(slug),
     getNews(slug, 12),
-    getLeaders(slug),
+    getLeaders(slug, selectedSeason),
     getTeamsList(slug),
   ]);
 
@@ -47,6 +54,8 @@ export default async function LeaguePage({ params }: Props) {
       league={league} slug={slug}
       standings={standings} seedGames={seedGames} news={news}
       leaders={leaders} teams={parseTeams(teamsRaw)}
+      season={selectedSeason}
+      availableSeasons={availableSeasons}
     />
   );
 }
