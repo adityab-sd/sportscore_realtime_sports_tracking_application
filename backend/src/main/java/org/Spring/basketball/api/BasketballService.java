@@ -93,21 +93,26 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
 
     // standings - recursive, level=3 gives real conferences/divisions.
     // Confirmed live: NBA nests Conference -> Division (isConference true/false).
+        public List<BasketballDto.StandingRow> standings(String league) throws Exception {
+                return standings(league, 3, null);
+            }
 
-    public List<BasketballDto.StandingRow> standings(String league) throws Exception {
-        return standings(league, 3);
-    }
-
-    public List<BasketballDto.StandingRow> standings(String league, int level) throws Exception {
-        JsonNode raw = get(STANDINGS + "/" + league + "/standings?level=" + level);
-        List<BasketballDto.StandingRow> out = new ArrayList<>();
-        walkStandingsTree(raw, null, out);
-
-        if (out.isEmpty()) {
-            appendEntries(raw.path("standings").path("entries"), null, out);
-            appendEntries(raw.path("entries"), null, out);
+        // Kept so any existing callers using (league, level) still compile.
+        public List<BasketballDto.StandingRow> standings(String league, int level) throws Exception {
+            return standings(league, level, null);
         }
 
+        public List<BasketballDto.StandingRow> standings(String league, int level, String season) throws Exception {
+            String url = STANDINGS + "/" + league + "/standings?level=" + level
+                    + (season != null && !season.isBlank() ? "&season=" + season : "");
+            JsonNode raw = get(url);
+            List<BasketballDto.StandingRow> out = new ArrayList<>();
+            walkStandingsTree(raw, null, out);
+
+            if (out.isEmpty()) {
+                appendEntries(raw.path("standings").path("entries"), null, out);
+                appendEntries(raw.path("entries"), null, out);
+            }
         for (int i = 0; i < out.size(); i++) {
             if (out.get(i).rank() == 0) {
                 BasketballDto.StandingRow r = out.get(i);
@@ -341,10 +346,24 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
     // leaders - now a 2-tier fallback (site API -> Core API) instead of a
     // single unprotected site-API call.
 
+    // leaders - now a 2-tier fallback (site API -> Core API) instead of a
+    // single unprotected site-API call.
+    //
+    // season == null/blank  -> current season (site API first, then Core fallback)
+    // season given          -> that season's leaders straight from the Core API
+    //                          (the site API doesn't support historical seasons)
+    public List<Dto.Leader> leaders(String league, String season) throws Exception {
+        boolean wantsSpecificSeason = season != null && !season.isBlank();
+        if (!wantsSpecificSeason) {
+            List<Dto.Leader> siteResult = leadersFromSiteApi(league);
+            if (!siteResult.isEmpty()) return siteResult;
+        }
+        return leadersFromCoreApi(league, season);
+    }
+
+    // Backwards-compatible overload for any existing callers that don't pass a season.
     public List<Dto.Leader> leaders(String league) throws Exception {
-        List<Dto.Leader> siteResult = leadersFromSiteApi(league);
-        if (!siteResult.isEmpty()) return siteResult;
-        return leadersFromCoreApi(league);
+        return leaders(league, null);
     }
 
     private List<Dto.Leader> leadersFromSiteApi(String league) {
@@ -397,11 +416,18 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
      * sequential resolveRef() calls (10 athletes + 10 teams) — collect every
      * $ref first, resolve them all in one call, then build the leader list.
      */
-    private List<Dto.Leader> leadersFromCoreApi(String league) {
+    /**
+     * Ref resolution batched via EspnHttpClient.getMany() instead of up to 20
+     * sequential resolveRef() calls (10 athletes + 10 teams) — collect every
+     * $ref first, resolve them all in one call, then build the leader list.
+     */
+    private List<Dto.Leader> leadersFromCoreApi(String league, String season) {
         List<Dto.Leader> out = new ArrayList<>();
         try {
-            int season = currentSeasonYear(league);
-            JsonNode raw  = get(CORE + "/leagues/" + league + "/seasons/" + season + "/types/2/leaders");
+            String resolvedSeason = (season != null && !season.isBlank())
+                    ? season
+                    : String.valueOf(currentSeasonYear(league));
+            JsonNode raw  = get(CORE + "/leagues/" + league + "/seasons/" + resolvedSeason + "/types/2/leaders");
             JsonNode cats = raw.path("categories");
             JsonNode cat  = null;
             for (JsonNode c : cats) {
@@ -409,9 +435,7 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
             }
             if (cat == null && cats.isArray() && cats.size() > 0) cat = cats.get(0);
             if (cat == null) return out;
-
             String catName = first(txt(cat.path("displayName")), txt(cat.path("name")), "Leaders");
-
             List<JsonNode> leaderNodes = new ArrayList<>();
             java.util.LinkedHashSet<String> refs = new java.util.LinkedHashSet<>();
             int count = 0;
@@ -424,15 +448,12 @@ public BasketballDto.Fixtures fixtures(String league, String date) throws Except
                 String teamRef = txt(l.path("team").path("$ref"));
                 if (teamRef != null) refs.add(teamRef.replaceFirst("^http://", "https://"));
             }
-
             java.util.Map<String, JsonNode> resolved = espnHttp.getMany(new ArrayList<>(refs));
-
             int i = 0;
             for (JsonNode l : leaderNodes) {
                 JsonNode athlete = resolveFromBatch(l.path("athlete"), resolved);
                 if (athlete == null) continue;
                 JsonNode team = resolveFromBatch(l.path("team"), resolved);
-
                 out.add(new Dto.Leader(
                         i + 1, catName,
                         first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), "-"),

@@ -97,9 +97,10 @@ public class FootballController {
     }
 
     @GetMapping("/{league}/standings")
-    public List<Dto.StandingRow> standings(@PathVariable String league) throws Exception {
-        validateLeague(league);   // reject bad league slugs early
-        return service.standings(league);
+    public List<Dto.StandingRow> standings(@PathVariable String league,
+                                        @RequestParam(required = false) String season) throws Exception {
+        validateLeague(league);
+        return service.standings(league, season);
     }
 
     @GetMapping("/{league}/news")
@@ -194,9 +195,11 @@ public class FootballController {
     }
 
     @GetMapping("/{league}/teams/{teamId}/schedule")
-    public JsonNode teamSchedule(@PathVariable String league, @PathVariable String teamId) throws Exception {
-        validateLeague(league);   // reject bad league slugs early
-        return service.teamSchedule(league, teamId);
+    public JsonNode teamSchedule(@PathVariable String league, @PathVariable String teamId,
+                                @RequestParam(required = false) Boolean fixture,
+                                @RequestParam(required = false) String season) throws Exception {
+        validateLeague(league);
+        return service.teamSchedule(league, teamId, fixture, season);
     }
 
     @GetMapping("/{league}/teams/{teamId}/record")

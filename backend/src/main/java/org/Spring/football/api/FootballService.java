@@ -105,8 +105,10 @@ public Dto.Fixtures fixtures(String league) throws Exception {
     }
     // standings
 
-    public List<Dto.StandingRow> standings(String league) throws Exception {
-        JsonNode raw = get(STANDINGS + "/" + league + "/standings");
+    public List<Dto.StandingRow> standings(String league, String season) throws Exception {
+        String url = STANDINGS + "/" + league + "/standings"
+                + (season != null && !season.isBlank() ? "?season=" + season : "");
+        JsonNode raw = get(url);
         List<Dto.StandingRow> out = new ArrayList<>();
 
         JsonNode children = raw.path("children");
@@ -442,10 +444,10 @@ public Dto.Fixtures fixtures(String league) throws Exception {
      * wrong (returns empty header). We try the most common slugs as fallbacks.
      */
     private static final java.util.List<String> SLUG_FALLBACKS = java.util.List.of(
-            "uefa.europa", "uefa.champions", "uefa.europa.conf",
-            "fifa.world", "fifa.friendly",
-            "eng.1", "eng.2", "esp.1", "ita.1", "ger.1", "fra.1",
-            "usa.1", "ned.1", "por.1", "mex.1", "arg.1", "jpn.1", "aus.1", "bra.1"
+            "uefa.champions",
+            "fifa.world",
+            "eng.1", "esp.1", "ita.1", "ger.1", "fra.1",
+            "usa.1", "arg.1", "bra.1", "club.friendly"
     );
 
     public Dto.MatchDetail matchDetail(String league, String eventId) throws Exception {
@@ -1149,8 +1151,16 @@ private List<Dto.FormResult> parseForm(JsonNode events) {
         return getPaged(SITE + "/" + league + "/teams", page, limit);
     }
 
-    public JsonNode teamSchedule(String league, String teamId) throws Exception {
-        return get(SITE + "/" + league + "/teams/" + teamId + "/schedule");
+  public JsonNode teamSchedule(String league, String teamId) throws Exception {
+        return teamSchedule(league, teamId, null, null);
+    }
+
+    public JsonNode teamSchedule(String league, String teamId, Boolean fixture, String season) throws Exception {
+        StringBuilder url = new StringBuilder(SITE + "/" + league + "/teams/" + teamId + "/schedule");
+        boolean first = true;
+        if (fixture != null) { url.append(first ? "?" : "&").append("fixture=").append(fixture); first = false; }
+        if (season != null && !season.isBlank()) { url.append(first ? "?" : "&").append("season=").append(season); first = false; }
+        return get(url.toString());
     }
 
     public JsonNode teamRecord(String league, String teamId) throws Exception {
