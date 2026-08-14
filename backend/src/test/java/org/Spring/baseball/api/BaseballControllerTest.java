@@ -67,9 +67,16 @@ class BaseballControllerTest {
         int lastNewsLimit = -1;
 
         @Override public List<BaseballDto.GameDto> scoreboard(String league) { lastLeague = league; return List.of(); }
-        @Override public List<BaseballDto.StandingRow> standings(String league, int level) {
+
+        // ADDRESSED: the controller now calls the three-arg standings(league, level, season)
+        // directly (confirmed by the stack trace: controller -> BaseballService line 140 with
+        // no delegating frame in between). The old two-arg override no longer intercepted that
+        // call, so the real method ran and hit ESPN through a null espnHttp. Overriding the
+        // three-arg version puts the fake back in control. season is unused by these tests.
+        @Override public List<BaseballDto.StandingRow> standings(String league, int level, String season) {
             lastLeague = league; lastLevel = level; return List.of();
         }
+
         @Override public List<Dto.NewsItem> news(String league, int limit) {
             lastLeague = league; lastNewsLimit = limit; return List.of();
         }

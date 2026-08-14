@@ -27,24 +27,15 @@ STANDINGS_BASE = "https://site.web.api.espn.com/apis/v2/sports/soccer"
 
 LEAGUES = {
     "fifa.world":        "World Cup 2026",
-    "fifa.friendly":     "International Friendly",
     "uefa.champions":    "Champions League",
-    "uefa.europa":       "Europa League",
-    "uefa.europa.conf":  "Conference League",
     "eng.1":             "Premier League",
-    "eng.2":             "Championship",
     "esp.1":             "La Liga",
     "ita.1":             "Serie A",
     "ger.1":             "Bundesliga",
     "fra.1":             "Ligue 1",
     "usa.1":             "MLS",
     "bra.1":             "Brazil Serie A",
-    "ned.1":             "Eredivisie",
-    "por.1":             "Primeira Liga",
-    "mex.1":             "Liga MX",
     "arg.1":             "Argentina Primera",
-    "jpn.1":             "J-League",
-    "aus.1":             "A-League",
     "club.friendly":     "Club Friendly"
 }
 

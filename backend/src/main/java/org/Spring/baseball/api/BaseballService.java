@@ -126,11 +126,18 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
     // standings - recursive, level=3 gives real divisions where they exist
 
     public List<BaseballDto.StandingRow> standings(String league) throws Exception {
-        return standings(league, 3);
+        return standings(league, 3, null);
     }
 
+    // Kept so any existing callers using (league, level) still compile.
     public List<BaseballDto.StandingRow> standings(String league, int level) throws Exception {
-        JsonNode raw = get(STANDINGS + "/" + league + "/standings?level=" + level);
+        return standings(league, level, null);
+    }
+
+    public List<BaseballDto.StandingRow> standings(String league, int level, String season) throws Exception {
+        String url = STANDINGS + "/" + league + "/standings?level=" + level
+                + (season != null && !season.isBlank() ? "&season=" + season : "");
+        JsonNode raw = get(url);
         List<BaseballDto.StandingRow> out = new ArrayList<>();
         walkStandingsTree(raw, null, out);
 
@@ -325,7 +332,8 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
 
         return new Dto.AthleteOverview(
                 str(athlete.path("id")),
-                first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), "-"),
+                first(txt(athlete.path("displayName")), txt(athlete.path("fullName")),
+                              txt(athlete.path("shortName")), "Unknown"),
                 first(txt(athlete.path("position").path("displayName")), txt(athlete.path("position").path("abbreviation")), null),
                 first(txt(athlete.path("team").path("displayName")), null),
                 txt(athlete.path("headshot").path("href")),
@@ -380,14 +388,17 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
     // leaders - now a 2-tier fallback (site API -> Core API) instead of a
     // single unprotected site-API call.
 
+    public List<Dto.Leader> leaders(String league, String season) throws Exception {
+        boolean wantsSpecificSeason = season != null && !season.isBlank();
+        if (!wantsSpecificSeason) {
+            List<Dto.Leader> siteResult = leadersFromSiteApi(league);
+            if (!siteResult.isEmpty()) return siteResult;
+        }
+        return leadersFromCoreApi(league, season);
+    }
+
     public List<Dto.Leader> leaders(String league) throws Exception {
-        List<Dto.Leader> siteResult = leadersFromSiteApi(league);
-        if (!siteResult.isEmpty()) return siteResult;
-        // Same class of problem FootballService already documented for soccer:
-        // the site API leaders endpoint can come back empty. Fall back to the
-        // Core API, which for American sports needs an explicit season year AND
-        // season-type segment (2 = regular season) to return real data.
-        return leadersFromCoreApi(league);
+        return leaders(league, null);
     }
 
     private List<Dto.Leader> leadersFromSiteApi(String league) {
@@ -441,11 +452,13 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
      * sequential resolveRef() calls (10 athletes + 10 teams) — collect every
      * $ref first, resolve them all in one call, then build the leader list.
      */
-    private List<Dto.Leader> leadersFromCoreApi(String league) {
+    private List<Dto.Leader> leadersFromCoreApi(String league, String season) {
         List<Dto.Leader> out = new ArrayList<>();
         try {
-            int season = currentSeasonYear(league);
-            JsonNode raw  = get(CORE + "/leagues/" + league + "/seasons/" + season + "/types/2/leaders");
+            String resolvedSeason = (season != null && !season.isBlank())
+                    ? season
+                    : String.valueOf(currentSeasonYear(league));
+            JsonNode raw  = get(CORE + "/leagues/" + league + "/seasons/" + resolvedSeason + "/types/2/leaders");
             JsonNode cats = raw.path("categories");
             JsonNode cat  = null;
             for (JsonNode c : cats) {
@@ -479,18 +492,40 @@ public BaseballDto.Fixtures fixtures(String league, String date) throws Exceptio
 
                 out.add(new Dto.Leader(
                         i + 1, catName,
-                        first(txt(athlete.path("displayName")), txt(athlete.path("fullName")), "-"),
+                        first(txt(athlete.path("displayName")), txt(athlete.path("fullName")),
+                              txt(athlete.path("shortName")), "Unknown"),
                         team != null ? first(txt(team.path("abbreviation")), txt(team.path("displayName")), "") : "",
                         team != null ? txt(team.path("logos").path(0).path("href")) : null,
                         txt(athlete.path("headshot").path("href")),
                         l.path("value").asDouble(0),
-                        first(txt(l.path("displayValue")), String.valueOf(l.path("value").asInt(0)))));
+                        formatLeaderValue(catName, l.path("value").asDouble(0))));
                 i++;
             }
         } catch (Exception e) {
             // Common early/off-season: no leader data yet to rank. Not an error.
         }
         return out;
+    }
+
+    /**
+ * Leaderboards show the ranked metric — not ESPN's verbose displayValue, which
+ * for MLB is a full stat line ("211-636, 32 HR, 11 3B, ...") that overflows the
+ * card. Format the numeric `value` by category: rate stats (AVG/OBP/SLG/ERA)
+ * as .3f, counting stats (HR/RBI/hits/etc.) as whole numbers.
+ */
+    private String formatLeaderValue(String category, double value) {
+        String c = category == null ? "" : category.toLowerCase();
+        boolean rateStat = c.contains("average") || c.contains("avg")
+                || c.contains("percentage") || c.contains("pct")
+                || c.contains("obp") || c.contains("slug") || c.contains("ops")
+                || c.contains("era") || c.contains("whip");
+        if (rateStat) {
+            // ESPN gives AVG as 0.3317… → ".332"; drop the leading zero like MLB convention.
+            String s = String.format("%.3f", value);
+            return s.startsWith("0.") ? s.substring(1) : s;
+        }
+        if (value == Math.floor(value)) return String.valueOf((long) value);
+        return String.format("%.1f", value);
     }
 
     /** Looks up an already-batch-resolved $ref, or returns the node itself if inline. */
