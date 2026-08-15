@@ -1,18 +1,10 @@
 """
-baseball_live_updater.py — Fetches live baseball data from ESPN every 30
+baseball_live_updater.py — Fetches live baseball data from ESPN every 60
 seconds and uploads it to Azure AI Search so RAG can answer live questions.
-
 Mirrors live_updater.py (football) / basketball_live_updater.py, pointed at
 baseball's ESPN endpoints. Reuses the shared football-live-index (same
 workaround basketball uses) since Azure's free tier caps index count at 3.
-
-NOTE: baseball's stat-leaders endpoint structure is different from
-football's /leaders and basketball's /statistics — this uses a best-effort
-attempt at /leaders first. Test this against real output and adjust if
-leader data comes back empty (see docstring note in basketball_live_updater.py
-for the same lesson learned there).
 """
-
 import os
 import time
 import requests
@@ -42,19 +34,10 @@ search_client = SearchClient(
     credential=credential
 )
 
-
-def _safe_id(text):
-    return text.replace(".", "-")
-
-
 # -- simple in-process cache: {url: (expiry_epoch, data)} --
 _CACHE = {}
 
 def _ttl_for(url):
-    # Reference data (athletes/teams/rosters) is near-static -> cache 6h.
-    # Standings / leaders / news / stats barely change -> cache 10 min.
-    # Everything else (scoreboards) stays effectively uncached so live-ish
-    # data stays fresh.
     if "athletes" in url or "/teams/" in url or "roster" in url:
         return 6 * 3600
     if "standings" in url or "leaders" in url or "news" in url or "statistics" in url:
@@ -71,7 +54,6 @@ def _get(url):
         if response.status_code == 200:
             data = response.json()
             _CACHE[url] = (now + _ttl_for(url), data)
-            # light cleanup so day-changing scoreboard URLs don't pile up
             if len(_CACHE) > 500:
                 for k in [k for k, v in _CACHE.items() if v[0] <= now]:
                     _CACHE.pop(k, None)
@@ -137,10 +119,9 @@ def parse_games(data, league_name):
             print(f"  Error parsing game event: {e}")
     return docs
 
+
 def build_live_now_summary(scoreboard_data, league_name, league_slug):
-    """One doc that explicitly lists every game currently in progress, with
-    'LIVE now' / 'in progress' in the text, so 'any live games?' queries have
-    a single strong doc to match instead of relying on buried per-game docs."""
+    """One doc that explicitly lists every game currently in progress."""
     if not scoreboard_data:
         return None
     live = []
@@ -181,13 +162,9 @@ def build_live_now_summary(scoreboard_data, league_name, league_slug):
 
 
 def build_latest_results_summary(scoreboard_data, league_name, league_slug):
-    """Groups every completed (state == 'post') game from the most
-    recent date that has finished games into ONE synthetic summary doc,
-    with 'latest'/'most recent' explicitly in the content — so vague
-    queries have something reliable to match against."""
+    """Groups completed games from the most recent date into one doc."""
     if not scoreboard_data:
         return None
-
     completed = []
     for event in scoreboard_data.get("events", []):
         try:
@@ -197,14 +174,12 @@ def build_latest_results_summary(scoreboard_data, league_name, league_slug):
             state = status_type.get("state", "pre")
             if state != "post":
                 continue
-
             home = next((c for c in competitors if c.get("homeAway") == "home"), {})
             away = next((c for c in competitors if c.get("homeAway") == "away"), {})
             home_score = home.get("score")
             away_score = away.get("score")
             if home_score in (None, "") or away_score in (None, ""):
                 continue
-
             game_date = (competition.get("date") or "")[:10]
             completed.append({
                 "date": game_date,
@@ -215,19 +190,15 @@ def build_latest_results_summary(scoreboard_data, league_name, league_slug):
             })
         except Exception as e:
             print(f"  Error scanning game for latest results: {e}")
-
     if not completed:
         return None
-
     most_recent_date = max(g["date"] for g in completed)
     latest_games = [g for g in completed if g["date"] == most_recent_date]
-
     lines = [f"{g['away']} {g['away_score']}, {g['home']} {g['home_score']}" for g in latest_games]
     content = (
         f"The latest and most recent completed {league_name} results are from {most_recent_date}:\n"
         + "\n".join(lines)
     )
-
     return {
         "id": f"live-baseball-latest-results-{_safe_id(league_slug)}",
         "sport": "baseball",
@@ -238,14 +209,11 @@ def build_latest_results_summary(scoreboard_data, league_name, league_slug):
         "last_updated": datetime.utcnow().isoformat()
     }
 
+
 def build_next_game_summary(scoreboard_data, league_name, league_slug):
-    """Mirrors football's build_next_match_summary() — finds the soonest
-    upcoming (state == 'pre') game instead of the most recently completed
-    one. Groups all games sharing that soonest date together, same
-    reasoning as build_latest_results_summary()."""
+    """Finds the soonest upcoming (state == 'pre') game(s)."""
     if not scoreboard_data:
         return None
-
     upcoming = []
     for event in scoreboard_data.get("events", []):
         try:
@@ -255,13 +223,11 @@ def build_next_game_summary(scoreboard_data, league_name, league_slug):
             state = status_type.get("state", "pre")
             if state != "pre":
                 continue
-
             home = next((c for c in competitors if c.get("homeAway") == "home"), {})
             away = next((c for c in competitors if c.get("homeAway") == "away"), {})
             game_date = competition.get("date") or ""
             if not game_date:
                 continue
-
             upcoming.append({
                 "date": game_date,
                 "home": home.get("team", {}).get("displayName", "Unknown"),
@@ -269,19 +235,15 @@ def build_next_game_summary(scoreboard_data, league_name, league_slug):
             })
         except Exception as e:
             print(f"  Error scanning game for next game: {e}")
-
     if not upcoming:
         return None
-
     soonest_date = min(g["date"] for g in upcoming)
     next_games = [g for g in upcoming if g["date"] == soonest_date]
-
     lines = [f"{g['away']} at {g['home']}" for g in next_games]
     content = (
         f"The next upcoming {league_name} game(s) are scheduled for {soonest_date}:\n"
         + "\n".join(lines)
     )
-
     return {
         "id": f"live-baseball-next-game-{_safe_id(league_slug)}",
         "sport": "baseball",
@@ -292,10 +254,10 @@ def build_next_game_summary(scoreboard_data, league_name, league_slug):
         "last_updated": datetime.utcnow().isoformat()
     }
 
+
 # ── STANDINGS ──────────────────────────────────────────────
 def fetch_standings(league_slug):
     return _get(f"{STANDINGS_BASE}/{league_slug}/standings")
-
 
 def _stat(stats_list, *names):
     for name in names:
@@ -305,7 +267,6 @@ def _stat(stats_list, *names):
                 if val is not None:
                     return val
     return None
-
 
 def parse_standings(data, league_name, league_slug):
     if not data:
@@ -318,7 +279,6 @@ def parse_standings(data, league_name, league_slug):
             entry_lists.append(child.get("standings", {}).get("entries", []))
     else:
         entry_lists.append(data.get("standings", {}).get("entries", []))
-
     for entries in entry_lists:
         for entry in entries:
             stats = entry.get("stats", [])
@@ -331,19 +291,15 @@ def parse_standings(data, league_name, league_slug):
                 "pct": _stat(stats, "winPercent") or 0,
                 "gb": _stat(stats, "gamesBehind") or "-",
             })
-
     if not rows:
         return []
-
     rows.sort(key=lambda r: r["rank"] if r["rank"] else 999)
     top_rows = rows[:10]
-
     table_lines = [
         f"{r['rank']}. {r['team']} — {r['wins']}-{r['losses']} (GB: {r['gb']})"
         for r in top_rows
     ]
     content = f"Current {league_name} standings (top {len(top_rows)}):\n" + "\n".join(table_lines)
-
     return [{
         "id": f"live-baseball-standings-{_safe_id(league_slug)}",
         "sport": "baseball",
@@ -356,11 +312,6 @@ def parse_standings(data, league_name, league_slug):
 
 
 # ── LEADERS ─────────────────────────────────────────────────
-# NEEDS EMPIRICAL VERIFICATION — baseball's leaders data may not live at
-# the same /leaders path football uses. Run this, check the printed
-# counts, and if leader_docs is always 0, swap fetch_leaders() to hit
-# https://site.web.api.espn.com/apis/common/v3/sports/baseball/mlb/statistics/byathlete?category=batting&sort=batting.homeRuns:desc
-# instead, and adjust parse_leaders() to match that response shape.
 def fetch_leaders(league_slug):
     year = datetime.utcnow().year
     url = (
@@ -370,14 +321,12 @@ def fetch_leaders(league_slug):
     )
     return _get(url)
 
-
 def parse_leaders(data, league_name, league_slug):
     if not data:
         return []
     athletes = data.get("athletes", [])
     if not athletes:
         return []
-
     lines = []
     for i, entry in enumerate(athletes[:10]):
         athlete = entry.get("athlete", {})
@@ -390,12 +339,9 @@ def parse_leaders(data, league_name, league_slug):
         totals = batting.get("totals", [])
         home_runs = totals[7] if len(totals) > 7 else "?"  # index 7 = HR in ESPN's fixed column order
         lines.append(f"{i+1}. {name} ({team}) — {home_runs} HR")
-
     if not lines:
         return []
-
     content = f"Current {league_name} home run leaders:\n" + "\n".join(lines)
-
     return [{
         "id": f"live-baseball-leaders-{_safe_id(league_slug)}",
         "sport": "baseball",
@@ -406,11 +352,11 @@ def parse_leaders(data, league_name, league_slug):
         "last_updated": datetime.utcnow().isoformat()
     }]
 
+
 # ── UPLOAD ─────────────────────────────────────────────────
 def upload_to_search(docs):
     if not docs:
         return
-    # CHANGED: batch at <=500 (Azure Search caps a single upload batch at 1000 docs).
     for _i in range(0, len(docs), 500):
         _chunk = docs[_i:_i + 500]
         try:
@@ -420,11 +366,9 @@ def upload_to_search(docs):
             print(f"  Upload error: {_e}")
 
 
-# ── MAIN LOOP ──────────────────────────────────────────────
 # -- EXTRA LIVE DATA via the SportScore backend REST API --------------
 BACKEND_URL = os.getenv("BACKEND_URL", "https://sportscore-backend-ecaue6buc5bwf7at.northeurope-01.azurewebsites.net").rstrip("/")
 MAJOR_LEAGUES = {"mlb": "MLB"}
-
 
 def _safe_id(s):
     # ASCII-only: accented letters (á, é, ñ, ...) are NOT allowed in Azure
@@ -434,7 +378,6 @@ def _safe_id(s):
         for c in str(s)
     )[:120]) or "x"
 
-
 def fetch_backend(path):
     try:
         url = f"{BACKEND_URL}/api/baseball{path}"
@@ -443,7 +386,6 @@ def fetch_backend(path):
     except Exception as e:
         print(f"  backend fetch failed for {path}: {e}")
         return None
-
 
 def parse_injuries(items, league_name, slug):
     docs = []
@@ -468,7 +410,6 @@ def parse_injuries(items, league_name, slug):
             continue
     return docs
 
-
 def parse_transactions(items, league_name, slug):
     docs = []
     if not isinstance(items, list):
@@ -490,7 +431,6 @@ def parse_transactions(items, league_name, slug):
         except Exception:
             continue
     return docs
-
 
 def parse_news(items, league_name, slug):
     docs = []
@@ -516,65 +456,77 @@ def parse_news(items, league_name, slug):
 
 
 def prune_stale(sport, category, fresh_ids):
-    """ADDED: delete docs of this sport+category that are no longer current
-    (injuries that resolved, news/transactions that rolled off) so 'live' data
-    stays live and the index doesn't grow without bound. Skips pruning when we
-    got no fresh data, to avoid wiping a category on a transient fetch failure."""
+    """Delete docs of this sport+category that are no longer current so 'live'
+    data stays live and the index doesn't grow without bound. Skips pruning when
+    we got no fresh data, to avoid wiping a category on a transient fetch failure.
+
+    CHANGED: paginates through ALL existing docs instead of only the first 1000.
+    The old top=1000 cap left stale docs beyond that window unpruned, which let
+    old 'currently LIVE' match docs survive and made the RAG report finished
+    games as live.
+    """
     if not fresh_ids:
         return
     try:
-        existing = search_client.search(
-            search_text="*",
-            filter=f"sport eq '{sport}' and category eq '{category}'",
-            select=["id"], top=1000)
-        stale = [{"id": r["id"]} for r in existing if r["id"] not in fresh_ids]
+        stale = []
+        skip = 0
+        PAGE = 1000
+        while True:
+            batch = list(search_client.search(
+                search_text="*",
+                filter=f"sport eq '{sport}' and category eq '{category}'",
+                select=["id"], top=PAGE, skip=skip))
+            if not batch:
+                break
+            stale.extend({"id": r["id"]} for r in batch if r["id"] not in fresh_ids)
+            if len(batch) < PAGE:
+                break
+            skip += PAGE
+            if skip >= 100000:  # Azure Search hard-caps $skip at 100000
+                break
         if stale:
-            search_client.delete_documents(documents=stale)
+            for _i in range(0, len(stale), 1000):
+                search_client.delete_documents(documents=stale[_i:_i + 1000])
             print(f"  Pruned {len(stale)} stale {category} docs ({sport})")
     except Exception as e:
         print(f"  Prune error ({sport}/{category}): {e}")
 
 
+# ── MAIN LOOP ──────────────────────────────────────────────
 def run():
-    print("Baseball live updater started! Fetching every 30 seconds...")
+    print("Baseball live updater started! Fetching every 60 seconds...")
     while True:
         try:
             print(f"\n[{datetime.utcnow().strftime('%H:%M:%S')}] Fetching live baseball data...")
             all_docs = []
-
             for slug, name in LEAGUES.items():
                 scoreboard_data = fetch_scoreboard(slug)
+                if not scoreboard_data:
+                    # CHANGED: actually skip this league on fetch failure. The old code
+                    # computed an unused 'states' var and printed "skipping" but kept going,
+                    # building summaries from empty data. Now it genuinely skips.
+                    print(f"  WARNING: scoreboard fetch failed for {slug}, skipping this cycle")
+                    continue
                 game_docs = parse_games(scoreboard_data, name)
                 all_docs.extend(game_docs)
                 live_now_doc = build_live_now_summary(scoreboard_data, name, slug)
                 if live_now_doc:
                     all_docs.append(live_now_doc)
-
-                if scoreboard_data:
-                        states = [e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") for e in scoreboard_data.get("events", [])]
-                else:
-                        states = []
-                        print(f"  WARNING: scoreboard fetch failed for {slug}, skipping this cycle")
-
                 next_game_doc = build_next_game_summary(scoreboard_data, name, slug)
                 if next_game_doc:
                     all_docs.append(next_game_doc)
-
                 latest_results_doc = build_latest_results_summary(scoreboard_data, name, slug)
                 if latest_results_doc:
                     all_docs.append(latest_results_doc)
-
                 standings_data = fetch_standings(slug)
                 standings_docs = parse_standings(standings_data, name, slug)
                 all_docs.extend(standings_docs)
-
                 leaders_data = fetch_leaders(slug)
                 leaders_docs = parse_leaders(leaders_data, name, slug)
                 all_docs.extend(leaders_docs)
-
                 print(f"  {name}: {len(game_docs)} games, {1 if latest_results_doc else 0} latest-results summary, {len(standings_docs)} standings, {len(leaders_docs)} leaders")
 
-            # ADDED: injuries / transactions / news for MAJOR leagues only (via backend REST).
+            # injuries / transactions / news for MAJOR leagues only (via backend REST).
             for _slug, _name in MAJOR_LEAGUES.items():
                 _inj = parse_injuries(fetch_backend(f"/{_slug}/injuries"), _name, _slug)
                 _txn = parse_transactions(fetch_backend(f"/{_slug}/transactions?limit=25"), _name, _slug)
@@ -583,17 +535,20 @@ def run():
                 if _inj or _txn or _nws:
                     print(f"  {_name} extras: {len(_inj)} injuries, {len(_txn)} transactions, {len(_nws)} news")
 
-            # ADDED: prune stale volatile docs so 'live' data stays current
-            for _cat in ("live-injury", "live-transaction", "live-news",):
+            # CHANGED: added "live-match" to the prune list. Same fix as football/basketball:
+            # finished games aging out of ESPN's scoreboard window kept stale "currently LIVE"
+            # docs, so the RAG reported them as live. Live games and the live-now / latest-results
+            # / next-game summary docs are regenerated every cycle and stay in fresh_ids; only
+            # stale docs are removed. Prune runs BEFORE upload — do not reorder.
+            for _cat in ("live-match", "live-injury", "live-transaction", "live-news",):
                 _fresh = {d["id"] for d in all_docs if d.get("category") == _cat}
                 prune_stale("baseball", _cat, _fresh)
 
             upload_to_search(all_docs)
-            print(f"  Total: {len(all_docs)} documents uploaded. Next update in 30 seconds...")
+            print(f"  Total: {len(all_docs)} documents uploaded. Next update in 60 seconds...")
         except Exception as _cycle_err:
             print(f"  Cycle error: {_cycle_err}")
         time.sleep(60)  # gentler on ESPN/backend
-
 
 if __name__ == "__main__":
     run()
