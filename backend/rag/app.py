@@ -1,5 +1,5 @@
 """
-app.py — Flask API for the SportScore Knowledge Assistant
+app.py — Flask API for the SportScore RAG assistant
 """
 
 from flask import Flask, request, jsonify
@@ -11,6 +11,7 @@ import os
 import re
 import time
 from datetime import datetime
+from live_summary import summarise_live_match
 
 load_dotenv()
 
@@ -48,14 +49,13 @@ KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds"
 
 LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season", "latest", 
                 "last race", "last game", "last match", "most recent", "standings", "current standing", "next", "now", "play next",
-                 "playing next", "playing", "live", "what is","what's","whats",
+                 "playing next", "playing", "live", 
                  # ADDED: fixture/match/upcoming words so "upcoming matches in basketball",
                  # "fixtures", "who scored", "next game", etc. route to the LIVE index (not the
                  # knowledge corpus). This was the bug: "upcoming" wasn't here, so basketball/
                  # baseball fixture questions were misrouted to Postgres and returned format info.
-                 "upcoming", "fixture", "fixtures", "schedule", "scheduled", "match", "matches",
-                 "game", "games", "race", "races", "scorer", "kickoff", "leading", "top scorer",
-                 "who scored", "score")
+                 "upcoming", "fixture", "fixtures", "schedule", "scheduled", "match", "matches","game", "games", "race", "races", 
+                 "scorer", "kickoff", "leading", "top scorer", "who scored", "score")
 
 def fast_classify_question(question):
     """
@@ -151,10 +151,9 @@ Category:"""
         app.logger.exception("Classification call failed or was blocked by content filter")
         return "knowledge"
 
-
-def _generate_answer(context, question):
+def _generate_answer(context, question, is_live=True):
     """Shared helper: builds the prompt and calls gpt-5-mini."""
-    prompt = build_prompt(context, question)
+    prompt = build_prompt(context, question, is_live=is_live)
     try:
         response = client.chat.completions.create(
             model=DEPLOYMENT,
@@ -246,21 +245,40 @@ def ask():
     if not question:
         return jsonify({"error": "Missing 'question' field in request body"}), 400
 
-    category = fast_classify_question(question)
+    # Optional conversation history: [{"role": "user"|"assistant", "content": ...}]
+    # Follow-ups like "when was it held?" carry no content words, so retrieval
+    # drops to fallback or matches something unrelated. Prepending the previous
+    # USER turn to the RETRIEVAL query only (never to the model prompt) recovers
+    # the right chunks with no extra model call.
+    history = data.get("history") or []
+    prev_user = ""
+    for turn in reversed(history):
+        if isinstance(turn, dict) and turn.get("role") == "user":
+            prev_user = (turn.get("content") or "").strip()[:300]
+            break
+    retrieval_query = f"{prev_user} {question}".strip() if prev_user else question
+
+    category = fast_classify_question(retrieval_query)
     if category is None:
-        category = classify_question(question)  # LLM fallback for ambiguous cases
+        category = classify_question(retrieval_query)  # LLM fallback for ambiguous cases
         classify_source = "llm"
     else:
         classify_source = "fast-path"
     t1 = time.time()
     print(f"[TIMING] classify ({classify_source}): {t1 - t0:.2f}s -> '{category}'")
 
-    results, round_used, source_type = get_context_and_meta(question, category)
+    results, round_used, source_type = get_context_and_meta(retrieval_query, category)
     t2 = time.time()
     print(f"[TIMING] get_context_and_meta ({source_type}): {t2 - t1:.2f}s")
 
+    # An answer is only "grounded" if a real index served it AND that index
+    # returned rows. source_type == "fallback" means search_fallback_anything()
+    # ran because neither the knowledge corpus nor the live index matched, so
+    # whatever the model says next is not supported by retrieval.
+    grounded = bool(results) and source_type != "fallback"
+
     context = "\n\n".join(r["content"] for r in results)
-    answer = _generate_answer(context, question)
+    answer = _generate_answer(context, question, is_live=(source_type == "live_data"))
     t3 = time.time()
     print(f"[TIMING] _generate_answer: {t3 - t2:.2f}s")
     print(f"[TIMING] TOTAL: {t3 - t0:.2f}s")
@@ -268,7 +286,7 @@ def ask():
     return jsonify({
         "question": question,
         "answer": answer,
-        "grounded": True,
+        "grounded": grounded,
         "round_used": round_used,
         "source_type": source_type,
         "sources": _relevant_sources(results, answer)
@@ -279,6 +297,13 @@ def ask():
 def health():
     return jsonify({"status": "ok", "service": "sportscore-rag"})
 
+@app.route("/live-summary", methods=["POST"])
+def live_summary():
+    data = request.get_json(silent=True) or {}
+    query = (data.get("match") or data.get("question") or "").strip()
+    if not query:
+        return jsonify({"error": "Missing 'match' field in request body"}), 400
+    return jsonify(summarise_live_match(query))
 
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"

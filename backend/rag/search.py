@@ -1,5 +1,5 @@
 """
-search.py — RAG retrieval logic for SportScore Knowledge Assistant
+search.py — RAG retrieval logic for SportScore RAG assistant
 
 Implements the two-round search strategy across football and basketball indices.
   Round 1 — exact search using the user's full question
@@ -125,7 +125,7 @@ STOPWORDS = {
 # scoring in search_live_corpus stops coincidental single-word overlaps
 # (e.g. "golden" in "Golden Boot" matching "Golden State Valkyries") from
 # being treated as a real match.
-LIVE_NOISE_WORDS = {
+LIVE_NOISE_WORDS = {"last", "latest", 
     "score", "scores","scored", "match", "matches", "game", "games", "next", "happening",
     "playing", "play", "played", "today", "won", "win", "wins", "result", "results", "who", "when"
 }
@@ -336,7 +336,7 @@ def search_live_corpus(question, top=6):
     if not all_results:
         return {"found": False, "round_used": None, "results": []}
 
-    q_words = set(re.findall(r"[a-z']+", question.lower())) - STOPWORDS
+    q_words = set(re.findall(r"[a-z0-9']+", question.lower())) - STOPWORDS
     significant_words = q_words - LIVE_NOISE_WORDS
 
     # ADDED: detect a specific league/competition named in the question so we can
@@ -355,7 +355,7 @@ def search_live_corpus(question, top=6):
 
     def relevance(r):
         text = (r.get("title", "") + " " + r.get("content", "")).lower()
-        text_words = set(re.findall(r"[a-z']+", text))
+        text_words = set(re.findall(r"[a-z0-9']+", text))
         base = len(significant_words & text_words)
         # strong boost when the doc belongs to the exact league the user named
         if _named_league and _named_league in text:

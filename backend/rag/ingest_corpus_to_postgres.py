@@ -1594,6 +1594,47 @@ RULEBOOK_CORPUS_DATA = [
         "source": "UEFA Coaching Manual"
     },
     {
+        "id": "football-rules-042",
+        "sport": "football",
+        "category": "rules",
+        "title": "Financial Fair Play (FFP) and Profitability & Sustainability Rules",
+        "content": "Financial Fair Play (FFP) is a set of football regulations designed to stop clubs spending more than they earn and accumulating unsustainable debt. UEFA introduced FFP in 2011, requiring clubs in European competition to broadly break even across a rolling assessment period. In 2022 UEFA replaced it with the Financial Sustainability Regulations, whose central measure is a squad cost ratio limiting spending on wages, transfers and agent fees to a set percentage of club revenue. In English football the Premier League operates its own Profitability and Sustainability Rules (PSR), which cap permitted losses across a rolling three-year period, with allowable deductions for spending on infrastructure, youth development and women's football. Breaches are punished by the competition organiser and sanctions escalate with severity: fines, transfer restrictions, squad-size limits, points deductions, and ultimately exclusion from competition. Points deductions for PSR breaches have been applied in the Premier League and the English Football League, making financial regulation a factor in league standings as well as club finances.",
+        "tags": [
+            "Financial Fair Play",
+            "FFP",
+            "PSR",
+            "Profitability and Sustainability Rules",
+            "squad cost ratio",
+            "points deduction",
+            "UEFA",
+            "Premier League",
+            "football"
+        ],
+        "source": "uefa.com",
+        "source_id": 39,
+        "last_updated": "2024-season"
+    },
+     {
+        "id": "basketball-rules-042",
+        "sport": "basketball",
+        "category": "rules",
+        "title": "Triple Double and Statistical Milestones in Basketball",
+        "content": "A triple double in basketball is a single-game performance in which a player reaches double figures (ten or more) in three of the five main statistical categories: points, rebounds, assists, steals and blocks. The most common combination is points, rebounds and assists. A double double is the same idea with two categories, and a quadruple double — ten or more in four categories — is extremely rare, with only a handful officially recorded in NBA history. A five-by-five, meaning five or more in all five categories, is a separate rare milestone. Triple doubles are used as shorthand for all-round contribution rather than pure scoring, and are most often produced by point guards and by forwards who rebound and create for teammates. Averaging a triple double across a full NBA season has been achieved only a small number of times and is regarded as one of the sport's landmark individual feats.",
+        "tags": [
+            "triple double",
+            "double double",
+            "quadruple double",
+            "statistics",
+            "points rebounds assists",
+            "milestone",
+            "NBA",
+            "basketball"
+        ],
+        "source": "nba.com",
+        "source_id": 46,
+        "last_updated": "2024-season"
+    },
+    {
         "id": "basketball-competition-001",
         "sport": "basketball",
         "category": "competition",
@@ -3554,6 +3595,28 @@ RULEBOOK_CORPUS_DATA = [
   {"id":"f1-rules-033","sport":"f1","category":"rules","title":"Yellow Flag Overtaking Restriction","content":"Overtaking is prohibited in any sector displaying a yellow flag, and drivers are required to significantly reduce speed. Overtaking under yellow flag conditions, or failing to slow sufficiently, is investigated by the stewards and can result in a time penalty even if no contact or incident occurs.","tags":["yellow flag","overtaking restriction","F1"],"source":"fia.com","source_id":45,"last_updated":"2024"},
   {"id":"f1-rules-034","sport":"f1","category":"rules","title":"Super Licence Requirement","content":"To compete in Formula 1, a driver must hold an FIA Super Licence, earned by accumulating a minimum number of points through results in feeder categories like Formula 2 and Formula 3, or other approved series, within a limited timeframe. This system is designed to ensure F1 drivers have demonstrated a sufficient level of competitive achievement before racing at the top level.","tags":["Super Licence","eligibility","F1"],"source":"fia.com","source_id":46,"last_updated":"2024"},
   {"id":"f1-rules-035","sport":"f1","category":"rules","title":"Tyre Allocation Per Race Weekend","content":"Each driver is allocated a fixed number of tyre sets across a race weekend, split across the various dry and wet compounds available, with a portion mandated for return to Pirelli unused to conserve overall tyre usage. Sprint weekends have a modified allocation to account for the additional Sprint Qualifying and Sprint sessions alongside the standard Grand Prix sessions.","tags":["tyre allocation","Pirelli","race weekend","F1"],"source":"fia.com","source_id":47,"last_updated":"2024"},
+  {
+        "id": "f1-rules-042",
+        "sport": "f1",
+        "category": "rules",
+        "title": "DRS (Drag Reduction System) — What It Was and Its 2026 Replacement",
+        "content": "DRS, the Drag Reduction System, was an overtaking aid used in Formula 1 from 2011. It worked by letting the driver open a flap in the rear wing, reducing aerodynamic drag and raising top speed on straights. Use was tightly restricted: it could only be activated inside designated DRS zones, and only when the pursuing car was within one second of the car ahead at a detection point earlier on the lap. It was disabled for the opening laps of a race, after restarts, and could be switched off entirely by the race director in wet or unsafe conditions. The defending driver could not use it in response unless they too were within a second of a car ahead. For the 2026 regulations DRS was removed and replaced by a different system: cars use active aerodynamics with switchable low-drag and high-downforce wing modes, combined with a manual override that gives the chasing driver a temporary electrical power boost rather than a drag reduction. Questions about DRS therefore describe the pre-2026 system; the current equivalent in Formula 1 is the manual override and active aerodynamics package.",
+        "tags": [
+            "DRS",
+            "Drag Reduction System",
+            "rear wing",
+            "overtaking",
+            "detection point",
+            "manual override",
+            "active aerodynamics",
+            "2026 regulations",
+            "Formula 1",
+            "F1"
+        ],
+        "source": "formula1.com",
+        "source_id": 2000,
+        "last_updated": "2026-season"
+    },
 
   {"id":"f1-formation-001","sport":"f1","category":"formation","title":"Pit Crew Formation and Pit Stop Roles","content":"A pit stop crew is made up of specialised roles: wheel gunners who remove and refit each wheel nut, tyre-off and tyre-on mechanics for each corner of the car, a front jack operator, a rear jack operator, and a lollipop or light-system operator who signals when it's safe to release the car. A well-drilled crew can complete a full four-tyre change in around two seconds.","tags":["pit crew","pit stop roles","formation","F1"],"source":"formula1.com","source_id":48,"last_updated":"2024"},
   {"id":"f1-formation-002","sport":"f1","category":"formation","title":"Race Engineer and Strategist Roles","content":"Each driver has a dedicated race engineer who communicates directly with them over team radio, relaying strategy calls and car information. Behind the race engineer sits a strategist (or strategy team) analysing tyre degradation, gaps to rivals, and potential pit windows in real time to advise on undercuts, overcuts, or reacting to Safety Cars.","tags":["race engineer","strategist","team roles","F1"],"source":"formula1.com","source_id":49,"last_updated":"2024"},
