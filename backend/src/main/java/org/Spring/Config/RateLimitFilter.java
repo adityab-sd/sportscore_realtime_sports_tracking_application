@@ -24,6 +24,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // (scoreboard + standings + news + ...), so 60/min tripped during normal
     // browsing. 300 leaves room for real users while still stopping abusive floods.
     private static final int MAX_REQUESTS = 300;
+
+    // /api/ask gets its own, much tighter budget. Every RAG request costs an
+    // embedding, a pgvector query, an Azure Search query and 1-2 GPT calls, so
+    // it is orders of magnitude more expensive than the cached REST reads the
+    // 300/min figure was sized for. Sharing that budget would let a single IP
+    // trigger ~300 model calls a minute. This is the cost cap from the PR
+    // comment: the scope guard stops the bot ANSWERING off-topic questions, but
+    // it still pays for a model call to refuse each one, so a topic guard alone
+    // does not stop billing abuse.
+    private static final int MAX_ASK_REQUESTS = 20;
+
     private static final Duration WINDOW = Duration.ofSeconds(60);
 
     private final StringRedisTemplate redisTemplate;
@@ -41,7 +52,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String clientId = resolveClientId(request);
-        String key = "ratelimit:" + clientId;
+
+        // Separate Redis key per bucket, so normal browsing can never exhaust the
+        // assistant's allowance (and vice versa) — the two budgets are independent.
+        boolean isAsk = request.getRequestURI().startsWith("/api/ask");
+        String key = isAsk ? "ratelimit:ask:" + clientId : "ratelimit:" + clientId;
+        int limit = isAsk ? MAX_ASK_REQUESTS : MAX_REQUESTS;
 
         try {
             Long count = redisTemplate.opsForValue().increment(key);
@@ -50,8 +66,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 redisTemplate.expire(key, WINDOW);
             }
 
-            if (count != null && count > MAX_REQUESTS) {
+            if (count != null && count > limit) {
                 statsService.incrementBlockedRequests();
+                log.warn("Rate limit exceeded for {} on {} ({}/{} in window)",
+                        clientId, isAsk ? "/api/ask" : "general", count, limit);
                 response.setStatus(429);
                 response.setHeader("Retry-After", "60");
                 response.setContentType("application/json");
@@ -65,6 +83,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
             // A rate limiter being briefly unavailable should degrade to "no rate
             // limiting" rather than taking down every request in the app -- this is
             // exactly what was happening before this try/catch existed.
+            //
+            // This applies to /api/ask too, which is a deliberate trade-off: failing
+            // closed would break the assistant entirely on a Redis blip, and the
+            // max_completion_tokens cap in _generate_answer remains as a backstop
+            // on per-request cost.
             log.error("Rate limit check failed, allowing request through: {}", e.getMessage());
         }
 

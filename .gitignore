@@ -54,4 +54,5 @@ out/
 **/__pycache__/
 
 frontend/coverage/
-frontend/test-results/
+frontend/test-results/frontend/tsconfig.tsbuildinfo
+dump.rdb

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot, CalendarDays, Trophy, Newspaper, Flag, User, BookOpen, Sparkles } from "lucide-react";
 import { ChatMessage } from "@/types/assistant";
-import { askAssistant } from "@/lib/api/rag";
+import { askAssistant, type RagHistoryTurn } from "@/lib/api/rag";
 
 interface Props { open: boolean; onClose: () => void }
 
@@ -17,7 +17,7 @@ const STARTERS: { icon: typeof CalendarDays; label: string; hint: string; color:
   { icon: Trophy,       label: "Upcoming basketball games this week?",     hint: "basketball", color: "#ea580c", bg: "#fff7ed" },
   { icon: Flag,         label: "What are the upcoming F1 races?",          hint: "formula 1",  color: "#dc2626", bg: "#fef2f2" },
   { icon: Newspaper,    label: "Latest football news",                     hint: "news",       color: "#d97706", bg: "#fffbeb" },
-  { icon: User,         label: "Who is cristiano ronaldo?",                hint: "player",     color: "#7c3aed", bg: "#f5f3ff" },
+  { icon: User,         label: "Who is Cristiano Ronaldo?",                hint: "player",     color: "#7c3aed", bg: "#f5f3ff" },
   { icon: BookOpen,     label: "When is a handball called in soccer?",     hint: "rules",      color: "#0d9488", bg: "#f0fdfa" },
 ];
 
@@ -192,9 +192,16 @@ export default function AssistantSidebar({ open, onClose }: Props) {
   async function send(text?: string) {
     const question = (text ?? input).trim();
     if (!question || loading || question.length > MAX_QUESTION_CHARS) return;
+    // Snapshot the prior turns BEFORE appending the new user message, so the
+    // current question isn't also sent as its own "previous" turn. Last 6 turns
+    // is plenty — the RAG service only uses the most recent user turn, to widen
+    // its retrieval query for follow-ups like "when was it held?".
+    const history: RagHistoryTurn[] = messages
+      .slice(-6)
+      .map(({ role, content }) => ({ role, content }));
     setMessages(p => [...p, { id: Date.now().toString(), role: "user", content: question }]);
     setInput(""); setLoading(true);
-    const data = await askAssistant(question);
+    const data = await askAssistant(question, history);
     if (!isMountedRef.current) return;
     const friendly = (data?.error || "").includes("rate_limit")
       ? "I'm getting a lot of requests right now — give me a few seconds and ask again."

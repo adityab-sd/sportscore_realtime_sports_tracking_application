@@ -412,6 +412,22 @@ def upload_to_search(docs):
         except Exception as _e:
             print(f"  Upload error: {_e}")
 
+def delete_doc_if_present(doc_id, why):
+    """Remove a fixed-id summary doc when its builder returns nothing.
+
+    Without this, `if doc:` silently skips the upload and the PREVIOUS doc
+    stays in the index forever — the consistency check found a WNBA
+    "Live Now (In Progress)" doc 41 hours old and an NBA Summer League
+    "Latest Results" 13 days old, both still being served to users as
+    current. Deleting is correct: no live games means the doc should not
+    exist, not that it should keep its last value.
+    """
+    try:
+        search_client.delete_documents(documents=[{"id": doc_id}])
+        print(f"  [cleanup] removed stale '{doc_id}' ({why})")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] could not delete '{doc_id}': {e}")
+
 
 # ── MAIN LOOP ──────────────────────────────────────────────
 # -- EXTRA LIVE DATA via the SportScore backend REST API --------------
@@ -545,10 +561,17 @@ def run():
                 live_now_doc = build_live_now_summary(scoreboard_data, name, slug)
                 if live_now_doc:
                     all_docs.append(live_now_doc)
-
+                else:
+                    delete_doc_if_present(f"live-basketball-live-now-{_safe_id(slug)}",
+                                          "no games in progress")
+                    
                 latest_results_doc = build_latest_results_summary(scoreboard_data, name, slug)
+
                 if latest_results_doc:
                     all_docs.append(latest_results_doc)
+                else:
+                    delete_doc_if_present(f"live-basketball-latest-results-{_safe_id(slug)}",
+                                          "no completed games")
 
                 standings_data = fetch_standings(slug)
                 standings_docs = parse_standings(standings_data, name, slug)

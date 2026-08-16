@@ -425,6 +425,21 @@ def upload_to_search(docs):
 BACKEND_URL = os.getenv("BACKEND_URL", "https://sportscore-backend-ecaue6buc5bwf7at.northeurope-01.azurewebsites.net").rstrip("/")
 MAJOR_LEAGUES = {"mlb": "MLB"}
 
+def delete_doc_if_present(doc_id, why):
+    """Remove a fixed-id summary doc when its builder returns nothing.
+
+    Without this, `if doc:` silently skips the upload and the PREVIOUS doc
+    stays in the index forever — a WNBA "Live Now (In Progress)" doc sat 41
+    hours stale still describing a finished game as live. Deleting is
+    correct: no games in progress means the doc should not exist, not that
+    it should keep its last value.
+    """
+    try:
+        search_client.delete_documents(documents=[{"id": doc_id}])
+        print(f"  [cleanup] removed stale '{doc_id}' ({why})")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] could not delete '{doc_id}': {e}")
+
 
 def _safe_id(s):
     # ASCII-only: accented letters (á, é, ñ, ...) are NOT allowed in Azure
@@ -549,6 +564,9 @@ def run():
                 live_now_doc = build_live_now_summary(scoreboard_data, name, slug)
                 if live_now_doc:
                     all_docs.append(live_now_doc)
+                else:
+                    delete_doc_if_present(f"live-baseball-live-now-{_safe_id(slug)}",
+                                          "no games in progress")
 
                 if scoreboard_data:
                         states = [e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") for e in scoreboard_data.get("events", [])]
@@ -563,6 +581,9 @@ def run():
                 latest_results_doc = build_latest_results_summary(scoreboard_data, name, slug)
                 if latest_results_doc:
                     all_docs.append(latest_results_doc)
+                else:
+                    delete_doc_if_present(f"live-baseball-latest-results-{_safe_id(slug)}",
+                                          "no completed games")
 
                 standings_data = fetch_standings(slug)
                 standings_docs = parse_standings(standings_data, name, slug)

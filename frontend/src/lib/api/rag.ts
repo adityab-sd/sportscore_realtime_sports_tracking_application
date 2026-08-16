@@ -15,6 +15,11 @@ export interface RagSource {
   category: string;
 }
 
+export interface RagHistoryTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface RagResponse {
   question: string;
   answer: string;
@@ -30,13 +35,20 @@ export interface RagResponse {
  * Returns null on any network/parsing failure — callers should check
  * for null before rendering, same convention as espnGet() in config.ts.
  */
-export async function askAssistant(question: string): Promise<RagResponse | null> {
+export async function askAssistant(
+  question: string,
+  history: RagHistoryTurn[] = [],
+): Promise<RagResponse | null> {
   if (!JAVA_GATEWAY_BASE) return null; // gateway not configured — fail closed
   try {
     const res = await fetch(`${JAVA_GATEWAY_BASE}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      // Follow-ups ("when was it held?") carry no content words of their own, so
+      // the RAG service uses the previous user turn to widen its *retrieval*
+      // query. Omit the key entirely on a first turn so the request stays
+      // byte-identical to the old behaviour.
+      body: JSON.stringify(history.length ? { question, history } : { question }),
     });
 
     const data = (await res.json()) as RagResponse;

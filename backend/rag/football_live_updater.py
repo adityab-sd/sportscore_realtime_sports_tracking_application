@@ -512,6 +512,21 @@ def upload_to_search(docs):
         except Exception as _e:
             print(f"  Upload error: {_e}")
 
+def delete_doc_if_present(doc_id, why):
+    """Remove a fixed-id summary doc when its builder returns nothing.
+
+    Without this, `if doc:` silently skips the upload and the PREVIOUS doc
+    stays in the index forever — a WNBA "Live Now (In Progress)" doc sat 41
+    hours stale still describing a finished game as live. Deleting is
+    correct: no games in progress means the doc should not exist, not that
+    it should keep its last value.
+    """
+    try:
+        search_client.delete_documents(documents=[{"id": doc_id}])
+        print(f"  [cleanup] removed stale '{doc_id}' ({why})")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] could not delete '{doc_id}': {e}")
+
 
 # ── MAIN LOOP ──────────────────────────────────────────────
 def prune_stale(sport, category, fresh_ids):
@@ -549,6 +564,9 @@ def run():
                 next_match_doc = build_next_match_summary(scoreboard_data, name, slug)
                 if next_match_doc:
                     all_docs.append(next_match_doc)
+                else:
+                    delete_doc_if_present(f"live-football-next-match-{_safe_id(slug)}",
+                                          "no upcoming fixtures")
 
                 standings_data = fetch_standings(slug)
                 standings_docs = parse_standings(standings_data, name, slug)
