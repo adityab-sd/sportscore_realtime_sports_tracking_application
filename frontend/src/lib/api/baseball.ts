@@ -9,6 +9,7 @@
  */
 
 import { resolveApiBase } from "@/lib/api/base";
+import { cachedApiGet } from "@/lib/api/persistentCache";
 
 const API_BASE = resolveApiBase("baseball");
 
@@ -28,19 +29,7 @@ async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T>
 
   const url = `${API_BASE}${path}`;
 
-  try {
-    const res = await fetch(url, { next: { revalidate } });
-
-    if (!res.ok) {
-      console.error(`[baseball.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
-      return fallback;
-    }
-
-    return (await res.json()) as T;
-  } catch (err) {
-    console.error(`[baseball.ts] Network/parse error for ${url}:`, err);
-    return fallback;
-  }
+  return cachedApiGet(url, fallback, revalidate, "baseball.ts");
 }
 
 // ─────────────────────────────────────────────
@@ -333,4 +322,3 @@ export const getFreeAgents = (league: string, season: string) =>
 
 export const getTeamsList = (league: string) =>
   apiGet<RawJSON | null>(`/${league}/teams`, null, 3600);
-

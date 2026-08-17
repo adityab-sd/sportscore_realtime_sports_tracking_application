@@ -1,10 +1,8 @@
 "use client";
-import { useCallback } from "react";
-import { getMatchDetail, type ESPNMatchDetail } from "@/lib/api/espn";
-import { useLiveMatchDetail } from "@/hooks/useLiveMatchDetail";
 import { classifyStatus } from "@/types/football";
 import { toUnifiedMatch } from "@/lib/adaptMatch";
 import { adaptPlays } from "@/lib/adaptPlays";
+import { useFootballLiveMatch } from "./MatchLiveDataProvider";
 import ScoreHeader from "./ScoreHeader";
 import ScoreSubBar from "./ScoreSubBar";
 import MatchDetailLive from "./MatchDetailLive";
@@ -16,40 +14,23 @@ import MatchStatsComparison from "./MatchStatsComparison";
 import MomentumChart from "./MomentumChart";
 
 /**
- * MatchLiveSection — the ONE live owner of the match-detail middle column.
+ * MatchLiveSection renders the shared live match-detail snapshot.
  *
- * A single 30s REST poll lives here. Its fresh data rebuilds the unified match
- * (with `elapsed` derived from the status string) and feeds BOTH the ScoreHeader
- * and the tabbed detail below. One poll, one source of truth.
+ * MatchLiveDataProvider owns the single 30s REST poll used by this section and
+ * the lineup column. Fresh data rebuilds the unified match and feeds both.
  *
  * COST: 0 SignalR messages — pure REST polling, only while live.
  */
 export default function MatchLiveSection({
-  initialDetail,
   league,
   venue,
   competitionHref,
 }: {
-  initialDetail: ESPNMatchDetail;
   league: string;
   venue?: string | null;
   competitionHref?: string;
 }) {
-  const fetcher = useCallback(
-    async (id: number): Promise<ESPNMatchDetail> => {
-      const fresh = await getMatchDetail(league, String(id));
-      if (!fresh) throw new Error("match detail unavailable");
-      return fresh;
-    },
-    [league]
-  );
-
-  const { data, live, lastUpdated, isFetching } = useLiveMatchDetail<ESPNMatchDetail>(
-    Number(initialDetail.id),
-    initialDetail,
-    fetcher,
-    30_000
-  );
+  const { data, live, lastUpdated, isFetching } = useFootballLiveMatch();
 
   // ---- Everything below is INSIDE the component, so data/unified exist. ----
   const unified = toUnifiedMatch(data);

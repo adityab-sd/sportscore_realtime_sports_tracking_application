@@ -5,6 +5,7 @@ import java.util.List;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
+import jakarta.annotation.PreDestroy;
 
 // ============================================================================
 // TODO (future refactor, not blocking): Strategy + Null Object (GoF)
@@ -19,6 +20,7 @@ public class EventHubProducer {
 
     private final String connectionString;
     private final String eventHubName;
+    private volatile EventHubProducerClient client;
 
     public EventHubProducer(
             @org.springframework.beans.factory.annotation.Value("${EVENTHUB_CONNECTION_STRING}") String connectionString,
@@ -58,10 +60,29 @@ public class EventHubProducer {
                     + json.substring(0, Math.min(json.length(), 120)) + "...");
             return;
         }
-        try (EventHubProducerClient client = new EventHubClientBuilder()
-                .connectionString(connectionString, eventHubName)
-                .buildProducerClient()) {
-            client.send(List.of(new EventData(json)));
+        getClient().send(List.of(new EventData(json)));
+    }
+
+    private EventHubProducerClient getClient() {
+        EventHubProducerClient current = client;
+        if (current != null) return current;
+
+        synchronized (this) {
+            if (client == null) {
+                client = new EventHubClientBuilder()
+                        .connectionString(connectionString, eventHubName)
+                        .buildProducerClient();
+            }
+            return client;
+        }
+    }
+
+    @PreDestroy
+    public void close() {
+        EventHubProducerClient current = client;
+        if (current != null) {
+            current.close();
+            client = null;
         }
     }
 }

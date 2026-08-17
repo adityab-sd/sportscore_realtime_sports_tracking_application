@@ -45,7 +45,7 @@ async function getAllFixtures(): Promise<Match[]> {
 
 async function getTopNews() {
   try {
-    const [wcNews, plNews, clNews] = await Promise.allSettled([
+    const newsResults = await Promise.allSettled([
       getNews("fifa.world", 1),
       getNews("eng.1", 2),
       getNews("spa.1", 3),
@@ -54,7 +54,7 @@ async function getTopNews() {
     ]);
     const articles: Array<{ id: string; headline: string; description: string; published: string; image: string | null }> = [];
     const seen = new Set<string>();
-    for (const r of [wcNews, plNews, clNews]) {
+    for (const r of newsResults) {
       if (r.status !== "fulfilled") continue;
       for (const a of (r.value as any[]) ?? []) {
         if (!seen.has(String(a.id))) {

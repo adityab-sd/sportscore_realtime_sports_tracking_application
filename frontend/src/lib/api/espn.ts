@@ -1,5 +1,6 @@
 import type { BracketMatch } from "@/types/worldcup";
 import { resolveApiBase } from "@/lib/api/base";
+import { cachedApiGet } from "@/lib/api/persistentCache";
 
 const API_BASE = resolveApiBase("football");
 
@@ -14,19 +15,7 @@ async function apiGet<T>(path: string, fallback: T, revalidate = 60): Promise<T>
 
   const url = `${API_BASE}${path}`;
 
-  try {
-    const res = await fetch(url, { next: { revalidate } });
-
-    if (!res.ok) {
-      console.error(`[espn.ts] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
-      return fallback;
-    }
-
-    return (await res.json()) as T;
-  } catch (err) {
-    console.error(`[espn.ts] Network/parse error for ${url}:`, err);
-    return fallback;
-  }
+  return cachedApiGet(url, fallback, revalidate, "espn.ts");
 }
 
 // ═══════════════════════════════════════════════════════════════

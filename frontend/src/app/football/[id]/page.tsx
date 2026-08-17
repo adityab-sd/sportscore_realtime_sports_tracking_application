@@ -13,6 +13,7 @@ import MatchSidebar from "@/components/football/MatchSidebar";
 import GameInfoCard from "@/components/football/GameInfoCard";
 import OddsCard from "@/components/football/OddsCard";
 import MatchPreview from "@/components/football/MatchPreview";
+import MatchLiveDataProvider from "@/components/football/MatchLiveDataProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,8 @@ export default async function MatchPage({ params, searchParams }: Props) {
         ← Football
       </Link>
 
-      <div className="match-cols">
+      <MatchLiveDataProvider initialDetail={match} league={league}>
+        <div className="match-cols">
 
         {/* Left column: Lineups / Squads */}
         <div className="match-col-left">
@@ -65,7 +67,6 @@ export default async function MatchPage({ params, searchParams }: Props) {
             />
           ) : (
             <LineupLiveSection
-              initialDetail={match}
               league={league}
               homeTeam={match.homeTeam}
               awayTeam={match.awayTeam}
@@ -76,11 +77,8 @@ export default async function MatchPage({ params, searchParams }: Props) {
           <GameInfoCard match={match} />
         </div>
 
-        {/* Middle column.
-            MatchLiveSection owns a single 30s REST poll (0 SignalR messages)
-            that keeps the score header, live clock and detail block fresh.
-            It renders the ScoreHeader itself and shows the ball tracker /
-            shot map + events for live and finished matches. */}
+        {/* Middle column. The surrounding provider owns one shared 30s REST
+            poll for this section and the lineup column. */}
         <div className="match-col-mid">
           {isPre && (
           <MatchPreview
@@ -91,7 +89,6 @@ export default async function MatchPage({ params, searchParams }: Props) {
           />
         )}
           <MatchLiveSection
-            initialDetail={match}
             league={league}
             venue={match.venue}
             competitionHref={`/football/league/${league}`}
@@ -121,7 +118,8 @@ export default async function MatchPage({ params, searchParams }: Props) {
             homeTeamId={match.homeTeam.id}
           />
         </div>
-      </div>
+        </div>
+      </MatchLiveDataProvider>
 
       <style>{`
         .match-cols {
