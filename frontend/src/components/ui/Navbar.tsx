@@ -42,7 +42,7 @@ const DROPDOWN_CONFIGS: Record<string, DropdownConfig> = {
     newsHref: "/football/news",
     newsLabel: "Football News",
     sportPath: "/football",
-    leagues: FOOTBALL_LEAGUES.filter((l) => l.slug !== "fifa.friendly"),
+    leagues: FOOTBALL_LEAGUES,
   },
   basketball: {
     newsHref: "/basketball/news",
