@@ -40,7 +40,6 @@ public class CoreFootballFetcher extends AbstractEspnFetcher {
         LEAGUES.put("usa.1", "MLS");
         LEAGUES.put("bra.1", "Brazil Serie A");
         LEAGUES.put("arg.1", "Argentina Primera");
-        LEAGUES.put("club.friendly", "Club Friendly");
     }
 
     private final CoreFootballAdapter adapter;

@@ -1,78 +1,50 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useSignalR } from "@/hooks/useSignalR";
 import { Match, classifyStatus, leagueHasFullTable } from "@/types/football";
-import { ESPNNews } from "@/lib/api/espn";
+import { ESPNNews, getFixturesByDate } from "@/lib/api/espn";
 import type { LeaderCategory } from "@/app/football/league/[slug]/page";
 import MatchCard from "./MatchCard";
 import StandingsTable from "./StandingsTable";
 import NewsCard from "@/components/news/NewsCard";
 import { useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "@/components/ui/DatePicker";
+import { startOfDayLocal, toKey, isSameDayIso } from "@/lib/dates";
 
 type Tab = "fixtures" | "standings" | "news" | "statistics";
 
 interface LeagueInfo { slug: string; name: string; short: string; logo: string; accent: string; }
 interface Team { id: string; name: string; logo: string | null; }
 
-// ─── Date helpers (all UTC) ───────────────────────────────────────────────────
-function startOfDayUTC(d: Date) {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-}
-function addDays(d: Date, n: number) {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + n));
-}
-function toKey(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function pillLabel(d: Date, today: Date) {
-  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-  if (diff === -1) return "Yesterday";
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  return d.toLocaleDateString("en-US", { day: "2-digit", weekday: "short" }).replace(",", "");
-}
-
-function isSameDay(kickoff: string | null, date: Date) {
-  if (!kickoff) return false;
-  const t = Date.parse(kickoff);
-  if (!Number.isFinite(t)) return false;
-  const k = new Date(t);
-  return (
-    k.getUTCFullYear() === date.getUTCFullYear() &&
-    k.getUTCMonth() === date.getUTCMonth() &&
-    k.getUTCDate() === date.getUTCDate()
-  );
-}
-
 // Pick the initial date to show: today if it has matches, otherwise the nearest
-// date (past or future) that does. Keeps off-season users from landing on an
-// empty day and scrolling through a whole month to find fixtures.
-function pickInitialDate(matches: Match[], today: Date): Date {
+// date (past or future) that does. Falls back to lastMatchDate when seed is empty.
+function pickInitialDate(matches: Match[], today: Date, lastMatchDate: string | null): Date {
   const keys = new Set<number>();
   for (const m of matches) {
     const t = m.kickoff ? Date.parse(m.kickoff) : NaN;
     if (Number.isFinite(t)) {
       const d = new Date(t);
-      d.setUTCHours(0, 0, 0, 0);
+      d.setHours(0, 0, 0, 0);
       keys.add(d.getTime());
     }
   }
   const todayMs = today.getTime();
-  if (keys.has(todayMs) || keys.size === 0) return today;
-  let best = todayMs, bestDist = Infinity;
-  for (const k of keys) {
-    const dist = Math.abs(k - todayMs);
-    if (dist < bestDist || (dist === bestDist && k < todayMs)) { best = k; bestDist = dist; }
+  if (keys.has(todayMs)) return today;
+  if (keys.size > 0) {
+    let best = todayMs, bestDist = Infinity;
+    for (const k of keys) {
+      const dist = Math.abs(k - todayMs);
+      if (dist < bestDist || (dist === bestDist && k < todayMs)) { best = k; bestDist = dist; }
+    }
+    return new Date(best);
   }
-  return new Date(best);
+  // Seed is empty — use the server-provided hint
+  if (lastMatchDate) {
+    return startOfDayLocal(new Date(lastMatchDate));
+  }
+  return today;
 }
-
 
 // ─── Teams Dropdown ───────────────────────────────────────────────────────────
 function TeamsDropdown({ teams, slug }: { teams: Team[]; slug: string }) {
@@ -104,7 +76,6 @@ function TeamsDropdown({ teams, slug }: { teams: Team[]; slug: string }) {
 }
 
 // ─── Statistics Tab ───────────────────────────────────────────────────────────
-// Which categories to show and in what order
 const STAT_CATEGORIES: Record<string, string> = {
   "Goals":            "Goals",
   "Assists":          "Assists",
@@ -165,7 +136,7 @@ function LeaderCard({ cat, slug }: { cat: LeaderCategory; slug: string }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LeaguePageClient({
-  league, standings, news, leaderCategories, teams, seedMatches, slug, season, availableSeasons,
+  league, standings, news, leaderCategories, teams, seedMatches, lastMatchDate, slug, season, availableSeasons,
 }: {
   league: LeagueInfo;
   standings: any[];
@@ -173,6 +144,7 @@ export default function LeaguePageClient({
   leaderCategories: LeaderCategory[];
   teams: Team[];
   seedMatches: Match[];
+  lastMatchDate: string | null;
   slug: string;
   season: string;
   availableSeasons: string[];
@@ -186,16 +158,43 @@ export default function LeaguePageClient({
     params.set("season", e.target.value);
     router.push(`/football/league/${slug}?${params.toString()}`);
   }
-  const today = startOfDayUTC(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(() => pickInitialDate(seedMatches, today));
+
+  const today = startOfDayLocal(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => pickInitialDate(seedMatches, today, lastMatchDate));
   const { matches: live, state, lastUpdate } = useSignalR();
 
-  // Merge seed + live
+  // Fetch fixtures for the selected date (so dates outside the seed window work)
+  const [dayMatches, setDayMatches] = useState<Match[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const ymd = toKey(selectedDate).replace(/-/g, "");
+    getFixturesByDate(slug, ymd).then(fx => {
+      if (cancelled) return;
+      setDayMatches([...fx.results, ...fx.upcoming].map(f => ({
+        id: Number(f.id),
+        sport: "football" as const,
+        leagueSlug: slug,
+        status: f.status,
+        elapsed: null,
+        kickoff: f.kickoff,
+        competition: f.competition || league.name,
+        homeTeam: { id: Number(f.homeTeam.id), name: f.homeTeam.name, shortName: f.homeTeam.shortName, logo: f.homeTeam.logo },
+        awayTeam: { id: Number(f.awayTeam.id), name: f.awayTeam.name, shortName: f.awayTeam.shortName, logo: f.awayTeam.logo },
+        homeScore: f.homeScore,
+        awayScore: f.awayScore,
+        events: [],
+      })));
+    });
+    return () => { cancelled = true; };
+  }, [selectedDate, slug, league.name]);
+
+  // Merge seed + fetched day + live
   const byId = new Map<number, Match>();
   for (const m of seedMatches) byId.set(m.id, m);
+  for (const m of dayMatches) byId.set(m.id, m);
   for (const m of live.filter(m => !m.sport || m.sport === "football")) byId.set(m.id, m);
   const allMatches = Array.from(byId.values());
-  const dated = allMatches.filter(m => isSameDay(m.kickoff, selectedDate));
+  const dated = allMatches.filter(m => isSameDayIso(m.kickoff, selectedDate));
   const liveM = dated.filter(m => classifyStatus(m.status) === "live");
   const sched = dated.filter(m => classifyStatus(m.status) === "scheduled");
   const fin   = dated.filter(m => classifyStatus(m.status) === "finished");
@@ -205,7 +204,6 @@ export default function LeaguePageClient({
   const orderedCats = Object.keys(STAT_CATEGORIES)
     .map(name => leaderCategories.find(c => c.displayName === name))
     .filter(Boolean) as LeaderCategory[];
-  // Append any unknown categories at end
   const knownNames = new Set(Object.keys(STAT_CATEGORIES));
   const extraCats = leaderCategories.filter(c => !knownNames.has(c.displayName));
   const allCats = [...orderedCats, ...extraCats];
@@ -328,7 +326,7 @@ export default function LeaguePageClient({
           </div>
         )}
 
-        {/* NEWS — uses NewsCard so users stay in-app */}
+        {/* NEWS */}
         {tab === "news" && (
           <div>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--obsidian)", margin: "0 0 16px" }}>Latest News</h2>

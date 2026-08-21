@@ -179,6 +179,14 @@ export default async function LeaguePage({ params, searchParams }: Props) {
   const teams = parseTeams(teamsRaw);
   const leaderCategories = await parseRawLeaders(rawLeadersData, slug, rows);
 
+  // Derive the most recent or nearest match date from the seed so the client
+  // can land on it when today has no fixtures (e.g. off-season tournaments).
+  const lastMatchDate = fixtures.results.length > 0
+    ? fixtures.results[fixtures.results.length - 1]?.kickoff?.slice(0, 10) ?? null
+    : fixtures.upcoming.length > 0
+      ? fixtures.upcoming[0]?.kickoff?.slice(0, 10) ?? null
+      : null;
+
   return (
     <LeaguePageClient
       league={league}
@@ -187,6 +195,7 @@ export default async function LeaguePage({ params, searchParams }: Props) {
       leaderCategories={leaderCategories}
       teams={teams}
       seedMatches={seedMatches}
+      lastMatchDate={lastMatchDate}
       slug={slug}
       season={selectedSeason}
       availableSeasons={availableSeasons}

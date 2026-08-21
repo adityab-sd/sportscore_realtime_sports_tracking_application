@@ -447,7 +447,7 @@ public Dto.Fixtures fixtures(String league) throws Exception {
             "uefa.champions",
             "fifa.world",
             "eng.1", "esp.1", "ita.1", "ger.1", "fra.1",
-            "usa.1", "arg.1", "bra.1", "club.friendly"
+            "usa.1", "arg.1", "bra.1"
     );
 
     public Dto.MatchDetail matchDetail(String league, String eventId) throws Exception {

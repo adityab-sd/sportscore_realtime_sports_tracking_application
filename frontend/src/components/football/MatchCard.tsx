@@ -124,8 +124,6 @@ function slugFromCompetition(name: string): string {
   const exact: Record<string, string> = {
     // International
     "World Cup 2026": "fifa.world",
-    "Club Friendly": "club.friendly",
-    "Club Friendlies": "club.friendly",
     // UEFA club
     "Champions League": "uefa.champions",
     "UEFA Champions League": "uefa.champions",
@@ -143,8 +141,6 @@ function slugFromCompetition(name: string): string {
   if (exact[name]) return exact[name];
   const lower = name.toLowerCase();
   if (lower.includes("champions"))   return "uefa.champions";
-  if (lower.includes("europa conf")) return "uefa.europa.conf";
-  if (lower.includes("europa"))      return "uefa.europa";
   if (lower.includes("world cup"))   return "fifa.world";
   if (lower.includes("premier"))     return "eng.1";
   if (lower.includes("bundesliga"))  return "ger.1";
@@ -155,9 +151,5 @@ function slugFromCompetition(name: string): string {
   if (lower.includes("ligue 1"))     return "fra.1";
   if (lower.includes("la liga") || lower.includes("laliga")) return "esp.1";
   if (lower.includes("mls"))         return "usa.1";
-  // friendlies: distinguish club vs international
-  if (lower.includes("friendly") || lower.includes("friendlies")) {
-    return lower.includes("club") ? "club.friendly" : "fifa.friendly";
-  }
-  return ""; // unknown — don't force eng.1 // safe default
+  return ""; // unknown 
 }

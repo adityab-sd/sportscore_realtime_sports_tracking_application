@@ -24,8 +24,6 @@ const ESPN_HEADERS = {
 // names to our LEAGUES. Option 2: anything that doesn't match is HIDDEN.
 const LEAGUE_NAME_KEYWORDS: { slug: string; label: string; kws: string[] }[] = [
   { slug: "uefa.champions",   label: "Champions League",       kws: ["champions league", "uefa champions"] },
-  { slug: "uefa.europa.conf", label: "Europa Conf.",           kws: ["europa conference", "conference league"] },
-  { slug: "uefa.europa",      label: "Europa League",          kws: ["europa league", "uefa europa"] },
   { slug: "eng.1",            label: "Premier League",         kws: ["premier league", "english premier", "epl"] },
   { slug: "esp.1",            label: "La Liga",                 kws: ["laliga", "la liga", "spanish la"] },
   { slug: "ita.1",            label: "Serie A",                 kws: ["serie a", "italian serie"] },
@@ -35,8 +33,6 @@ const LEAGUE_NAME_KEYWORDS: { slug: string; label: string; kws: string[] }[] = [
   { slug: "bra.1",            label: "Brasileirão",            kws: ["brasileir", "brazilian serie", "brazil serie"] },
   { slug: "arg.1",            label: "Argentine Primera",       kws: ["argentine", "primera divisi", "liga profesional"] },
   { slug: "fifa.world",       label: "World Cup",               kws: ["world cup"] },
-  { slug: "fifa.friendly",    label: "International Friendlies", kws: ["international friendly", "friendly international", "fifa friendly"] },
-  { slug: "club.friendly",    label: "Club Friendlies",         kws: ["club friendly", "club friendlies"] },
 ];
 
 // Returns { slug, label } for a supported league, or null (→ hidden, Option 2).
