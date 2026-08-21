@@ -211,7 +211,6 @@ export default function AssistantSidebar({ open, onClose }: Props) {
     <>
       {open && <button type="button" aria-label="Close assistant overlay" onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.28)", backdropFilter: "blur(2px)", border: "none", padding: 0, cursor: "pointer", zIndex: 40 }} />}
       <div style={{ position: "fixed", top: 0, right: 0, height: "100%", width: "100%", maxWidth: 420, background: "var(--white)", borderLeft: "1px solid var(--border)", zIndex: 50, display: "flex", flexDirection: "column", transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform 300ms cubic-bezier(0.32,0.72,0,1)", boxShadow: open ? "-16px 0 48px rgba(15,23,42,0.12)" : "none" }}>
-        {/* Header with gradient */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", background: "linear-gradient(135deg, var(--indigo) 0%, #4f46e5 100%)", color: "#fff" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}><Bot size={17} color="#fff" /></div>
