@@ -68,9 +68,15 @@ class BasketballControllerTest {
         int lastNewsLimit = -1;
 
         @Override public List<BasketballDto.GameDto> scoreboard(String league) { lastLeague = league; return List.of(); }
-        @Override public List<BasketballDto.StandingRow> standings(String league, int level) {
+
+        // ADDRESSED: same root cause as baseball. The controller now calls the three-arg
+        // standings(league, level, season) directly (stack trace: controller -> line 108 with
+        // no delegating frame), so the old two-arg override was bypassed and the real method
+        // hit ESPN through a null espnHttp. Overriding the three-arg version fixes it.
+        @Override public List<BasketballDto.StandingRow> standings(String league, int level, String season) {
             lastLeague = league; lastLevel = level; return List.of();
         }
+
         @Override public List<Dto.NewsItem> news(String league, int limit) {
             lastLeague = league; lastNewsLimit = limit; return List.of();
         }

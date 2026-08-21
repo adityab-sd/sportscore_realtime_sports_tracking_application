@@ -124,20 +124,13 @@ function slugFromCompetition(name: string): string {
   const exact: Record<string, string> = {
     // International
     "World Cup 2026": "fifa.world",
-    "International Friendly": "fifa.friendly",
-    "International Friendlies": "fifa.friendly",
     "Club Friendly": "club.friendly",
     "Club Friendlies": "club.friendly",
     // UEFA club
     "Champions League": "uefa.champions",
     "UEFA Champions League": "uefa.champions",
-    "Europa League": "uefa.europa",
-    "UEFA Europa League": "uefa.europa",
-    "Conference League": "uefa.europa.conf",
-    "UEFA Europa Conference League": "uefa.europa.conf",
     // Domestic
     "Premier League": "eng.1",
-    "Championship": "eng.2",
     "La Liga": "esp.1",
     "Serie A": "ita.1",
     "Bundesliga": "ger.1",
@@ -145,12 +138,7 @@ function slugFromCompetition(name: string): string {
     "MLS": "usa.1",
     "Brazil Serie A": "bra.1",
     "Brasileirão": "bra.1",
-    "Eredivisie": "ned.1",
-    "Primeira Liga": "por.1",
-    "Liga MX": "mex.1",
     "Argentina Primera": "arg.1",
-    "J-League": "jpn.1",
-    "A-League": "aus.1",
   };
   if (exact[name]) return exact[name];
   const lower = name.toLowerCase();

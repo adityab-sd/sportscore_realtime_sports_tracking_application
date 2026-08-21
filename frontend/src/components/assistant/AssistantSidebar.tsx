@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot, CalendarDays, Trophy, Newspaper, Flag, User, BookOpen, Sparkles } from "lucide-react";
 import { ChatMessage } from "@/types/assistant";
@@ -9,9 +8,6 @@ interface Props { open: boolean; onClose: () => void }
 
 const MAX_QUESTION_CHARS = 500;
 
-// Starters chosen to ALWAYS return a rich, correct answer (great for a demo):
-// every one has data behind it right now — fixtures across sports, news, a player
-// bio, and a rule. Each carries a colour + category badge.
 const STARTERS: { icon: typeof CalendarDays; label: string; hint: string; color: string; bg: string }[] = [
   { icon: CalendarDays, label: "What are the upcoming football matches?", hint: "fixtures",  color: "#2563eb", bg: "#eff6ff" },
   { icon: Trophy,       label: "Upcoming basketball games this week?",     hint: "basketball", color: "#ea580c", bg: "#fff7ed" },
@@ -21,7 +17,7 @@ const STARTERS: { icon: typeof CalendarDays; label: string; hint: string; color:
   { icon: BookOpen,     label: "When is a handball called in soccer?",     hint: "rules",      color: "#0d9488", bg: "#f0fdfa" },
 ];
 
-// ── date helpers: ISO -> "Today 19:45", "Tomorrow", "16 September 2026" ──
+// ── date helpers ──
 const ISO_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?Z?/;
 const ISO_RE_G = new RegExp(ISO_RE.source, "g");
 function friendlyDate(iso: string): string {
@@ -39,30 +35,77 @@ function friendlyDate(iso: string): string {
 }
 const humanizeDates = (t: string) => t.replace(ISO_RE_G, (iso) => friendlyDate(iso));
 
+// ── crest stands in for the website's TeamLogo (chat has no logo URLs) ──
 const AVATARS = ["#e11d48", "#2563eb", "#059669", "#d97706", "#7c3aed", "#0891b2", "#ea580c", "#4f46e5"];
 function crest(name = "") {
   let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return { color: AVATARS[h % AVATARS.length], initials: name.split(/\s+/).map(w => w[0] ?? "").join("").slice(0, 3).toUpperCase() };
 }
-function Crest({ name }: { name: string }) {
+// CHANGED: sized 28px to echo the website's TeamLogo footprint in the MatchCard.
+function Crest({ name, highlight = false }: { name: string; highlight?: boolean }) {
   const c = crest(name);
-  return <span style={{ width: 22, height: 22, borderRadius: 6, background: c.color, color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{c.initials}</span>;
+  return (
+    <span style={{
+      width: 28, height: 28, borderRadius: 8, background: c.color, color: "#fff",
+      fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0, boxShadow: highlight ? "0 0 0 2px var(--indigo-light)" : "none",
+    }}>{c.initials}</span>
+  );
 }
 
 // ── parsers ──
-interface ParsedMatch { home: string; away: string; hs: number; as: number; live: boolean }
+interface ParsedMatch {
+  home: string; away: string; hs: number; as: number;
+  live: boolean; finished: boolean;
+  competition?: string;      // ADDED: shown in the top row like the website card
+  events: string[];          // scorers / cards
+}
+
+// "Wolverhampton Wanderers vs Blackburn Rovers — 1 - 1 (Munetsi 18'; McLoughlin 27')"
+const VS_SCORE_RE = /^(?:\d+\.\s*)?(.+?)\s+vs\s+(.+?)\s*[—–-]\s*(?:final\s+)?(\d{1,3})\s*[-–:]\s*(\d{1,3})\s*(?:\(([^)]*)\))?/i;
+// "Away 5, Home 3"
+const COMMA_SCORE_RE = /^(?:\d+\.\s*)?([A-Za-z .'&-]{2,30}?)\s+(\d{1,3}),\s+([A-Za-z .'&-]{2,30}?)\s+(\d{1,3})\b/;
+
+function splitEvents(detail?: string): string[] {
+  if (!detail) return [];
+  return detail.split(/[;]+/).map(s => s.trim().replace(/\.$/, "")).filter(Boolean);
+}
+
 function parseScores(text: string): ParsedMatch[] {
-  const re = /([A-Z][A-Za-z .'&-]{1,26}?)\s+(\d{1,3})\s*[-–:]\s*(\d{1,3})\s+([A-Z][A-Za-z .'&-]{1,26})/g;
-  const out: ParsedMatch[] = []; let m: RegExpExecArray | null;
-  const live = /\blive\b|in progress|currently/i.test(text) && !/finished|full ?time|final/i.test(text);
-  while ((m = re.exec(text)) && out.length < 8) out.push({ home: m[1].trim(), away: m[4].trim(), hs: +m[2], as: +m[3], live });
+  const out: ParsedMatch[] = [];
+  const liveWord = /\blive\b|in progress|currently/i.test(text);
+  const finishedWord = /finished|full ?time|\bfinal\b|has finished/i.test(text);
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    let m = line.match(VS_SCORE_RE);
+    if (m) {
+      out.push({
+        home: m[1].trim(), away: m[2].trim(), hs: +m[3], as: +m[4],
+        live: liveWord && !finishedWord, finished: finishedWord && !liveWord,
+        events: splitEvents(m[5]),
+      });
+      if (out.length >= 8) break;
+      continue;
+    }
+    m = line.match(COMMA_SCORE_RE);
+    if (m) {
+      out.push({
+        home: m[3].trim(), away: m[1].trim(), hs: +m[4], as: +m[2],
+        live: liveWord && !finishedWord, finished: finishedWord && !liveWord,
+        events: [],
+      });
+      if (out.length >= 8) break;
+    }
+  }
   return out;
 }
-// A line that parseScores would turn into a ScoreCard. Used to drop it from the
-// text body so a score isn't printed once as prose AND again as a card.
-const SCORE_LINE_RE = /[A-Z][A-Za-z .'&-]{1,26}?\s+\d{1,3}\s*[-–:]\s*\d{1,3}\s+[A-Z][A-Za-z .'&-]{1,26}/;
+
+function isScoreLine(line: string): boolean {
+  return VS_SCORE_RE.test(line.trim()) || COMMA_SCORE_RE.test(line.trim());
+}
 function stripScoreLines(text: string): string {
-  return text.split("\n").filter(l => !SCORE_LINE_RE.test(l)).join("\n");
+  return text.split("\n").filter(l => !isScoreLine(l)).join("\n");
 }
 
 interface Fixture { home: string; away: string; when?: string }
@@ -71,9 +114,11 @@ function parseFixtures(text: string): { league: string; fixtures: Fixture[] }[] 
   const groups: { league: string; fixtures: Fixture[] }[] = [];
   let cur: { league: string; fixtures: Fixture[] } | null = null; let found = false;
   for (const line of lines) {
+    if (isScoreLine(line)) continue;
     if (/:$/.test(line) && !/\bvs\b/i.test(line)) { cur = { league: line.replace(/:$/, "").trim(), fixtures: [] }; groups.push(cur); continue; }
     const fx = line.replace(/^\d+\.\s*/, "").match(/^(.+?)\s+vs\s+(.+?)(?:\s*[—–-]\s*(.+?))?\.?$/i);
     if (fx) {
+      if (fx[3] && /^\s*\d{1,3}\s*[-–:]\s*\d{1,3}/.test(fx[3])) continue;
       found = true;
       if (!cur) { cur = { league: "Fixtures", fixtures: [] }; groups.push(cur); }
       const iso = fx[3]?.match(ISO_RE)?.[0];
@@ -82,6 +127,7 @@ function parseFixtures(text: string): { league: string; fixtures: Fixture[] }[] 
   }
   return found ? groups.filter(g => g.fixtures.length) : null;
 }
+
 interface NewsItem { headline: string; when?: string }
 function parseNews(text: string): NewsItem[] | null {
   const items: NewsItem[] = [];
@@ -94,22 +140,64 @@ function parseNews(text: string): NewsItem[] | null {
   return items.length ? items : null;
 }
 
-// ── cards ──
+// ── cards (styled to mirror the website MatchCard) ──
+
+// CHANGED: rebuilt to match the website MatchCard layout —
+//   top row: competition (left) + LIVE dot (right)
+//   main row: [logo name] ....... big tabular score ....... [name logo]
+//   winner's name/score bolded & darkened, loser muted (same as the site).
 function ScoreCard({ m }: { m: ParsedMatch }) {
+  const homeWin = m.hs > m.as;
+  const awayWin = m.as > m.hs;
   return (
-    <div style={{ border: "1px solid var(--border)", borderLeft: `3px solid ${m.live ? "#10b981" : "#94a3b8"}`, borderRadius: 12, background: "var(--white)", padding: "10px 12px", marginTop: 6, boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: "var(--text-muted)", textTransform: "uppercase" }}>Result</span>
-        {m.live ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#059669" }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", animation: "livePulse 1s ease-in-out infinite" }} /> LIVE</span> : <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>Full time</span>}
+    <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", marginTop: 6, boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>{m.competition ?? (m.live ? "Live" : m.finished ? "Result" : "Match")}</span>
+        {m.live && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4d4d", flexShrink: 0, animation: "livePulse 1s ease-in-out infinite" }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626", letterSpacing: "0.5px" }}>LIVE</span>
+          </div>
+        )}
       </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}><Crest name={m.home} /><span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.home}</span></div>
-        <span style={{ fontSize: 18, fontWeight: 800, color: "var(--obsidian)", fontVariantNumeric: "tabular-nums", padding: "0 4px" }}>{m.hs}–{m.as}</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}><span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.away}</span><Crest name={m.away} /></div>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <Crest name={m.home} highlight={homeWin} />
+          <span style={{ fontSize: 14, fontWeight: homeWin ? 700 : 500, color: homeWin ? "var(--obsidian)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.home}</span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 76, flexShrink: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, display: "flex", alignItems: "center", gap: 5, fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ color: homeWin ? "var(--obsidian)" : "var(--text-muted)" }}>{m.hs}</span>
+            <span style={{ color: "var(--border)", fontSize: 16 }}>:</span>
+            <span style={{ color: awayWin ? "var(--obsidian)" : "var(--text-muted)" }}>{m.as}</span>
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 600, color: m.live ? "#dc2626" : "var(--text-muted)" }}>{m.live ? "Live" : m.finished ? "FT" : ""}</span>
+        </div>
+
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: awayWin ? 700 : 500, color: awayWin ? "var(--obsidian)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>{m.away}</span>
+          <Crest name={m.away} highlight={awayWin} />
+        </div>
       </div>
+
+      {m.events.length > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 4 }}>
+          {m.events.map((ev, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-secondary)" }}>
+              <span style={{ fontSize: 10 }}>{/yellow/i.test(ev) ? "🟨" : /red/i.test(ev) ? "🟥" : "⚽"}</span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+// CHANGED: fixture card now mirrors the website MatchCard's scheduled state —
+// same logo/name layout, "vs" in the score slot, kickoff line underneath.
 function FixtureGroups({ groups }: { groups: { league: string; fixtures: Fixture[] }[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -118,13 +206,21 @@ function FixtureGroups({ groups }: { groups: { league: string; fixtures: Fixture
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, color: "var(--indigo)", textTransform: "uppercase", marginBottom: 6 }}>{g.league}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {g.fixtures.map((f, i) => (
-              <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--white)", padding: "10px 12px", boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
+              <div key={i} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}><Crest name={f.home} /><span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.home}</span></div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)" }}>vs</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}><span style={{ fontSize: 13, fontWeight: 600, color: "var(--obsidian)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.away}</span><Crest name={f.away} /></div>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <Crest name={f.home} />
+                    <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.home}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40, flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>vs</span>
+                  </div>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>{f.away}</span>
+                    <Crest name={f.away} />
+                  </div>
                 </div>
-                {f.when && <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, fontSize: 11, fontWeight: 600, color: "var(--indigo)" }}><CalendarDays size={12} /> {f.when}</div>}
+                {f.when && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 8, fontSize: 11, fontWeight: 600, color: "var(--indigo)" }}><CalendarDays size={12} /> {f.when}</div>}
               </div>
             ))}
           </div>
@@ -133,11 +229,12 @@ function FixtureGroups({ groups }: { groups: { league: string; fixtures: Fixture
     </div>
   );
 }
+
 function NewsList({ items }: { items: NewsItem[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
       {items.map((n, i) => (
-        <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--white)", padding: "10px 12px", display: "flex", gap: 10, boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
+        <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--white)", padding: "12px 14px", display: "flex", gap: 10, boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
           <span style={{ width: 26, height: 26, borderRadius: 8, background: "#fffbeb", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}><Newspaper size={13} /></span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--obsidian)" }}>{n.headline}</div>
@@ -148,6 +245,7 @@ function NewsList({ items }: { items: NewsItem[] }) {
     </div>
   );
 }
+
 function renderBold(s: string) {
   return s.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith("**") && p.endsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : <span key={i}>{p}</span>);
 }
@@ -164,19 +262,28 @@ function TextBody({ text }: { text: string }) {
     </div>
   );
 }
+
 function AssistantContent({ content, citations }: { content: string; citations?: string[] }) {
   const isNews = !!citations?.length && citations.filter(c => /news/i.test(c)).length >= Math.ceil(citations.length / 2);
   if (isNews) { const n = parseNews(content); if (n && n.length >= 2) return <NewsList items={n} />; }
+
+  const scores = parseScores(content);
+  if (scores.length) {
+    const rest = stripScoreLines(content).trim();
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {rest && <TextBody text={rest} />}
+        {scores.map((m, i) => <ScoreCard key={i} m={m} />)}
+      </div>
+    );
+  }
+
   const fx = parseFixtures(content);
   if (fx && fx.reduce((a, g) => a + g.fixtures.length, 0) >= 2) {
     const intro = content.split("\n").find(l => l.trim() && !/vs/i.test(l) && !/:$/.test(l.trim()));
     return <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{intro && <TextBody text={intro} />}<FixtureGroups groups={fx} /></div>;
   }
-  const scores = parseScores(content);
-  if (scores.length) {
-    const rest = stripScoreLines(content).trim();
-    return <div>{rest && <TextBody text={rest} />}{scores.map((m, i) => <ScoreCard key={i} m={m} />)}</div>;
-  }
+
   return <TextBody text={content} />;
 }
 

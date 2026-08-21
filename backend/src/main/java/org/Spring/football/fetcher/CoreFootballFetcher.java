@@ -31,24 +31,15 @@ public class CoreFootballFetcher extends AbstractEspnFetcher {
 
     static {
         LEAGUES.put("fifa.world", "World Cup 2026");
-        LEAGUES.put("fifa.friendly", "International Friendly");
         LEAGUES.put("uefa.champions", "Champions League");
-        LEAGUES.put("uefa.europa", "Europa League");
-        LEAGUES.put("uefa.europa.conf", "Conference League");
         LEAGUES.put("eng.1", "Premier League");
-        LEAGUES.put("eng.2", "Championship");
         LEAGUES.put("esp.1", "La Liga");
         LEAGUES.put("ita.1", "Serie A");
         LEAGUES.put("ger.1", "Bundesliga");
         LEAGUES.put("fra.1", "Ligue 1");
         LEAGUES.put("usa.1", "MLS");
         LEAGUES.put("bra.1", "Brazil Serie A");
-        LEAGUES.put("ned.1", "Eredivisie");
-        LEAGUES.put("por.1", "Primeira Liga");
-        LEAGUES.put("mex.1", "Liga MX");
         LEAGUES.put("arg.1", "Argentina Primera");
-        LEAGUES.put("jpn.1", "J-League");
-        LEAGUES.put("aus.1", "A-League");
         LEAGUES.put("club.friendly", "Club Friendly");
     }
 

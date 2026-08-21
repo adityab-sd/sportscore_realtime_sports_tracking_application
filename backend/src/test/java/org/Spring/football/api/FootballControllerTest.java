@@ -67,7 +67,15 @@ class FootballControllerTest {
         int lastNewsLimit = -1;
 
         @Override public List<Dto.MatchDto> scoreboard(String league) { lastLeague = league; return List.of(); }
-        @Override public List<Dto.StandingRow> standings(String league) { lastLeague = league; return List.of(); }
+
+        // ADDRESSED: standings now takes (league, season) to match the two-arg
+        // signature in FootballService. The old one-arg override no longer
+        // matched a supertype method, which is what broke the build.
+        @Override public List<Dto.StandingRow> standings(String league, String season) {
+            lastLeague = league;
+            return List.of();
+        }
+
         @Override public List<Dto.NewsItem> news(String league, int limit) {
             lastLeague = league; lastNewsLimit = limit; return List.of();
         }

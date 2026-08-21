@@ -1,11 +1,14 @@
 """
-live_updater.py — Fetches live football data from ESPN every 30 seconds
+live_updater.py — Fetches live football data from ESPN every 60 seconds
 and uploads it to Azure AI Search so RAG can answer live questions.
 
 Pulls three kinds of data per league, directly from ESPN's public API:
   1. Scoreboard — current/upcoming matches
   2. Standings  — league table (rank, points, wins/losses)
   3. Leaders    — top scorers
+
+Plus injuries / transactions / news for the major leagues via the SportScore
+backend REST API.
 """
 
 import os
@@ -27,24 +30,15 @@ STANDINGS_BASE = "https://site.web.api.espn.com/apis/v2/sports/soccer"
 
 LEAGUES = {
     "fifa.world":        "World Cup 2026",
-    "fifa.friendly":     "International Friendly",
     "uefa.champions":    "Champions League",
-    "uefa.europa":       "Europa League",
-    "uefa.europa.conf":  "Conference League",
     "eng.1":             "Premier League",
-    "eng.2":             "Championship",
     "esp.1":             "La Liga",
     "ita.1":             "Serie A",
     "ger.1":             "Bundesliga",
     "fra.1":             "Ligue 1",
     "usa.1":             "MLS",
     "bra.1":             "Brazil Serie A",
-    "ned.1":             "Eredivisie",
-    "por.1":             "Primeira Liga",
-    "mex.1":             "Liga MX",
     "arg.1":             "Argentina Primera",
-    "jpn.1":             "J-League",
-    "aus.1":             "A-League",
     "club.friendly":     "Club Friendly"
 }
 
@@ -54,13 +48,6 @@ search_client = SearchClient(
     index_name=INDEX_NAME,
     credential=credential
 )
-
-
-def _safe_id(text):
-    """Azure Search document keys can't contain periods (or other special
-    chars) — league slugs like 'fifa.world' or 'uefa.champions' need
-    sanitizing before being used as part of a document id."""
-    return text.replace(".", "-")
 
 
 # -- simple in-process cache: {url: (expiry_epoch, data)} --
@@ -97,7 +84,6 @@ def _get(url):
     return None
 
 
-# ── SCOREBOARD ───────────────────────────────────────────
 # ── EXTRA LIVE DATA via the SportScore backend REST API ──────────────
 # Reuse the backend's already-tested endpoints for injuries/transactions/news
 # (they're public/permitAll) instead of re-parsing ESPN. Bounded to the major
@@ -212,9 +198,10 @@ def parse_news(items, league_name, slug):
     return docs
 
 
+# ── SCOREBOARD ───────────────────────────────────────────
 def fetch_scoreboard(league_slug):
     today = datetime.utcnow()
-    date_from = (today - timedelta(days=30)).strftime("%Y%m%d")  # CHANGED: 7 -> 30 days so "last month" questions work
+    date_from = (today - timedelta(days=30)).strftime("%Y%m%d")  # 30 days back so "last month" questions work
     date_to = (today + timedelta(days=45)).strftime("%Y%m%d")
     url = f"{SITE_BASE}/{league_slug}/scoreboard?dates={date_from}-{date_to}&limit=1000"
     return _get(url)
@@ -222,16 +209,16 @@ def fetch_scoreboard(league_slug):
 
 def extract_match_events(competition):
     """
-    ADDED: pull goal scorers + cards out of the scoreboard event's 'details'
-    array (already present in the data we fetch — NO extra API call). Returns a
-    short human-readable string, or "" if no event data is available. Fully
-    defensive: any shape mismatch just yields "" instead of crashing the updater.
+    Pull goal scorers + cards out of the scoreboard event's 'details' array
+    (already present in the data we fetch — NO extra API call). Returns a short
+    human-readable string, or "" if no event data is available. Fully defensive:
+    any shape mismatch just yields "" instead of crashing the updater.
     """
     try:
         details = competition.get("details") or []
         if not details:
             return ""
-        # ADDED: map team id -> name so we can say WHICH team a goal/card belongs to.
+        # map team id -> name so we can say WHICH team a goal/card belongs to.
         team_names = {}
         for c in (competition.get("competitors") or []):
             tid = str((c.get("team") or {}).get("id") or "")
@@ -246,7 +233,6 @@ def extract_match_events(competition):
                 who = (players[0].get("displayName") if players else "") or ""
                 clock = ((d.get("clock") or {}).get("displayValue") or "").strip()
                 when = f" {clock}" if clock else ""
-                # ADDED: attribute to the scoring/carded team by team id
                 tid = str((d.get("team") or {}).get("id") or "")
                 team = team_names.get(tid, "")
                 team_str = f" ({team})" if team else ""
@@ -271,7 +257,6 @@ def extract_match_events(competition):
 
 
 def parse_matches(data, league_name):
-
     docs = []
     if not data:
         return docs
@@ -302,11 +287,11 @@ def parse_matches(data, league_name):
             elif state == "post" and not has_real_score:
                 content = f"{home_name} vs {away_name} in the {league_name} is marked as completed on {kickoff}, but the final score is not available in this data."
             else:
-                content = f"{home_name} vs {away_name} is scheduled (upcoming) in the {league_name}. Tip-off: {kickoff}."
+                content = f"{home_name} vs {away_name} is scheduled (upcoming) in the {league_name}. Kick-off: {kickoff}."
 
-            # ADDED: for live/finished matches, append goal scorers + cards. Uses the
-            # scoreboard 'details' already fetched (no extra API call); safely no-ops
-            # if that data isn't present for this match/league.
+            # for live/finished matches, append goal scorers + cards. Uses the
+            # scoreboard 'details' already fetched (no extra API call); safely
+            # no-ops if that data isn't present for this match/league.
             if state in ("in", "post"):
                 content += extract_match_events(competition)
 
@@ -323,11 +308,10 @@ def parse_matches(data, league_name):
             print(f"  Error parsing match event: {e}")
     return docs
 
+
 def build_next_match_summary(scoreboard_data, league_name, league_slug):
-    """Mirrors build_latest_results_summary()-style docs but inverted:
-    finds the soonest upcoming (state == 'pre') match instead of the
-    most recently completed one. Groups all matches sharing that
-    soonest date together, same reasoning as the 'latest' fix."""
+    """Finds the soonest upcoming (state == 'pre') match. Groups all matches
+    sharing that soonest date together."""
     if not scoreboard_data:
         return None
 
@@ -376,6 +360,7 @@ def build_next_match_summary(scoreboard_data, league_name, league_slug):
         "source": "espn.com",
         "last_updated": datetime.utcnow().isoformat()
     }
+
 
 # ── STANDINGS ──────────────────────────────────────────────
 def fetch_standings(league_slug):
@@ -445,6 +430,7 @@ def fetch_leaders(league_slug):
     year = datetime.utcnow().year
     return _get(f"https://sports.core.api.espn.com/v2/sports/soccer/leagues/{league_slug}/seasons/{year}/types/2/leaders")
 
+
 def _resolve_name(ref_url):
     if not ref_url:
         return "Unknown"
@@ -499,11 +485,12 @@ def parse_leaders(data, league_name, league_slug):
         "last_updated": datetime.utcnow().isoformat()
     }]
 
+
 # ── UPLOAD ─────────────────────────────────────────────────
 def upload_to_search(docs):
     if not docs:
         return
-    # CHANGED: batch at <=500 (Azure Search caps a single upload batch at 1000 docs).
+    # batch at <=500 (Azure Search caps a single upload batch at 1000 docs).
     for _i in range(0, len(docs), 500):
         _chunk = docs[_i:_i + 500]
         try:
@@ -513,29 +500,52 @@ def upload_to_search(docs):
             print(f"  Upload error: {_e}")
 
 
-# ── MAIN LOOP ──────────────────────────────────────────────
+# ── PRUNING ────────────────────────────────────────────────
 def prune_stale(sport, category, fresh_ids):
-    """ADDED: delete docs of this sport+category that are no longer current
-    (injuries that resolved, news/transactions that rolled off) so 'live' data
+    """Delete docs of this sport+category that are no longer current (injuries
+    that resolved, news/transactions that rolled off, and — as of this fix —
+    finished matches that aged out of ESPN's scoreboard window) so 'live' data
     stays live and the index doesn't grow without bound. Skips pruning when we
-    got no fresh data, to avoid wiping a category on a transient fetch failure."""
+    got no fresh data, to avoid wiping a category on a transient fetch failure.
+
+    CHANGED: now paginates through ALL existing docs instead of only the first
+    1000. The old top=1000 cap meant that once a category exceeded 1000 docs,
+    stale docs beyond that window were never seen and never pruned — which let
+    old 'currently LIVE' match docs survive indefinitely and made the RAG report
+    finished matches as live. Paging in 1000-doc batches removes that ceiling.
+    """
     if not fresh_ids:
         return
     try:
-        existing = search_client.search(
-            search_text="*",
-            filter=f"sport eq '{sport}' and category eq '{category}'",
-            select=["id"], top=1000)
-        stale = [{"id": r["id"]} for r in existing if r["id"] not in fresh_ids]
+        stale = []
+        skip = 0
+        PAGE = 1000
+        while True:
+            batch = list(search_client.search(
+                search_text="*",
+                filter=f"sport eq '{sport}' and category eq '{category}'",
+                select=["id"], top=PAGE, skip=skip))
+            if not batch:
+                break
+            stale.extend({"id": r["id"]} for r in batch if r["id"] not in fresh_ids)
+            if len(batch) < PAGE:
+                break
+            skip += PAGE
+            # Azure Search hard-caps $skip at 100000; stop well before that.
+            if skip >= 100000:
+                break
         if stale:
-            search_client.delete_documents(documents=stale)
+            # delete in batches of 1000 (Azure Search per-request cap)
+            for _i in range(0, len(stale), 1000):
+                search_client.delete_documents(documents=stale[_i:_i + 1000])
             print(f"  Pruned {len(stale)} stale {category} docs ({sport})")
     except Exception as e:
         print(f"  Prune error ({sport}/{category}): {e}")
 
 
+# ── MAIN LOOP ──────────────────────────────────────────────
 def run():
-    print("Live updater started! Fetching every 30 seconds...")
+    print("Live updater started! Fetching every 60 seconds...")
     while True:
         try:
             print(f"\n[{datetime.utcnow().strftime('%H:%M:%S')}] Fetching live data...")
@@ -560,9 +570,9 @@ def run():
 
                 print(f"  {name}: {len(match_docs)} matches, {len(standings_docs)} standings, {len(leaders_docs)} leaders")
 
-            # ADDED: injuries / transactions / news for the MAJOR leagues only (via the
-            # backend REST API). Bounded set + defensive parsing so it can't overload the
-            # backend or crash the loop.
+            # injuries / transactions / news for the MAJOR leagues only (via the
+            # backend REST API). Bounded set + defensive parsing so it can't
+            # overload the backend or crash the loop.
             for slug, name in MAJOR_LEAGUES.items():
                 inj = parse_injuries(fetch_backend(f"/{slug}/injuries"), name, slug)
                 txn = parse_transactions(fetch_backend(f"/{slug}/transactions?limit=25"), name, slug)
@@ -573,16 +583,26 @@ def run():
                 if inj or txn or nws:
                     print(f"  {name} extras: {len(inj)} injuries, {len(txn)} transactions, {len(nws)} news")
 
-            # ADDED: prune stale volatile docs so 'live' data stays current
-            for _cat in ("live-injury", "live-transaction", "live-news",):
+            # CHANGED: added "live-match" to the prune list. Previously only injuries/
+            # transactions/news were pruned, so finished matches that aged out of ESPN's
+            # scoreboard window kept their old "currently LIVE" doc in the index forever,
+            # and the RAG reported them as live (confirmed: Wolves vs Blackburn showed FT
+            # on the backend but the assistant still called it live). Pruning any
+            # live-match doc NOT regenerated this cycle deletes those stale docs. Every
+            # doc we WANT to keep (live matches, recently-finished still in the fetch
+            # window, and the per-league "next match" summaries) is regenerated every
+            # cycle and so is in all_docs / fresh_ids — only genuinely stale docs get
+            # removed. NOTE: prune runs BEFORE upload; fresh docs are written right after,
+            # so nothing current is lost. Do not reorder these two calls.
+            for _cat in ("live-match", "live-injury", "live-transaction", "live-news",):
                 _fresh = {d["id"] for d in all_docs if d.get("category") == _cat}
                 prune_stale("football", _cat, _fresh)
 
             upload_to_search(all_docs)
-            print(f"  Total: {len(all_docs)} documents uploaded. Next update in 30 seconds...")
+            print(f"  Total: {len(all_docs)} documents uploaded. Next update in 60 seconds...")
         except Exception as _cycle_err:
             print(f"  Cycle error: {_cycle_err}")
-        time.sleep(60)  # CHANGED: 30 -> 60s — gentler on ESPN; live scores once a minute is plenty
+        time.sleep(60)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,5 @@
 package org.Spring.fetcher;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.Spring.api.EspnHttpClient;
-import org.Spring.model.Match;
-import org.Spring.model.MatchEvent;
-import org.Spring.producer.EventHubProducer;
-import org.springframework.beans.factory.annotation.Value;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +8,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
+
+import org.Spring.api.EspnHttpClient;
+import org.Spring.model.Match;
+import org.Spring.model.MatchEvent;
+import org.Spring.producer.EventHubProducer;
+import org.springframework.beans.factory.annotation.Value;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class AbstractEspnFetcher {
 
@@ -115,9 +116,13 @@ public abstract class AbstractEspnFetcher {
             }
             List<MatchEvent> custom = detectCustomEvents(m, lastSnapshot.get(m.id()));
             newEvents.addAll(custom);
-            lastSnapshot.put(m.id(), m);
-
-            if (!newEvents.isEmpty()) {
+            Match previous = lastSnapshot.put(m.id(), m);
+            boolean firstTimeSeenLive = previous == null;
+            boolean scoreChanged = previous != null &&
+                    (!java.util.Objects.equals(previous.homeScore(), m.homeScore())
+                     || !java.util.Objects.equals(previous.awayScore(), m.awayScore())
+                     || !java.util.Objects.equals(previous.status(), m.status()));
+            if (!newEvents.isEmpty() || firstTimeSeenLive || scoreChanged) {
                 toPublish.add(m.withEvents(newEvents));
             }
         }
