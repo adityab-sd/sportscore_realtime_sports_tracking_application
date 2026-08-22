@@ -1,15 +1,17 @@
 """
-app.py — Flask API for the SportScore Knowledge Assistant
+app.py — Flask API for the SportScore Knowledge Assistant + Radio Mode
 """
 
 from flask import Flask, request, jsonify
 from search import search_corpus, search_live_corpus, search_fallback_anything, detect_date_range, search_live_by_date
-from prompts import build_prompt
+from prompts import build_prompt, build_radio_prompt
 from openai import AzureOpenAI
 from dotenv import load_dotenv
+import base64
 import os
 import re
 import time
+import requests
 from datetime import datetime
 
 load_dotenv()
@@ -38,6 +40,14 @@ DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
 CURRENT_YEAR = datetime.now().year  # used by fast_classify_question's year heuristic
 
+# ── Radio Mode / Azure Speech (text-to-speech) config ──────────────────────
+# Read lazily and treated as OPTIONAL: if these are unset, /ask keeps working
+# and /radio still returns its generated text, just with audioBase64 = null.
+AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
+AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
+AZURE_SPEECH_ENDPOINT = os.getenv("AZURE_SPEECH_ENDPOINT")  # optional full-URL override
+RADIO_VOICE = os.getenv("RADIO_VOICE", "en-US-AvaMultilingualNeural")
+
 # Words that reliably signal a definition/rules/bio question (always "knowledge"),
 # vs. words that reliably signal a current/right-now question (always "live").
 KNOWLEDGE_STARTERS = ("what is", "what's", "what are", "how does", "how do", "explain", "define", "who is", "who was", "how many",
@@ -48,7 +58,12 @@ KNOWLEDGE_SIGNALS = ("all-time", "all time", "record", "history of", "who holds"
 
 LIVE_SIGNALS = ("today", "tonight", "this week", "right now", "currently", "live score", "at the moment", "this season", "latest", 
                 "last race", "last game", "last match", "most recent", "standings", "current standing", "next", "now", "play next",
-                 "playing next", "playing", "live", "what is","what's","whats",
+                 "playing next", "playing", "live",
+                 # NOTE: "what is"/"what's" were REMOVED here — they were sending
+                 # almost every knowledge question ("what is offside", "what is
+                 # the pick and roll") to the LIVE path. Those belong to
+                 # KNOWLEDGE_STARTERS only; genuine live intent is carried by
+                 # "live"/"today"/"now"/"score" etc. still in this list.
                  # ADDED: fixture/match/upcoming words so "upcoming matches in basketball",
                  # "fixtures", "who scored", "next game", etc. route to the LIVE index (not the
                  # knowledge corpus). This was the bug: "upcoming" wasn't here, so basketball/
@@ -213,10 +228,36 @@ def get_context_and_meta(question, category):
         date_range = detect_date_range(question)
         if date_range:
             primary = search_live_by_date(question, date_range[0], date_range[1])
+            if not primary["found"]:
+                # Date filter missed (e.g. nothing dated exactly today, or a TZ
+                # boundary). Fall back to the RANKED LIVE snapshot — NOT the
+                # knowledge base — so we can still answer "nothing live now,
+                # here's the soonest/most-recent" instead of dumping rules text.
+                primary = search_live_corpus(question)
         else:
             primary = search_live_corpus(question)
         if primary["found"]:
             return primary["results"], primary["round_used"], "live_data"
+        # Live search found nothing. For a clearly match/live/fixture/score
+        # question, do NOT fall back to the rules knowledge base (that produced
+        # answers about "the context contains only standings"/rules). Return a
+        # clean synthetic note so the model plainly says nothing is live/upcoming.
+        _ql = question.lower()
+        _is_match_q = any(w in _ql for w in (
+            "live", "next", "upcoming", "fixture", "fixtures", "schedule", "score",
+            "scores", "result", "results", "kickoff", "playing", "match", "matches",
+            "game", "games", "race", "races", "who scored", "scorer", "happening", "won"))
+        if _is_match_q:
+            note = [{
+                "id": "no-live-data",
+                "title": "No live or upcoming matches",
+                "category": "live-match",
+                "content": ("There are currently no live or upcoming matches available "
+                            "in the live data for this query. No in-progress matches and "
+                            "no scheduled fixtures were found."),
+                "source": "",
+            }]
+            return note, "no-live-data", "live_data"
         secondary = search_corpus(question)
         if secondary["found"]:
             return secondary["results"], secondary["round_used"], "knowledge_base"
@@ -265,6 +306,13 @@ def ask():
     print(f"[TIMING] _generate_answer: {t3 - t2:.2f}s")
     print(f"[TIMING] TOTAL: {t3 - t0:.2f}s")
 
+    # Freshness disclaimer is appended HERE (deterministically), not left to the
+    # model — gpt-5-mini kept putting it FIRST. Only for live-data answers.
+    if source_type == "live_data" and answer:
+        _fresh = "This reflects the latest data available and may change as matches progress."
+        if "latest data available" not in answer.lower():
+            answer = answer.rstrip() + "\n\n" + _fresh
+
     return jsonify({
         "question": question,
         "answer": answer,
@@ -272,6 +320,110 @@ def ask():
         "round_used": round_used,
         "source_type": source_type,
         "sources": _relevant_sources(results, answer)
+    })
+
+
+# ── RADIO MODE ───────────────────────────────────────────
+# Pure text/data -> audio. This endpoint NEVER calls ESPN: the frontend sends
+# the match data it has already fetched (teams, venue, kickoff, score, plays),
+# we summarise it into spoken copy with the same Azure OpenAI client used above,
+# then synthesise speech with Azure Speech. So it can add zero ESPN load by
+# construction, which is the whole point of doing radio this way.
+
+RADIO_EMPHASIS_PHASES = ("live", "post")
+
+
+def _build_ssml(text, voice, emphasize=False):
+    """Wrap plain commentary text in minimal SSML. Escapes XML-special chars so
+    a stray & or < in a team/player name can't break the payload."""
+    escaped = (
+        text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+    )
+    body = f'<emphasis level="strong">{escaped}</emphasis>' if emphasize else escaped
+    return (
+        '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'
+        f'<voice name="{voice}"><prosody rate="1.0" pitch="0%">{body}</prosody></voice>'
+        '</speak>'
+    )
+
+
+def _speech_endpoint():
+    """Resolve the Azure Speech TTS endpoint from env, or None if unconfigured."""
+    if AZURE_SPEECH_ENDPOINT:
+        return AZURE_SPEECH_ENDPOINT.rstrip("/")
+    if AZURE_SPEECH_REGION:
+        return f"https://{AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
+    return None
+
+
+def _synthesize(text, voice, emphasize=False):
+    """Return (audio_bytes, content_type), or (None, None) when TTS is
+    unavailable or fails. Never raises — radio degrades to text-only."""
+    endpoint = _speech_endpoint()
+    if not AZURE_SPEECH_KEY or not endpoint:
+        app.logger.warning("[radio] Azure Speech not configured — returning text without audio.")
+        return None, None
+    try:
+        resp = requests.post(
+            endpoint,
+            data=_build_ssml(text, voice, emphasize).encode("utf-8"),
+            headers={
+                "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
+                "Content-Type": "application/ssml+xml",
+                # 24kHz mono mp3 — reasonable quality/latency tradeoff for spoken commentary.
+                "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+                "User-Agent": "SportScoreRadioMode",
+            },
+            timeout=15,
+        )
+        if resp.status_code // 100 != 2:
+            app.logger.error("[radio] Azure Speech failed: %s %s", resp.status_code, resp.text[:200])
+            return None, None
+        return resp.content, "audio/mpeg"
+    except Exception:
+        app.logger.exception("[radio] Azure Speech request failed")
+        return None, None
+
+
+@app.route("/radio", methods=["POST"])
+def radio():
+    t0 = time.time()
+    data = request.get_json(silent=True) or {}
+    phase = str(data.get("phase") or "").strip().lower()
+
+    if phase not in ("pre", "live", "post"):
+        return jsonify({"error": "phase must be one of: pre, live, post"}), 400
+
+    prompt = build_radio_prompt(phase, data)
+    try:
+        response = client.chat.completions.create(
+            model=DEPLOYMENT,
+            messages=[{"role": "user", "content": prompt}],
+            max_completion_tokens=400,
+            reasoning_effort="minimal",
+        )
+        text = (response.choices[0].message.content or "").strip()
+    except Exception:
+        app.logger.exception("[radio] summarize call failed")
+        return jsonify({"error": "Could not generate radio commentary."}), 502
+
+    if not text:
+        return jsonify({"error": "Empty commentary generated."}), 502
+
+    t1 = time.time()
+    audio, content_type = _synthesize(text, RADIO_VOICE, emphasize=phase in RADIO_EMPHASIS_PHASES)
+    t2 = time.time()
+    print(f"[TIMING] radio ({phase}): summarize {t1 - t0:.2f}s, tts {t2 - t1:.2f}s")
+
+    return jsonify({
+        "phase": phase,
+        "text": text,
+        "audioBase64": base64.b64encode(audio).decode("ascii") if audio else None,
+        "contentType": content_type,
+        "voice": RADIO_VOICE,
+        "ttsAvailable": audio is not None,
     })
 
 
