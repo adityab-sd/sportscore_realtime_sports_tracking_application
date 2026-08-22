@@ -39,7 +39,6 @@ LEAGUES = {
     "usa.1":             "MLS",
     "bra.1":             "Brazil Serie A",
     "arg.1":             "Argentina Primera",
-    "club.friendly":     "Club Friendly"
 }
 
 credential = AzureKeyCredential(SEARCH_API_KEY)
@@ -101,7 +100,6 @@ MAJOR_LEAGUES = {
     "fra.1": "Ligue 1",
     "usa.1": "MLS",
     "arg.1": "Argentina Primera",
-    "club.friendly": "Club Friendly"
 }
 
 
