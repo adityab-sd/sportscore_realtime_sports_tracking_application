@@ -33,6 +33,7 @@ import os
 os.environ["HF_HUB_VERBOSITY"] = "error"
 
 import re
+import time
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
@@ -81,7 +82,15 @@ EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 VECTOR_DISTANCE_THRESHOLD = 0.5
 
 _embedding_model = None
-_pg_connection = None
+_pg_pool = None
+
+# In-process TTL cache for the full live snapshot. The live index is fetched
+# with a single "*" query and ranked in Python; without this, EVERY live
+# question re-pulled up to 5000 docs from Azure. Cache it briefly so repeated
+# questions (many users, same match) share one fetch. Per-process (each gunicorn
+# worker keeps its own) — it only ever reduces Azure load, never affects results.
+_LIVE_CACHE_TTL_SECONDS = 45
+_live_snapshot_cache = {"ts": 0.0, "docs": None}
 
 BASKETBALL_KEYWORDS = {
     "basketball", "nba", "dribble", "three point", "three-point", "free throw", "rebound", "slam dunk", "pick and roll", "layup", 
@@ -151,14 +160,30 @@ def _get_embedding_model():
     return _embedding_model
 
 
-def _get_pg_connection():
-    """Reuses a single Postgres connection across requests, reconnecting
-    if it's ever closed (e.g. after a long idle period)."""
-    global _pg_connection
-    if _pg_connection is None or _pg_connection.closed:
-        _pg_connection = psycopg2.connect(**PG_CONFIG)
-        register_vector(_pg_connection)
-    return _pg_connection
+def _get_pg_pool():
+    """A small thread-safe connection pool. The previous single global
+    connection was shared across all requests, which is UNSAFE if gunicorn
+    runs threaded workers — concurrent /ask calls would race on one socket.
+    A pool hands each request its own connection and returns it afterwards."""
+    global _pg_pool
+    if _pg_pool is None:
+        from psycopg2 import pool as _pgpool
+        _pg_pool = _pgpool.ThreadedConnectionPool(1, 8, **PG_CONFIG)
+    return _pg_pool
+
+
+def _pg_checkout():
+    """Get a connection from the pool with the pgvector type registered."""
+    conn = _get_pg_pool().getconn()
+    register_vector(conn)  # ensures the 'vector' type caster on this connection
+    return conn
+
+
+def _pg_return(conn):
+    try:
+        _get_pg_pool().putconn(conn)
+    except Exception:
+        pass
 
 
 def _extract_keywords(question):
@@ -168,37 +193,35 @@ def _extract_keywords(question):
 
 
 def _detect_sport(question):
+    # CHANGED: was first-match-wins over UNORDERED sets, so a question touching
+    # two sports (or a colliding token) could pick a sport non-deterministically.
+    # Now count keyword hits per sport and pick the max, with a fixed priority
+    # tie-break — deterministic regardless of set iteration order.
     q_lower = question.lower()
-    tokens = set(re.findall(r"[a-z0-9\-]+", q_lower))  # CHANGED: include digits so "f1" is a token (was [a-z\-]+, which turned "f1" into "f" and broke F1 detection)
+    tokens = set(re.findall(r"[a-z0-9\-]+", q_lower))  # include digits so "f1" is a token
 
-    for kw in BASKETBALL_KEYWORDS:
-        if " " in kw:
-            if kw in q_lower:
-                return "basketball"
-        elif kw in tokens:
-            return "basketball"
+    def _count(keywords):
+        n = 0
+        for kw in keywords:
+            if " " in kw:
+                if kw in q_lower:
+                    n += 1
+            elif kw in tokens:
+                n += 1
+        return n
 
-    for kw in FOOTBALL_KEYWORDS:
-        if " " in kw:
-            if kw in q_lower:
-                return "football"
-        elif kw in tokens:
-            return "football"
-
-    for kw in BASEBALL_KEYWORDS:
-        if " " in kw:
-            if kw in q_lower:
-                return "baseball"
-        elif kw in tokens:
-            return "baseball"
-
-    for kw in F1_KEYWORDS:
-        if " " in kw:
-            if kw in q_lower:
-                return "f1"
-        elif kw in tokens:
-            return "f1"
-
+    counts = {
+        "football": _count(FOOTBALL_KEYWORDS),
+        "basketball": _count(BASKETBALL_KEYWORDS),
+        "baseball": _count(BASEBALL_KEYWORDS),
+        "f1": _count(F1_KEYWORDS),
+    }
+    top_score = max(counts.values())
+    if top_score == 0:
+        return None
+    for s in ("football", "basketball", "baseball", "f1"):  # fixed tie-break order
+        if counts[s] == top_score:
+            return s
     return None
 
 
@@ -264,27 +287,29 @@ def search_corpus(question, top=3):
     model = _get_embedding_model()
     query_embedding = model.encode(question)
 
-    conn = _get_pg_connection()
-    with conn.cursor() as cur:
-        if sport:
-            cur.execute("""
-                SELECT id, title, content, category, sport, metadata,
-                       embedding <=> %s AS distance
-                FROM sports_corpus
-                WHERE sport = %s
-                ORDER BY embedding <=> %s
-                LIMIT %s;
-            """, (query_embedding, sport, query_embedding, top))
-        else:
-            cur.execute("""
-                SELECT id, title, content, category, sport, metadata,
-                       embedding <=> %s AS distance
-                FROM sports_corpus
-                ORDER BY embedding <=> %s
-                LIMIT %s;
-            """, (query_embedding, query_embedding, top))
-
-        rows = cur.fetchall()
+    conn = _pg_checkout()
+    try:
+        with conn.cursor() as cur:
+            if sport:
+                cur.execute("""
+                    SELECT id, title, content, category, sport, metadata,
+                           embedding <=> %s AS distance
+                    FROM sports_corpus
+                    WHERE sport = %s
+                    ORDER BY embedding <=> %s
+                    LIMIT %s;
+                """, (query_embedding, sport, query_embedding, top))
+            else:
+                cur.execute("""
+                    SELECT id, title, content, category, sport, metadata,
+                           embedding <=> %s AS distance
+                    FROM sports_corpus
+                    ORDER BY embedding <=> %s
+                    LIMIT %s;
+                """, (query_embedding, query_embedding, top))
+            rows = cur.fetchall()
+    finally:
+        _pg_return(conn)
 
     relevant_rows = [r for r in rows if r[6] <= VECTOR_DISTANCE_THRESHOLD]
 
@@ -317,39 +342,70 @@ def _extract_match_date(content):
     return match.group(1) if match else ""
 
 
+def _get_all_live_docs():
+    """Fetch the full live snapshot, cached briefly in-process to avoid
+    re-pulling up to 5000 docs from Azure on every single live question."""
+    now = time.time()
+    cached = _live_snapshot_cache["docs"]
+    if cached is not None and (now - _live_snapshot_cache["ts"]) < _LIVE_CACHE_TTL_SECONDS:
+        return cached
+    docs = _search_index(LIVE_INDEX, "*", top=5000)
+    if docs:
+        _live_snapshot_cache["docs"] = docs
+        _live_snapshot_cache["ts"] = now
+        return docs
+    # keep last good snapshot on a transient empty fetch
+    return cached if cached is not None else []
+
+
+def _match_state(content):
+    """Classify a live doc as 'in' (live), 'post' (finished), 'pre'
+    (scheduled) or 'unknown', from the wording all four updaters emit:
+      live  -> 'currently LIVE' / 'is LIVE right now' / 'LIVE and in progress' / 'in progress'
+      post  -> 'has FINISHED' / 'Final score' / 'Top finishers' / 'Latest results' / 'recently completed'
+      pre   -> 'scheduled (upcoming)' / 'is upcoming' / 'next upcoming' / 'Kick-off:' / 'Tip-off:' / 'First pitch:'
+    This is what lets a 'score/now' question surface live matches first and
+    push far-future fixtures to the bottom."""
+    c = content.lower()
+    if ("currently live" in c or "live right now" in c or "live and in progress" in c
+            or "in progress" in c or "live now" in c):
+        return "in"
+    if ("has finished" in c or "final score" in c or "top finishers" in c
+            or "latest results" in c or "recently completed" in c or "most recently" in c):
+        return "post"
+    if ("scheduled (upcoming)" in c or "is upcoming" in c or "next upcoming" in c
+            or "scheduled for" in c or "kick-off:" in c or "tip-off:" in c
+            or "first pitch:" in c):
+        return "pre"
+    return "unknown"
+
+
 def search_live_corpus(question, top=6):
     """
-    Fetches ALL current documents from the shared live index (football +
-    basketball) and ranks them locally by relevance + recency, instead of
-    relying on Azure's keyword-based relevance search.
+    Ranks the live snapshot by (1) relevance to the question, (2) the match
+    STATE relative to what's being asked, then (3) date.
 
-    UNCHANGED by this migration — live match data stays on Azure/ESPN.
-
-    Relevance is scored only on "significant" words — the question's
-    words minus stopwords AND minus LIVE_NOISE_WORDS (generic sports terms
-    like "score", "match", "won" that appear in almost every document).
-    A minimum relevance threshold is enforced so a single coincidental
-    word overlap (e.g. "golden" in "Golden Boot" vs "Golden State
-    Valkyries") is not treated as a real match.
+    Fix for "what is the score..." returning fixtures weeks away: a
+    present-tense / score / now question now surfaces in-progress matches
+    first, then the most-recently finished, and pushes far-future scheduled
+    fixtures to the bottom — instead of the old date-descending default that
+    put the furthest-future fixture on top.
     """
-    all_results = _search_index(LIVE_INDEX, "*", top=5000)
+    all_results = _get_all_live_docs()
     if not all_results:
         return {"found": False, "round_used": None, "results": []}
 
     q_words = set(re.findall(r"[a-z']+", question.lower())) - STOPWORDS
     significant_words = q_words - LIVE_NOISE_WORDS
 
-    # ADDED: detect a specific league/competition named in the question so we can
-    # strongly prefer that league's docs. Fixes "Premier League" returning J-League
-    # and "Argentina" returning La Liga — sport filtering alone wasn't enough.
-    _q_for_league = question.lower()
+    _q = question.lower()
     _named_league = None
     for _lg in ("premier league", "la liga", "serie a", "bundesliga", "ligue 1",
                 "j-league", "j league", "argentina primera", "argentine primera",
                 "liga mx", "champions league", "europa league", "conference league",
                 "eredivisie", "primeira liga", "brazil serie a", "a-league", "mls",
                 "wnba", "nba", "mlb", "world cup"):
-        if _lg in _q_for_league:
+        if _lg in _q:
             _named_league = _lg
             break
 
@@ -357,7 +413,6 @@ def search_live_corpus(question, top=6):
         text = (r.get("title", "") + " " + r.get("content", "")).lower()
         text_words = set(re.findall(r"[a-z']+", text))
         base = len(significant_words & text_words)
-        # strong boost when the doc belongs to the exact league the user named
         if _named_league and _named_league in text:
             base += 5
         return base
@@ -366,69 +421,92 @@ def search_live_corpus(question, top=6):
     if detected_sport:
         all_results = [r for r in all_results if r.get("sport") == detected_sport]
 
-    # CHANGED: for match/fixture/score/race questions, drop news/injury/transaction
-    # docs from the candidates. Those carry TODAY's published date, which the
-    # "soonest-first" ranking otherwise treats as the nearest "upcoming" item —
-    # so F1/football news was outranking the actual upcoming races/fixtures.
-    _ql_cat = question.lower()
-    _wants_matches = any(w in _ql_cat for w in (
-        "upcoming", "next", "fixture", "fixtures", "schedule", "match", "matches",
-        "race", "races", "result", "results", "game", "games", "score", "scores",
-        "playing", "live", "standings", "table", "leading", "kickoff", "scorer"))
-    _wants_other = any(w in _ql_cat for w in (
+    # Category intent. Three distinct buckets so one never bleeds into another:
+    #   - standings/table/rank questions   -> ONLY standings docs
+    #   - news/injury/transfer questions   -> ONLY those docs
+    #   - live/next/score/fixture/result   -> ONLY match docs (this is the fix:
+    #     standings docs were leaking into match answers, so "is there a live
+    #     match / when's the next match" got answered with league tables).
+    _wants_standings = any(w in _q for w in (
+        "standing", "standings", "table", "rank", "ranking", "position",
+        "points", "leading", "leader", "top of"))
+    _wants_other = any(w in _q for w in (
         "news", "injury", "injuries", "transfer", "transaction", "signing", "headline"))
-    if _wants_matches and not _wants_other:
-        _match_only = [r for r in all_results
-                       if (r.get("category") or "") not in ("live-news", "live-injury", "live-transaction")]
-        if _match_only:
-            all_results = _match_only
-    # ADDED: mirror image — for news/injury/transfer questions, filter TO those
-    # categories so fixture/standings docs don't outrank the actual news. Fixes
-    # "latest football news" returning La Liga fixtures instead of news.
-    elif _wants_other and not _wants_matches:
+    _wants_match_events = any(w in _q for w in (
+        "live", "next", "upcoming", "fixture", "fixtures", "schedule", "scheduled",
+        "score", "scores", "result", "results", "kickoff", "playing", "match",
+        "matches", "game", "games", "race", "races", "when is", "who scored",
+        "scorer", "won", "happening"))
+
+    if _wants_standings and not _wants_match_events:
+        _only = [r for r in all_results if (r.get("category") or "") == "live-standings"]
+        if _only:
+            all_results = _only
+    elif _wants_other and not _wants_match_events and not _wants_standings:
         _cat_map = {
             "news": "live-news", "headline": "live-news",
             "injury": "live-injury", "injuries": "live-injury",
             "transfer": "live-transaction", "transaction": "live-transaction", "signing": "live-transaction",
         }
-        _want_cats = {_cat_map[w] for w in _cat_map if w in _ql_cat}
+        _want_cats = {_cat_map[w] for w in _cat_map if w in _q}
         if _want_cats:
-            _other_only = [r for r in all_results if (r.get("category") or "") in _want_cats]
-            if _other_only:
-                all_results = _other_only
+            _only = [r for r in all_results if (r.get("category") or "") in _want_cats]
+            if _only:
+                all_results = _only
+    elif _wants_match_events and not _wants_standings and not _wants_other:
+        # STRICT: match docs only (includes the "Next Match", "Live Now" and
+        # "Latest Results" summary docs, all of which are category live-match).
+        # If this empties the set, we intentionally let it — the caller then
+        # returns a clean "no live/upcoming matches" answer instead of standings.
+        all_results = [r for r in all_results if (r.get("category") or "") == "live-match"]
 
-    scored = [
-        (relevance(r), _extract_match_date(r.get("content", "")), r)
-        for r in all_results
-    ]
-    # CHANGED: order by query intent instead of always latest-first (the old
-    # reverse=True wrongly surfaced far-future fixtures like a Sep 16 La Liga game
-    # ahead of matches happening today). For "upcoming" we want the SOONEST future
-    # matches first; for "recent/latest" the most recent first; else keep the old
-    # most-recent-first default.
-    import datetime as _dt
-    _today_int = int(_dt.date.today().strftime("%Y%m%d"))
+    # Temporal intent.
+    _recent = any(w in _q for w in ("latest", "recent", "result", "results", "yesterday",
+                                    "finished", "most recent", "final score", "who won",
+                                    "last match", "last game", "last race"))
+    _upcoming = any(w in _q for w in ("upcoming", "next", "fixture", "fixtures", "schedule",
+                                      "scheduled", "coming up", "this week", "kickoff",
+                                      "tip-off", "first pitch"))
+    if _upcoming and not _recent:
+        intent = "upcoming"
+    elif _recent and not _upcoming:
+        intent = "recent"
+    elif _upcoming and _recent:
+        intent = "upcoming"
+    else:
+        intent = "live_now"  # score / live / now / currently / default
+
+    _today_int = int(datetime.utcnow().strftime("%Y%m%d"))
+
     def _di(d):
         return int(d.replace("-", "")) if d else 0
-    _ql = question.lower()
-    _upcoming = any(w in _ql for w in ("upcoming", "next", "fixture", "schedule", "coming up", "this week"))
-    _recent = any(w in _ql for w in ("latest", "recent", "result", "yesterday", "finished", "most recent"))
-    if _upcoming:
-        def _order(x):
-            di = _di(x[1]); future = di >= _today_int and di > 0
-            return (-x[0], 0 if future else 1, di if future else -di)
-        scored.sort(key=_order)
-    elif _recent:
-        scored.sort(key=lambda x: (-x[0], -_di(x[1])))
-    else:
-        scored.sort(key=lambda x: (-x[0], -_di(x[1])))
 
+    def sort_key(item):
+        rel, date_str, r = item
+        st = _match_state(r.get("content", ""))
+        di = _di(date_str)
+        if intent == "upcoming":
+            pri = {"pre": 0, "in": 1, "post": 2}.get(st, 3)
+            future = di >= _today_int and di > 0
+            return (-rel, pri, 0 if future else 1, di if future else -di)
+        if intent == "recent":
+            pri = {"post": 0, "in": 0, "pre": 1}.get(st, 1)
+            return (-rel, pri, -di)
+        # live_now
+        pri = {"in": 0, "post": 1, "pre": 2}.get(st, 3)
+        if st == "post":
+            tie = -di          # most recently finished first
+        elif st == "pre":
+            tie = di           # soonest upcoming first
+        else:
+            tie = 0
+        return (-rel, pri, tie)
+
+    scored = [(relevance(r), _extract_match_date(r.get("content", "")), r) for r in all_results]
+    scored.sort(key=sort_key)
+
+    # Relevance threshold — reject coincidental single-word overlaps.
     min_relevance = min(len(significant_words), 2) if significant_words else 0
-    # CHANGED: if the ONLY significant word is the sport's own name (e.g. "basketball",
-    # "baseball", "football", "f1"), it never appears literally in team-vs-team docs, so
-    # every doc scores 0 and the threshold would wrongly reject everything. When a sport
-    # was detected, treat sport-name-only queries as "no threshold" so the sorted docs
-    # (already filtered to that sport) are returned directly.
     _sport_name_words = {"basketball", "baseball", "football", "soccer", "f1", "formula",
                          "nba", "wnba", "mlb", "nfl", "race", "races"}
     if detected_sport and significant_words and significant_words.issubset(_sport_name_words):
@@ -437,31 +515,24 @@ def search_live_corpus(question, top=6):
     thresholded = [s for s in scored if min_relevance > 0 and s[0] >= min_relevance]
 
     if not thresholded:
-        # Nothing cleared the relevance bar — this happens when the only
-        # significant word left is the sport's own name (e.g. "football"),
-        # which never appears literally in team-vs-team match docs. If
-        # sport detection already succeeded, that's a strong enough signal
-        # on its own — fall back to the highest-scoring docs for that
-        # sport rather than returning nothing.
         if detected_sport and scored:
+            thresholded = scored[:top]
+        elif intent == "live_now" and scored:
+            # Bare "what's the score / anything live" with no sport named:
+            # show current live/finished matches across sports, not nothing.
             thresholded = scored[:top]
         else:
             return {"found": False, "round_used": None, "results": []}
 
-    scored = thresholded
-
-    top_results = [r for _, _, r in scored[:top]]
+    top_results = [r for _, _, r in thresholded[:top]]
 
     if not detected_sport and top_results:
         top_sport = top_results[0].get("sport")
         if top_sport:
             top_results = [r for r in top_results if r.get("sport") == top_sport]
 
-    return {
-        "found": True,
-        "round_used": 1,
-        "results": [_format_result(r) for r in top_results]
-    }
+    return {"found": True, "round_used": 1, "results": [_format_result(r) for r in top_results]}
+
 
 _DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
@@ -506,7 +577,7 @@ def search_live_by_date(question, date_from, date_to):
     entirely, since date-relative questions need a real date comparison,
     not word matching."""
     detected_sport = _detect_sport(question)
-    all_results = _search_index(LIVE_INDEX, "*", top=5000)
+    all_results = _get_all_live_docs()
     if detected_sport:
         all_results = [r for r in all_results if r.get("sport") == detected_sport]
 
@@ -534,27 +605,44 @@ def _format_result(r):
 
 def search_fallback_anything(top=3):
     """
-    Absolute last resort — grabs a handful of documents from ANY index
-    (both Azure knowledge bases + the live index) so the assistant always
-    has something to reason over, instead of returning zero context.
+    Absolute last resort — grabs a handful of knowledge documents so the
+    assistant always has *something* to reason over instead of returning
+    zero context.
 
-    NOTE: this still queries the OLD Azure knowledge indices
-    (football-index/basketball-index), which are now stale duplicates of
-    what's in Postgres, since only search_corpus() was migrated per your
-    request. Worth deciding later whether to point this at Postgres too
-    for full consistency — flagging rather than silently changing it.
+    CHANGED: now pulls from the Postgres `sports_corpus` (the live source of
+    truth for all four sports) instead of the OLD, stale Azure knowledge
+    indices (football-index/basketball-index), which were duplicates missing
+    baseball/F1 entirely. If Postgres is unreachable, falls back to a small
+    grab from the live index so we still return context.
     """
-    all_results = []
-    for index_name in INDICES + [LIVE_INDEX]:
+    try:
+        conn = _pg_checkout()
         try:
-            results = _search_index(index_name, "*", top=top)
-            all_results.extend(results)
-        except Exception:
-            continue
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, title, content, category, sport, metadata "
+                    "FROM sports_corpus LIMIT %s;", (top,))
+                rows = cur.fetchall()
+        finally:
+            _pg_return(conn)
+        results = [{
+            "id": r[0], "title": r[1], "category": r[3],
+            "content": r[2], "source": (r[5] or {}).get("source", "") or "",
+        } for r in rows]
+        if results:
+            return {"found": True, "round_used": "fallback", "results": results}
+    except Exception:
+        pass
+
+    # Postgres unreachable — last-ditch grab from the live index.
+    try:
+        live = _get_all_live_docs()[:top]
+    except Exception:
+        live = []
     return {
-        "found": bool(all_results),
+        "found": bool(live),
         "round_used": "fallback",
-        "results": [_format_result(r) for r in all_results[:top]]
+        "results": [_format_result(r) for r in live],
     }
 
 

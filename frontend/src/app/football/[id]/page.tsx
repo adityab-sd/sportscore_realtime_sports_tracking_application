@@ -13,6 +13,7 @@ import MatchSidebar from "@/components/football/MatchSidebar";
 import GameInfoCard from "@/components/football/GameInfoCard";
 import OddsCard from "@/components/football/OddsCard";
 import MatchPreview from "@/components/football/MatchPreview";
+import { MatchRadioBinder } from "@/hooks/useRadio";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function MatchPage({ params, searchParams }: Props) {
 
   return (
     <div style={{ width: "100%", maxWidth: 1600, margin: "0 auto", paddingTop: 24, paddingBottom: 40, paddingLeft: "clamp(12px,2vw,24px)", paddingRight: "clamp(12px,2vw,24px)" }}>
+      <MatchRadioBinder sport="football" league={league} initialDetail={match} />
       <Link href="/football" style={{ display: "inline-block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", textDecoration: "none", marginBottom: 20, padding: "6px 10px", borderRadius: 7, background: "var(--cloud)" }}>
         ← Football
       </Link>
